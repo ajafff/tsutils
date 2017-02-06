@@ -1,0 +1,129 @@
+{
+  "rulesDirectory": [
+    "./node_modules/tslint-consistent-codestyle/rules"
+  ],
+  "rules": {
+    "adjacent-overload-signatures": true,
+    "array-type": [
+      true,
+      "array-simple"
+    ],
+    "arrow-parens": true,
+    "class-name": true,
+    "comment-format": [true, "check-space"],
+    "eofline": true,
+    "forin": true,
+    "indent": [true, "spaces"],
+    "max-line-length": [true, 140],
+    "member-access": true,
+    "no-arg": true,
+    "no-conditional-assignment": true,
+    "no-consecutive-blank-lines": [
+      true,
+      1
+    ],
+    "no-console": [true,
+      "debug",
+      "info",
+      "time",
+      "timeEnd",
+      "trace"
+    ],
+    "no-construct": true,
+    "no-debugger": true,
+    "no-default-export": true,
+    "no-eval": true,
+    "no-invalid-this": true,
+    "no-inferrable-types": [
+      true,
+      "ignore-params"
+    ],
+    "no-require-imports": true,
+    "no-shadowed-variable": true,
+    "no-string-literal": true,
+    "no-trailing-whitespace": true,
+    "no-unused-expression": true,
+    "no-unused-new": true,
+    "no-use-before-declare": true,
+    "no-var-keyword": true,
+    "one-line": [true,
+      "check-open-brace",
+      "check-catch",
+      "check-else",
+      "check-finally",
+      "check-whitespace"
+    ],
+    "one-variable-per-declaration": [
+      true,
+      "ignore-for-loop"
+    ],
+    "only-arrow-functions": [
+      true,
+      "allow-declarations"
+    ],
+    "prefer-const": true,
+    "prefer-for-of": true,
+    "quotemark": [
+      true, 
+      "single"
+    ],
+    "radix": true,
+    "semicolon": [true, "always"],
+    "trailing-comma": [true, {
+      "singleline": "never",
+      "multiline": "always"
+    }],
+    "triple-equals": [true, "allow-null-check"],
+    "typedef-whitespace": [true, {
+      "call-signature": "nospace",
+      "index-signature": "nospace",
+      "parameter": "nospace",
+      "property-declaration": "nospace",
+      "variable-declaration": "nospace"
+    }],
+    "use-isnan": true,
+    "variable-name": [
+      true,
+      "ban-keywords"
+    ],
+    "whitespace": [true,
+      "check-branch",
+      "check-decl",
+      "check-operator",
+      "check-separator",
+      "check-type"
+    ],
+    /* custom rules */
+    "naming-convention": [
+      true,
+      {"type": "default", "format": "camelCase", "leadingUnderscore": "forbid", "trailingUnderscore": "forbid"},
+      {"type": "variable", "modifiers": ["global", "const"], "format": "UPPER_CASE"},
+      {"type": "parameter", "leadingUnderscore": "allow", "final": true},
+      {"type": "member", "modifiers": "private", "leadingUnderscore": "require"},
+      {"type": "member", "modifiers": "protected", "leadingUnderscore": "require"},
+      {"type": "property", "modifiers": ["public", "static", "const"], "format": "UPPER_CASE"},
+      {"type": "type", "format": "PascalCase"},
+      {"type": "class", "modifiers": "abstract", "prefix": "Abstract"},
+      {"type": "interface", "prefix": "I"},
+      {"type": "genericTypeParameter", "regex": "^[A-Z]$"},
+      {"type": "enumMember", "format": "PascalCase"}
+    ],
+    "no-as-type-assertion": true,
+    "no-collapsible-if": true,
+    "no-return-undefined": [
+      true,
+      "allow-void-expression"
+    ],
+    "no-unnecessary-else": true,
+    "no-var-before-return": true,
+    "object-shorthand-properties-first": true,
+    "parameter-properties": [
+      true,
+      "leading",
+      "member-access"
+    ],
+    "prefer-const-enum": true,
+    "prefer-static-method": true,
+    "prefer-while": true
+  }
+}

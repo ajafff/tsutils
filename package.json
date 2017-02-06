@@ -1,0 +1,35 @@
+{
+  "name": "tsutils",
+  "version": "1.0.0",
+  "description": "utilities for working with typescript's AST",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "scripts": {
+    "compile": "tsc -d -p .",
+    "lint": "tslint 'src/**/*.ts'",
+    "prepublish": "npm run compile"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ajafff/tsutils"
+  },
+  "keywords": [
+    "typescript",
+    "ts",
+    "ast",
+    "typeguard",
+    "utils",
+    "helper",
+    "node"
+  ],
+  "author": "Klaus Meinhardt",
+  "license": "MIT",
+  "devDependencies": {
+    "tslint": "^4.4.2",
+    "tslint-consistent-codestyle": "^0.2.1",
+    "typescript": "^2.1.5"
+  },
+  "peerDependencies": {
+    "typescript": "^2.0.0"
+  }
+}
