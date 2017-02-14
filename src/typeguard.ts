@@ -367,12 +367,24 @@ export function isSetAccessorDeclaration(node: ts.Node): node is ts.SetAccessorD
     return node.kind === ts.SyntaxKind.SetAccessor;
 }
 
+export function isShorthandPropertyAssignment(node: ts.Node): node is ts.ShorthandPropertyAssignment {
+    return node.kind === ts.SyntaxKind.ShorthandPropertyAssignment;
+}
+
 export function isSignatureDeclaration(node: ts.Node): node is ts.SignatureDeclaration {
     return (<any>node).parameters !== undefined;
 }
 
 export function isSourceFile(node: ts.Node): node is ts.SourceFile {
     return node.kind === ts.SyntaxKind.SourceFile;
+}
+
+export function isSpreadAssignment(node: ts.Node): node is ts.SpreadAssignment {
+    return node.kind === ts.SyntaxKind.SpreadAssignment;
+}
+
+export function isSpreadElement(node: ts.Node): node is ts.SpreadElement {
+    return node.kind === ts.SyntaxKind.SpreadElement;
 }
 
 export function isStringLiteral(node: ts.Node): node is ts.StringLiteral {
