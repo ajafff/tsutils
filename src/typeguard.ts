@@ -323,6 +323,10 @@ export function isOmittedExpression(node: ts.Node): node is ts.OmittedExpression
     return node.kind === ts.SyntaxKind.OmittedExpression;
 }
 
+export function isParameterDeclaration(node: ts.Node): node is ts.ParameterDeclaration {
+    return node.kind === ts.SyntaxKind.Parameter;
+}
+
 export function isParenthesizedExpression(node: ts.Node): node is ts.ParenthesizedExpression {
     return node.kind === ts.SyntaxKind.ParenthesizedExpression;
 }
