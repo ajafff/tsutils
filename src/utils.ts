@@ -1,9 +1,5 @@
 import * as ts from 'typescript';
-import {
-    isBlockLike,
-    isIfStatement,
-    isLiteralExpression,
-} from './typeguard';
+import {isBlockLike, isLiteralExpression} from './typeguard';
 
 export function getChildOfKind(node: ts.Node, kind: ts.SyntaxKind, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))
@@ -71,11 +67,6 @@ export function getPropertyName(propertyName: ts.PropertyName): string|undefined
     return propertyName.text;
 }
 
-export function isElseIf(node: ts.IfStatement): boolean {
-    const parent = node.parent!;
-    return isIfStatement(parent) && parent.elseStatement === node;
-}
-
 export function forEachDestructuringIdentifier<T>(pattern: ts.BindingPattern,
                                                   fn: (element: ts.BindingElement & {name: ts.Identifier}) => T): T|undefined {
     for (const element of pattern.elements) {
@@ -89,5 +80,106 @@ export function forEachDestructuringIdentifier<T>(pattern: ts.BindingPattern,
         }
         if (result !== undefined)
             return result;
+    }
+}
+
+export function forEachDeclaredVariable<T>(declarationList: ts.VariableDeclarationList,
+                                        cb: (element: ts.VariableLikeDeclaration & {name: ts.Identifier}) => T) {
+    for (const declaration of declarationList.declarations) {
+        let result: T|undefined;
+        if (declaration.name.kind === ts.SyntaxKind.Identifier) {
+            result = cb(<ts.VariableDeclaration & {name: ts.Identifier}>declaration);
+        } else {
+            result = forEachDestructuringIdentifier(declaration.name, cb);
+        }
+        if (result !== undefined)
+            return result;
+    }
+}
+
+export const enum VariableDeclarationKind {
+    Var,
+    Let,
+    Const,
+}
+
+export function getVariableDeclarationKind(declarationList: ts.VariableDeclarationList): VariableDeclarationKind {
+    if ((declarationList.flags & ts.NodeFlags.Let) !== 0)
+        return VariableDeclarationKind.Let;
+    if ((declarationList.flags & ts.NodeFlags.Const) !== 0)
+        return VariableDeclarationKind.Const;
+    return VariableDeclarationKind.Var;
+}
+
+export function isBlockScopedVariableDeclarationList(declarationList: ts.VariableDeclarationList): boolean {
+    return getVariableDeclarationKind(declarationList) !== VariableDeclarationKind.Var;
+}
+
+export function isBlockScopedVariableDeclaration(declaration: ts.VariableDeclaration): boolean {
+    return (<ts.SyntaxKind>declaration.parent!.kind) === ts.SyntaxKind.CatchClause ||
+        isBlockScopedVariableDeclarationList(declaration.parent!);
+}
+
+export const enum ScopeBoundary {
+    None,
+    Function,
+    Block,
+}
+export function isScopeBoundary(node: ts.Node): ScopeBoundary {
+    if (isFunctionScopeBoundary(node))
+        return ScopeBoundary.Function;
+    if (isBlockScopeBoundary(node))
+        return ScopeBoundary.Block;
+    return ScopeBoundary.None;
+}
+
+export function isFunctionScopeBoundary(node: ts.Node): boolean {
+    switch (node.kind) {
+        case ts.SyntaxKind.FunctionDeclaration:
+        case ts.SyntaxKind.FunctionExpression:
+        case ts.SyntaxKind.ArrowFunction:
+        case ts.SyntaxKind.MethodDeclaration:
+        case ts.SyntaxKind.Constructor:
+        case ts.SyntaxKind.GetAccessor:
+        case ts.SyntaxKind.SetAccessor:
+        case ts.SyntaxKind.ModuleDeclaration:
+        case ts.SyntaxKind.ClassDeclaration:
+        case ts.SyntaxKind.ClassExpression:
+        case ts.SyntaxKind.EnumDeclaration:
+            return true;
+        case ts.SyntaxKind.SourceFile:
+            // if SourceFile is no module, it contributes to the global scope and is therefore no scope boundary
+            return ts.isExternalModule(<ts.SourceFile>node);
+        default:
+            return false;
+    }
+}
+
+export function isBlockScopeBoundary(node: ts.Node): boolean {
+    if (node.parent !== undefined) {
+        switch (node.parent.kind) {
+            case ts.SyntaxKind.DoStatement:
+            case ts.SyntaxKind.WhileStatement:
+            case ts.SyntaxKind.IfStatement:
+            case ts.SyntaxKind.TryStatement:
+            case ts.SyntaxKind.WithStatement:
+                return true;
+        }
+    }
+    switch (node.kind) {
+        case ts.SyntaxKind.Block:
+            return node.parent!.kind !== ts.SyntaxKind.CatchClause &&
+                   // blocks in inside SourceFile are block scope boundaries
+                   (node.parent!.kind === ts.SyntaxKind.SourceFile ||
+                   // blocks that are direct children of a function scope boundary are no scope boundary
+                   // for example the FunctionBlock is part of the function scope of the containing function
+                    !isFunctionScopeBoundary(node.parent!));
+        case ts.SyntaxKind.ForStatement:
+        case ts.SyntaxKind.ForInStatement:
+        case ts.SyntaxKind.ForOfStatement:
+        case ts.SyntaxKind.CaseBlock:
+            return true;
+        default:
+            return false;
     }
 }
