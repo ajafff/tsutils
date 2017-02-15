@@ -78,13 +78,13 @@ export function forEachDestructuringIdentifier<T>(pattern: ts.BindingPattern,
         } else {
             result = forEachDestructuringIdentifier(element.name, fn);
         }
-        if (result !== undefined)
+        if (result)
             return result;
     }
 }
 
 export function forEachDeclaredVariable<T>(declarationList: ts.VariableDeclarationList,
-                                        cb: (element: ts.VariableLikeDeclaration & {name: ts.Identifier}) => T) {
+                                           cb: (element: ts.VariableLikeDeclaration & {name: ts.Identifier}) => T) {
     for (const declaration of declarationList.declarations) {
         let result: T|undefined;
         if (declaration.name.kind === ts.SyntaxKind.Identifier) {
@@ -92,7 +92,7 @@ export function forEachDeclaredVariable<T>(declarationList: ts.VariableDeclarati
         } else {
             result = forEachDestructuringIdentifier(declaration.name, cb);
         }
-        if (result !== undefined)
+        if (result)
             return result;
     }
 }
@@ -182,4 +182,116 @@ export function isBlockScopeBoundary(node: ts.Node): boolean {
         default:
             return false;
     }
+}
+
+/**
+ * Iterate over all tokens of `node`
+ *
+ * @description JsDoc comments are treated like regular comments and only visited if `skipTrivia` === false.
+ *
+ * @param node The node whose tokens should be visited
+ * @param cb Is called for every token contained in `node`
+ */
+export function forEachToken(node: ts.Node, cb: (node: ts.Node) => void, sourceFile: ts.SourceFile = node.getSourceFile()) {
+    return (function iterate(child: ts.Node): void {
+        if (isTokenKind(child.kind))
+            return cb(child); // tokens have no children -> no need to recurse deeper
+        /* Exclude everything contained in JsDoc, it will be handled with the other trivia anyway.
+         * When we would handle JsDoc tokens like regular ones, we would scan some trivia multiple times.
+         * Even worse, we would scan for trivia inside the JsDoc comment, which yields unexpected results.*/
+        if (child.kind !== ts.SyntaxKind.JSDocComment)
+            return child.getChildren(sourceFile).forEach(iterate);
+    })(node);
+}
+
+export type ForEachTokenCallback = (fullText: string, kind: ts.SyntaxKind, range: ts.TextRange, parent: ts.Node) => void;
+/**
+ * Iterate over all tokens and whitespace of `node`
+ *
+ * @description JsDoc comments are treated like regular comments and only visited if `skipTrivia` === false.
+ *
+ * @param node The node whose tokens should be visited
+ * @param cb Is called for every token contained in `node` and whitespace before the token
+ */
+export function forEachTokenWithWhitespace(node: ts.Node, cb: ForEachTokenCallback, sourceFile: ts.SourceFile = node.getSourceFile()) {
+    const fullText = sourceFile.text;
+    const notJsx = sourceFile.languageVariant !== ts.LanguageVariant.JSX;
+    const scanner = ts.createScanner(sourceFile.languageVersion, false, sourceFile.languageVariant, fullText);
+    return forEachToken(node, (token: ts.Node) => {
+        const tokenStart = token.getStart(sourceFile);
+        const end = token.end;
+        if (tokenStart !== token.pos && (notJsx || canHaveLeadingTrivia(token))) {
+            // we only have to handle trivia before each token. whitespace at the end of the file is followed by EndOfFileToken
+            scanner.setTextPos(token.pos);
+            let position: number;
+            // we only get here if token.getFullStart() !== token.getStart(), so we can scan at least one time
+            do {
+                const kind = scanner.scan();
+                position = scanner.getTextPos();
+                cb(fullText, kind, {pos: scanner.getTokenPos(), end: position}, token.parent!);
+            } while (position < tokenStart);
+        }
+        return cb(fullText, token.kind, {end, pos: tokenStart}, token.parent!);
+    }, sourceFile);
+}
+
+export type ForEachCommentCallback = (fullText: string, comment: ts.CommentRange) => void;
+
+/** Iterate over all comments owned by `node` or its children */
+export function forEachComment(node: ts.Node, cb: ForEachCommentCallback, sourceFile: ts.SourceFile = node.getSourceFile()) {
+    /* Visit all tokens and skip trivia.
+       Comment ranges between tokens are parsed without the need of a scanner.
+       forEachTokenWithWhitespace does intentionally not pay attention to the correct comment ownership of nodes as it always
+       scans all trivia before each token, which could include trailing comments of the previous token.
+       Comment onwership is done right in this function*/
+    const fullText = sourceFile.text;
+    const notJsx = sourceFile.languageVariant !== ts.LanguageVariant.JSX;
+    return forEachToken(node, (token) => {
+        if (notJsx || canHaveLeadingTrivia(token)) {
+            const comments = ts.getLeadingCommentRanges(fullText, token.pos);
+            if (comments !== undefined)
+                for (const comment of comments)
+                    cb(fullText, comment);
+        }
+        if (notJsx || canHaveTrailingTrivia(token)) {
+            const comments = ts.getTrailingCommentRanges(fullText, token.end);
+            if (comments !== undefined)
+                for (const comment of comments)
+                    cb(fullText, comment);
+        }
+    }, sourceFile);
+}
+
+/** Exclude leading positions that would lead to scanning for trivia inside JsxText */
+function canHaveLeadingTrivia({kind, parent}: ts.Node): boolean {
+    if (kind === ts.SyntaxKind.JsxText)
+        return false; // there is no trivia before JsxText
+    if (kind === ts.SyntaxKind.OpenBraceToken)
+        // before a JsxExpression inside a JsxElement's body can only be other JsxChild, but no trivia
+        return parent!.kind !== ts.SyntaxKind.JsxExpression || parent!.parent!.kind !== ts.SyntaxKind.JsxElement;
+    if (kind === ts.SyntaxKind.LessThanToken) {
+        if (parent!.parent!.kind === ts.SyntaxKind.JsxClosingElement)
+            return false; // would be inside the element body
+        if (parent!.kind === ts.SyntaxKind.JsxOpeningElement || parent!.kind === ts.SyntaxKind.JsxSelfClosingElement)
+            // there can only be leading trivia if we are at the end of the top level element
+            return parent!.parent!.parent!.kind !== ts.SyntaxKind.JsxElement;
+    }
+    return true;
+}
+
+/** Exclude trailing positions that would lead to scanning for trivia inside JsxText */
+function canHaveTrailingTrivia({kind, parent}: ts.Node): boolean {
+    if (kind === ts.SyntaxKind.JsxText)
+        return false; // there is no trivia after JsxText
+    if (kind === ts.SyntaxKind.CloseBraceToken)
+        // after a JsxExpression inside a JsxElement's body can only be other JsxChild, but no trivia
+        return parent!.kind !== ts.SyntaxKind.JsxExpression || parent!.parent!.kind !== ts.SyntaxKind.JsxElement;
+    if (kind === ts.SyntaxKind.GreaterThanToken) {
+        if (parent!.kind === ts.SyntaxKind.JsxOpeningElement)
+            return false; // would be inside the element
+        if (parent!.kind === ts.SyntaxKind.JsxClosingElement || parent!.kind === ts.SyntaxKind.JsxSelfClosingElement)
+            // there can only be trailing trivia if we are at the end of the top level element
+            return parent!.parent!.parent!.kind !== ts.SyntaxKind.JsxElement;
+    }
+    return true;
 }

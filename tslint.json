@@ -59,7 +59,7 @@
     ],
     "only-arrow-functions": [
       true,
-      "allow-declarations"
+      "allow-named-functions"
     ],
     "prefer-const": true,
     "prefer-for-of": true,
