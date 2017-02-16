@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import {isBlockLike, isLiteralExpression} from './typeguard';
+import { isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement } from './typeguard';
 
 export function getChildOfKind(node: ts.Node, kind: ts.SyntaxKind, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))
@@ -16,7 +16,7 @@ export function isAssignmentKind(kind: ts.SyntaxKind) {
     return kind >= ts.SyntaxKind.FirstAssignment && kind <= ts.SyntaxKind.LastAssignment;
 }
 
-export function hasModifier(modifiers: ts.Modifier[]|undefined, ...kinds: ts.SyntaxKind[]) {
+export function hasModifier(modifiers: ts.Modifier[] | undefined, ...kinds: ts.SyntaxKind[]) {
     if (modifiers === undefined)
         return false;
     for (const modifier of modifiers)
@@ -27,20 +27,20 @@ export function hasModifier(modifiers: ts.Modifier[]|undefined, ...kinds: ts.Syn
 
 export function isParameterProperty(node: ts.ParameterDeclaration) {
     return hasModifier(node.modifiers,
-                       ts.SyntaxKind.PublicKeyword,
-                       ts.SyntaxKind.ProtectedKeyword,
-                       ts.SyntaxKind.PrivateKeyword,
-                       ts.SyntaxKind.ReadonlyKeyword);
+        ts.SyntaxKind.PublicKeyword,
+        ts.SyntaxKind.ProtectedKeyword,
+        ts.SyntaxKind.PrivateKeyword,
+        ts.SyntaxKind.ReadonlyKeyword);
 }
 
-export function hasAccessModifier(node: ts.ClassElement|ts.ParameterDeclaration) {
+export function hasAccessModifier(node: ts.ClassElement | ts.ParameterDeclaration) {
     return hasModifier(node.modifiers,
-                       ts.SyntaxKind.PublicKeyword,
-                       ts.SyntaxKind.ProtectedKeyword,
-                       ts.SyntaxKind.PrivateKeyword);
+        ts.SyntaxKind.PublicKeyword,
+        ts.SyntaxKind.ProtectedKeyword,
+        ts.SyntaxKind.PrivateKeyword);
 }
 
-export function getPreviousStatement(statement: ts.Statement): ts.Statement|undefined {
+export function getPreviousStatement(statement: ts.Statement): ts.Statement | undefined {
     const parent = statement.parent!;
     if (isBlockLike(parent)) {
         const index = parent.statements.indexOf(statement);
@@ -49,7 +49,7 @@ export function getPreviousStatement(statement: ts.Statement): ts.Statement|unde
     }
 }
 
-export function getNextStatement(statement: ts.Statement): ts.Statement|undefined {
+export function getNextStatement(statement: ts.Statement): ts.Statement | undefined {
     const parent = statement.parent!;
     if (isBlockLike(parent)) {
         const index = parent.statements.indexOf(statement);
@@ -58,7 +58,7 @@ export function getNextStatement(statement: ts.Statement): ts.Statement|undefine
     }
 }
 
-export function getPropertyName(propertyName: ts.PropertyName): string|undefined {
+export function getPropertyName(propertyName: ts.PropertyName): string | undefined {
     if (propertyName.kind === ts.SyntaxKind.ComputedPropertyName) {
         if (!isLiteralExpression(propertyName.expression))
             return;
@@ -68,13 +68,13 @@ export function getPropertyName(propertyName: ts.PropertyName): string|undefined
 }
 
 export function forEachDestructuringIdentifier<T>(pattern: ts.BindingPattern,
-                                                  fn: (element: ts.BindingElement & {name: ts.Identifier}) => T): T|undefined {
+    fn: (element: ts.BindingElement & { name: ts.Identifier }) => T): T | undefined {
     for (const element of pattern.elements) {
         if (element.kind !== ts.SyntaxKind.BindingElement)
             continue;
-        let result: T|undefined;
+        let result: T | undefined;
         if (element.name.kind === ts.SyntaxKind.Identifier) {
-            result = fn(<ts.BindingElement & {name: ts.Identifier}>element);
+            result = fn(<ts.BindingElement & { name: ts.Identifier }>element);
         } else {
             result = forEachDestructuringIdentifier(element.name, fn);
         }
@@ -84,11 +84,11 @@ export function forEachDestructuringIdentifier<T>(pattern: ts.BindingPattern,
 }
 
 export function forEachDeclaredVariable<T>(declarationList: ts.VariableDeclarationList,
-                                           cb: (element: ts.VariableLikeDeclaration & {name: ts.Identifier}) => T) {
+    cb: (element: ts.VariableLikeDeclaration & { name: ts.Identifier }) => T) {
     for (const declaration of declarationList.declarations) {
-        let result: T|undefined;
+        let result: T | undefined;
         if (declaration.name.kind === ts.SyntaxKind.Identifier) {
-            result = cb(<ts.VariableDeclaration & {name: ts.Identifier}>declaration);
+            result = cb(<ts.VariableDeclaration & { name: ts.Identifier }>declaration);
         } else {
             result = forEachDestructuringIdentifier(declaration.name, cb);
         }
@@ -169,10 +169,10 @@ export function isBlockScopeBoundary(node: ts.Node): boolean {
     switch (node.kind) {
         case ts.SyntaxKind.Block:
             return node.parent!.kind !== ts.SyntaxKind.CatchClause &&
-                   // blocks in inside SourceFile are block scope boundaries
-                   (node.parent!.kind === ts.SyntaxKind.SourceFile ||
-                   // blocks that are direct children of a function scope boundary are no scope boundary
-                   // for example the FunctionBlock is part of the function scope of the containing function
+                // blocks in inside SourceFile are block scope boundaries
+                (node.parent!.kind === ts.SyntaxKind.SourceFile ||
+                    // blocks that are direct children of a function scope boundary are no scope boundary
+                    // for example the FunctionBlock is part of the function scope of the containing function
                     !isFunctionScopeBoundary(node.parent!));
         case ts.SyntaxKind.ForStatement:
         case ts.SyntaxKind.ForInStatement:
@@ -294,4 +294,65 @@ function canHaveTrailingTrivia({kind, parent}: ts.Node): boolean {
             return parent!.parent!.parent!.kind !== ts.SyntaxKind.JsxElement;
     }
     return true;
+}
+
+export function endsControlFlow(statement: ts.Statement | ts.BlockLike): boolean {
+    return getControlFlowEnd(statement) !== StatementType.None;
+}
+
+const enum StatementType {
+    None,
+    Break,
+    Other,
+}
+
+function getControlFlowEnd(statement: ts.Statement | ts.BlockLike): StatementType {
+    // recurse into nested blocks
+    while (isBlockLike(statement)) {
+        if (statement.statements.length === 0)
+            return StatementType.None;
+
+        statement = statement.statements[statement.statements.length - 1];
+    }
+
+    return hasReturnBreakContinueThrow(<ts.Statement>statement);
+}
+
+function hasReturnBreakContinueThrow(statement: ts.Statement): StatementType {
+    if (statement.kind === ts.SyntaxKind.ReturnStatement ||
+        statement.kind === ts.SyntaxKind.ContinueStatement ||
+        statement.kind === ts.SyntaxKind.ThrowStatement)
+        return StatementType.Other;
+    if (statement.kind === ts.SyntaxKind.BreakStatement)
+        return StatementType.Break;
+
+    if (isIfStatement(statement)) {
+        if (statement.elseStatement === undefined)
+            return StatementType.None;
+        const then = getControlFlowEnd(statement.thenStatement);
+        if (!then)
+            return then;
+        return Math.min(
+            then,
+            getControlFlowEnd(statement.elseStatement),
+        );
+    }
+
+    if (isSwitchStatement(statement)) {
+        let hasDefault = false;
+        let fallthrough = false;
+        for (const clause of statement.caseBlock.clauses) {
+            const retVal = getControlFlowEnd(clause);
+            if (retVal === StatementType.None) {
+                fallthrough = true;
+            } else if (retVal === StatementType.Break) {
+                return StatementType.None;
+            } else {
+                fallthrough = false;
+            }
+            hasDefault = hasDefault || clause.kind === ts.SyntaxKind.DefaultClause;
+        }
+        return !fallthrough && hasDefault ? StatementType.Other : StatementType.None;
+    }
+    return StatementType.None;
 }
