@@ -206,14 +206,14 @@ export function forEachToken(node: ts.Node, cb: (node: ts.Node) => void, sourceF
 
 export type ForEachTokenCallback = (fullText: string, kind: ts.SyntaxKind, range: ts.TextRange, parent: ts.Node) => void;
 /**
- * Iterate over all tokens and whitespace of `node`
+ * Iterate over all tokens and trivia of `node`
  *
- * @description JsDoc comments are treated like regular comments and only visited if `skipTrivia` === false.
+ * @description JsDoc comments are treated like regular comments
  *
  * @param node The node whose tokens should be visited
- * @param cb Is called for every token contained in `node` and whitespace before the token
+ * @param cb Is called for every token contained in `node` and trivia before the token
  */
-export function forEachTokenWithWhitespace(node: ts.Node, cb: ForEachTokenCallback, sourceFile: ts.SourceFile = node.getSourceFile()) {
+export function forEachTokenWithTrivia(node: ts.Node, cb: ForEachTokenCallback, sourceFile: ts.SourceFile = node.getSourceFile()) {
     const fullText = sourceFile.text;
     const notJsx = sourceFile.languageVariant !== ts.LanguageVariant.JSX;
     const scanner = ts.createScanner(sourceFile.languageVersion, false, sourceFile.languageVariant, fullText);
