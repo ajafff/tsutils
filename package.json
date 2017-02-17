@@ -1,6 +1,6 @@
 {
   "name": "tsutils",
-  "version": "1.0.0-rc0",
+  "version": "1.0.0",
   "description": "utilities for working with typescript's AST",
   "main": "src/index.js",
   "types": "src/index.d.ts",
@@ -30,6 +30,6 @@
     "typescript": "^2.1.5"
   },
   "peerDependencies": {
-    "typescript": "^2.0.0"
+    "typescript": ">=2.0.0"
   }
 }
