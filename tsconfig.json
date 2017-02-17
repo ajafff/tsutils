@@ -13,6 +13,7 @@
     "strictNullChecks": true,
     "stripInternal": true,
     "lib": ["es2015"],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "declaration": true
   }
 }

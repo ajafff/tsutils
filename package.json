@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "scripts": {
-    "compile": "tsc -d -p .",
+    "compile": "tsc -p .",
     "lint": "tslint 'src/**/*.ts'",
     "prepublish": "npm run compile"
   },
