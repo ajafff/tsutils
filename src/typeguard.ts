@@ -67,6 +67,10 @@ export function isCallSignatureDeclaration(node: ts.Node): node is ts.CallSignat
     return node.kind === ts.SyntaxKind.CallSignature;
 }
 
+export function isCaseBlock(node: ts.Node): node is ts.CaseBlock {
+    return node.kind === ts.SyntaxKind.CaseBlock;
+}
+
 export function isCaseClause(node: ts.Node): node is ts.CaseClause {
     return node.kind === ts.SyntaxKind.CaseClause;
 }
@@ -216,6 +220,19 @@ export function isIndexSignatureDeclaration(node: ts.Node): node is ts.IndexSign
 
 export function isInterfaceDeclaration(node: ts.Node): node is ts.InterfaceDeclaration {
     return node.kind === ts.SyntaxKind.InterfaceDeclaration;
+}
+
+export function isIterationStatement(node: ts.Node): node is ts.IterationStatement {
+    switch (node.kind) {
+        case ts.SyntaxKind.ForStatement:
+        case ts.SyntaxKind.ForOfStatement:
+        case ts.SyntaxKind.ForInStatement:
+        case ts.SyntaxKind.WhileStatement:
+        case ts.SyntaxKind.DoStatement:
+            return true;
+        default:
+            return false;
+    }
 }
 
 export function isJsxAttribute(node: ts.Node): node is ts.JsxAttribute {
