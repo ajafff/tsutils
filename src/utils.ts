@@ -156,28 +156,20 @@ export function isFunctionScopeBoundary(node: ts.Node): boolean {
 }
 
 export function isBlockScopeBoundary(node: ts.Node): boolean {
-    if (node.parent !== undefined) {
-        switch (node.parent.kind) {
-            case ts.SyntaxKind.DoStatement:
-            case ts.SyntaxKind.WhileStatement:
-            case ts.SyntaxKind.IfStatement:
-            case ts.SyntaxKind.TryStatement:
-            case ts.SyntaxKind.WithStatement:
-                return true;
-        }
-    }
     switch (node.kind) {
         case ts.SyntaxKind.Block:
-            return node.parent!.kind !== ts.SyntaxKind.CatchClause &&
-                // blocks in inside SourceFile are block scope boundaries
-                (node.parent!.kind === ts.SyntaxKind.SourceFile ||
+            const parent = node.parent!;
+            return parent.kind !== ts.SyntaxKind.CatchClause &&
+                   // blocks inside SourceFile are block scope boundaries
+                   (parent.kind === ts.SyntaxKind.SourceFile ||
                     // blocks that are direct children of a function scope boundary are no scope boundary
                     // for example the FunctionBlock is part of the function scope of the containing function
-                    !isFunctionScopeBoundary(node.parent!));
+                    !isFunctionScopeBoundary(parent));
         case ts.SyntaxKind.ForStatement:
         case ts.SyntaxKind.ForInStatement:
         case ts.SyntaxKind.ForOfStatement:
         case ts.SyntaxKind.CaseBlock:
+        case ts.SyntaxKind.CatchClause:
             return true;
         default:
             return false;
