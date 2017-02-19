@@ -1,9 +1,5 @@
 import * as ts from 'typescript';
 
-export function isAsExpression(node: ts.Node): node is ts.AsExpression {
-    return node.kind === ts.SyntaxKind.AsExpression;
-}
-
 export function isAccessorDeclaration(node: ts.Node): node is ts.AccessorDeclaration {
     return node.kind === ts.SyntaxKind.GetAccessor ||
         node.kind === ts.SyntaxKind.SetAccessor;
@@ -23,6 +19,15 @@ export function isArrayTypeNode(node: ts.Node): node is ts.ArrayTypeNode {
 
 export function isArrowFunction(node: ts.Node): node is ts.ArrowFunction {
     return node.kind === ts.SyntaxKind.ArrowFunction;
+}
+
+export function isAsExpression(node: ts.Node): node is ts.AsExpression {
+    return node.kind === ts.SyntaxKind.AsExpression;
+}
+
+export function isAssertionExpression(node: ts.Node): node is ts.AssertionExpression {
+    return node.kind === ts.SyntaxKind.AsExpression ||
+        node.kind === ts.SyntaxKind.TypeAssertionExpression;
 }
 
 export function isAwaitExpression(node: ts.Node): node is ts.AwaitExpression {
