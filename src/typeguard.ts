@@ -142,6 +142,10 @@ export function isElementAccessExpression(node: ts.Node): node is ts.ElementAcce
     return node.kind === ts.SyntaxKind.ElementAccessExpression;
 }
 
+export function isEmptyStatement(node: ts.Node): node is ts.EmptyStatement {
+    return node.kind === ts.SyntaxKind.EmptyStatement;
+}
+
 export function isEntityNameExpression(node: ts.Node): node is ts.EntityNameExpression {
     return node.kind === ts.SyntaxKind.Identifier ||
         isPropertyAccessExpression(node) && isEntityNameExpression(node.expression);
@@ -244,6 +248,11 @@ export function isJsxAttribute(node: ts.Node): node is ts.JsxAttribute {
     return node.kind === ts.SyntaxKind.JsxAttribute;
 }
 
+export function isJsxAttributeLike(node: ts.Node): node is ts.JsxAttributeLike {
+    return node.kind === ts.SyntaxKind.JsxAttribute ||
+        node.kind === ts.SyntaxKind.JsxSpreadAttribute;
+}
+
 export function isJsxClosingElement(node: ts.Node): node is ts.JsxClosingElement {
     return node.kind === ts.SyntaxKind.JsxClosingElement;
 }
@@ -258,6 +267,11 @@ export function isJsxExpression(node: ts.Node): node is ts.JsxExpression {
 
 export function isJsxOpeningElement(node: ts.Node): node is ts.JsxOpeningElement {
     return node.kind === ts.SyntaxKind.JsxOpeningElement;
+}
+
+export function isJsxOpeningLikeElement(node: ts.Node): node is ts.JsxOpeningLikeElement {
+    return node.kind === ts.SyntaxKind.JsxOpeningElement ||
+        node.kind === ts.SyntaxKind.JsxSelfClosingElement;
 }
 
 export function isJsxSelfClosingElement(node: ts.Node): node is ts.JsxSelfClosingElement {
@@ -323,6 +337,10 @@ export function isNamespaceExportDeclaration(node: ts.Node): node is ts.Namespac
 
 export function isNewExpression(node: ts.Node): node is ts.NewExpression {
     return node.kind === ts.SyntaxKind.NewExpression;
+}
+
+export function isNonNullExpression(node: ts.Node): node is ts.NonNullExpression {
+    return node.kind === ts.SyntaxKind.NonNullExpression;
 }
 
 export function isNoSubstitutionTemplateLiteral(node: ts.Node): node is ts.NoSubstitutionTemplateLiteral {
