@@ -12,6 +12,11 @@ export function isTokenKind(kind: ts.SyntaxKind) {
         kind === ts.SyntaxKind.JsxText; // for compatibility with typescript 2.0.10
 }
 
+export function isNodeKind(kind: ts.SyntaxKind) {
+    return kind >= ts.SyntaxKind.FirstNode &&
+        kind !== ts.SyntaxKind.JsxText; // for compatibility with typescript 2.0.10
+}
+
 export function isAssignmentKind(kind: ts.SyntaxKind) {
     return kind >= ts.SyntaxKind.FirstAssignment && kind <= ts.SyntaxKind.LastAssignment;
 }
@@ -216,6 +221,13 @@ export function isBlockScopeBoundary(node: ts.Node): boolean {
         default:
             return false;
     }
+}
+/** Returns true for scope boundaries that have their own `this` reference instead of inheriting it from the containing scope */
+export function hasOwnThisReference(node: ts.Node): boolean {
+    return node.kind === ts.SyntaxKind.FunctionDeclaration ||
+           node.kind === ts.SyntaxKind.FunctionExpression ||
+           node.kind === ts.SyntaxKind.ClassDeclaration ||
+           node.kind === ts.SyntaxKind.ClassExpression;
 }
 
 /**
