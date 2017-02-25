@@ -402,3 +402,20 @@ function hasReturnBreakContinueThrow(statement: ts.Statement): StatementType {
     }
     return StatementType.None;
 }
+
+export function getLineRanges(sourceFile: ts.SourceFile): ts.TextRange[] {
+    const lineStarts = sourceFile.getLineStarts();
+    const result: ts.TextRange[] = [];
+    const length = lineStarts.length;
+    for (let i = 1; i < length; ++i) {
+        result.push({
+            end: lineStarts[i],
+            pos: lineStarts[i - 1],
+        });
+    }
+    result.push({
+        end: sourceFile.end,
+        pos: lineStarts[length - 1],
+    });
+    return result;
+}
