@@ -439,6 +439,10 @@ export function isSwitchStatement(node: ts.Node): node is ts.SwitchStatement {
     return node.kind === ts.SyntaxKind.SwitchStatement;
 }
 
+export function isSyntaxList(node: ts.Node): node is ts.SyntaxList {
+    return node.kind === ts.SyntaxKind.SyntaxList;
+}
+
 export function isTaggedTemplateExpression(node: ts.Node): node is ts.TaggedTemplateExpression {
     return node.kind === ts.SyntaxKind.TaggedTemplateExpression;
 }
