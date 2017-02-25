@@ -58,6 +58,48 @@ export function getNextStatement(statement: ts.Statement): ts.Statement | undefi
     }
 }
 
+export function getPreviousToken(node: ts.Node, sourceFile?: ts.SourceFile) {
+    let parent = node.parent;
+    while (parent !== undefined && parent.pos === node.pos)
+        parent = parent.parent;
+    if (parent === undefined)
+        return;
+    return findPreviousInternal(parent, node.pos, sourceFile);
+}
+
+function findPreviousInternal(node: ts.Node, pos: number, sourceFile?: ts.SourceFile): ts.Node | undefined {
+    const children = node.getChildren(sourceFile);
+    for (let i = children.length - 1; i >= 0; --i) {
+        const child = children[i];
+        if (child.pos < pos && child.kind !== ts.SyntaxKind.JSDocComment) {
+            if (isTokenKind(child.kind))
+                return child;
+            // previous token is nested in another node
+            return findPreviousInternal(child, pos, sourceFile);
+        }
+    }
+}
+
+export function getNextToken(node: ts.Node, sourceFile?: ts.SourceFile) {
+    let parent = node.parent;
+    while (parent !== undefined && parent.end === node.end)
+        parent = parent.parent;
+    if (parent === undefined)
+        return;
+    return findNextInternal(parent, node.end, sourceFile);
+}
+
+function findNextInternal(node: ts.Node, end: number, sourceFile?: ts.SourceFile): ts.Node | undefined {
+    for (const child of node.getChildren(sourceFile)) {
+        if (child.end > end && child.kind !== ts.SyntaxKind.JSDocComment) {
+            if (isTokenKind(child.kind))
+                return child;
+            // next token is nested in another node
+            return findNextInternal(child, end, sourceFile);
+        }
+    }
+}
+
 export function getPropertyName(propertyName: ts.PropertyName): string | undefined {
     if (propertyName.kind === ts.SyntaxKind.ComputedPropertyName) {
         if (!isLiteralExpression(propertyName.expression))
