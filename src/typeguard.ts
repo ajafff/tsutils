@@ -155,6 +155,10 @@ export function isEnumDeclaration(node: ts.Node): node is ts.EnumDeclaration {
     return node.kind === ts.SyntaxKind.EnumDeclaration;
 }
 
+export function isEnumMember(node: ts.Node): node is ts.EnumMember {
+    return node.kind === ts.SyntaxKind.EnumMember;
+}
+
 export function isExportAssignment(node: ts.Node): node is ts.ExportAssignment {
     return node.kind === ts.SyntaxKind.ExportAssignment;
 }
