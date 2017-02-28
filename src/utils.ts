@@ -21,7 +21,7 @@ export function isAssignmentKind(kind: ts.SyntaxKind) {
     return kind >= ts.SyntaxKind.FirstAssignment && kind <= ts.SyntaxKind.LastAssignment;
 }
 
-export function hasModifier(modifiers: ts.Modifier[] | undefined, ...kinds: ts.SyntaxKind[]) {
+export function hasModifier(modifiers: ts.Modifier[] | undefined, ...kinds: Array<ts.Modifier['kind']>) {
     if (modifiers === undefined)
         return false;
     for (const modifier of modifiers)
