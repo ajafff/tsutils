@@ -21,6 +21,14 @@ export function isAssignmentKind(kind: ts.SyntaxKind) {
     return kind >= ts.SyntaxKind.FirstAssignment && kind <= ts.SyntaxKind.LastAssignment;
 }
 
+export function isTypeNodeKind(kind: ts.SyntaxKind) {
+    return kind >= ts.SyntaxKind.FirstTypeNode && kind <= ts.SyntaxKind.LastTypeNode;
+}
+
+export function isJsDocKind(kind: ts.SyntaxKind) {
+    return kind >= ts.SyntaxKind.FirstJSDocNode && kind <= ts.SyntaxKind.LastJSDocNode;
+}
+
 export function hasModifier(modifiers: ts.Modifier[] | undefined, ...kinds: Array<ts.Modifier['kind']>) {
     if (modifiers === undefined)
         return false;
