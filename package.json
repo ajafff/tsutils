@@ -1,6 +1,6 @@
 {
   "name": "tsutils",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "utilities for working with typescript's AST",
   "main": "src/index.js",
   "types": "src/index.d.ts",

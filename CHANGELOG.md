@@ -1,5 +1,9 @@
 # Change Log
 
+## v1.2.1
+**Bugfixes:**
+* Fix name of isNumericLiteral
+
 ## v1.2.0
 **Features:**
 * Typeguards:
