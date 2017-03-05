@@ -1,5 +1,15 @@
 # Change Log
 
+## v1.2.0
+**Features:**
+* Typeguards:
+  * isEnumMember
+  * isExpressionWithTypeArguments
+  * isImportSpecifier
+* Utilities:
+  * isJsDocKind, isTypeNodeKind
+* Allow typescript@next in peerDependencies
+
 ## v1.1.0
 **Bugfixes:**
 * Fix isBlockScopeBoundary: Remove WithStatement, IfStatment, DoStatement and WhileStatement because they are no scope boundary whitout a block.
