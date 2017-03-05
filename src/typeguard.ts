@@ -175,6 +175,10 @@ export function isExpressionStatement(node: ts.Node): node is ts.ExpressionState
     return node.kind === ts.SyntaxKind.ExpressionStatement;
 }
 
+export function isExpressionWithTypeArguments(node: ts.Node): node is ts.ExpressionWithTypeArguments {
+    return node.kind === ts.SyntaxKind.ExpressionWithTypeArguments;
+}
+
 export function isExternalModuleReference(node: ts.Node): node is ts.ExternalModuleReference {
     return node.kind === ts.SyntaxKind.ExternalModuleReference;
 }
@@ -225,6 +229,10 @@ export function isImportDeclaration(node: ts.Node): node is ts.ImportDeclaration
 
 export function isImportEqualsDeclaration(node: ts.Node): node is ts.ImportEqualsDeclaration {
     return node.kind === ts.SyntaxKind.ImportEqualsDeclaration;
+}
+
+export function isImportSpecifier(node: ts.Node): node is ts.ImportSpecifier {
+    return node.kind === ts.SyntaxKind.ImportSpecifier;
 }
 
 export function isIndexSignatureDeclaration(node: ts.Node): node is ts.IndexSignatureDeclaration {
