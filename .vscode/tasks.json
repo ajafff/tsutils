@@ -1,0 +1,21 @@
+{
+	// See http://go.microsoft.com/fwlink/?LinkId=733558
+	// for the documentation about the tasks.json format
+	"version": "0.1.0",
+	"isShellCommand": true,
+  "linux": { "command": "sh", "args": ["-c"] },
+  "osx": { "command": "sh", "args": ["-c"] },
+  "windows": { "command": "powershell", "args": ["-Command"] },
+	"showOutput": "silent",
+	"problemMatcher": "$tsc",
+	"tasks": [
+    {
+      "taskName": "build",
+      "args": ["npm run compile"],
+      "suppressTaskName": true,
+      "isBuildCommand": true,
+      "isTestCommand": false,
+		  "problemMatcher": "$tsc"
+    }
+  ]
+}
