@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.2.2
+**Bugfixes:**
+* hasOwnThisReference:
+  * exclude overload signatures of function declarations
+  * add method declarations on object literals
+
 ## v1.2.1
 **Bugfixes:**
 * Fix name of isNumericLiteral

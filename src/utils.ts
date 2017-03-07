@@ -232,16 +232,22 @@ export function isBlockScopeBoundary(node: ts.Node): boolean {
 }
 /** Returns true for scope boundaries that have their own `this` reference instead of inheriting it from the containing scope */
 export function hasOwnThisReference(node: ts.Node): boolean {
-    return node.kind === ts.SyntaxKind.FunctionDeclaration ||
-           node.kind === ts.SyntaxKind.FunctionExpression ||
-           node.kind === ts.SyntaxKind.ClassDeclaration ||
-           node.kind === ts.SyntaxKind.ClassExpression;
+    switch (node.kind) {
+        case ts.SyntaxKind.ClassDeclaration:
+        case ts.SyntaxKind.ClassExpression:
+        case ts.SyntaxKind.FunctionExpression:
+            return true;
+        case ts.SyntaxKind.FunctionDeclaration:
+            return (<ts.FunctionLikeDeclaration>node).body !== undefined;
+        case ts.SyntaxKind.MethodDeclaration:
+            return node.parent!.kind === ts.SyntaxKind.ObjectLiteralExpression;
+        default:
+            return false;
+    }
 }
 
 /**
  * Iterate over all tokens of `node`
- *
- * @description JsDoc comments are treated like regular comments and only visited if `skipTrivia` === false.
  *
  * @param node The node whose tokens should be visited
  * @param cb Is called for every token contained in `node`
