@@ -240,6 +240,8 @@ export function hasOwnThisReference(node: ts.Node): boolean {
         case ts.SyntaxKind.FunctionDeclaration:
             return (<ts.FunctionLikeDeclaration>node).body !== undefined;
         case ts.SyntaxKind.MethodDeclaration:
+        case ts.SyntaxKind.GetAccessor:
+        case ts.SyntaxKind.SetAccessor:
             return node.parent!.kind === ts.SyntaxKind.ObjectLiteralExpression;
         default:
             return false;
