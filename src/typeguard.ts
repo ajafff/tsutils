@@ -146,6 +146,10 @@ export function isEmptyStatement(node: ts.Node): node is ts.EmptyStatement {
     return node.kind === ts.SyntaxKind.EmptyStatement;
 }
 
+export function isEntityName(node: ts.Node): node is ts.EntityName {
+    return node.kind === ts.SyntaxKind.Identifier || isQualifiedName(node);
+}
+
 export function isEntityNameExpression(node: ts.Node): node is ts.EntityNameExpression {
     return node.kind === ts.SyntaxKind.Identifier ||
         isPropertyAccessExpression(node) && isEntityNameExpression(node.expression);
@@ -504,6 +508,10 @@ export function isTypeLiteralNode(node: ts.Node): node is ts.TypeLiteralNode {
 
 export function isTypeOfExpression(node: ts.Node): node is ts.TypeOfExpression {
     return node.kind === ts.SyntaxKind.TypeOfExpression;
+}
+
+export function isTypeParameterDeclaration(node: ts.Node): node is ts.TypeParameterDeclaration {
+    return node.kind === ts.SyntaxKind.TypeParameter;
 }
 
 export function isTypeReferenceNode(node: ts.Node): node is ts.TypeReferenceNode {
