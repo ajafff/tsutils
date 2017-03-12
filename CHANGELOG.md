@@ -1,5 +1,17 @@
 # Change Log
 
+## v1.3.0
+**Bugfixes:**
+* canHaveLeadingTrivia:
+  * Fix property access on undefined parent reference
+  * Fixes: https://github.com/palantir/tslint/issues/2330
+* hasOwnThisReference: now includes accessors on object literals
+
+**Features:**
+* Typeguards:
+  * isTypeParameterDeclaration
+  * isEnitityName
+
 ## v1.2.2
 **Bugfixes:**
 * hasOwnThisReference:
