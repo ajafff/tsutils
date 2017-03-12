@@ -326,25 +326,21 @@ export function forEachComment(node: ts.Node, cb: ForEachCommentCallback, source
 
 /** Exclude leading positions that would lead to scanning for trivia inside JsxText */
 function canHaveLeadingTrivia({kind, parent}: ts.Node): boolean {
-    if (kind === ts.SyntaxKind.JsxText)
-        return false; // there is no trivia before JsxText
     if (kind === ts.SyntaxKind.OpenBraceToken)
         // before a JsxExpression inside a JsxElement's body can only be other JsxChild, but no trivia
         return parent!.kind !== ts.SyntaxKind.JsxExpression || parent!.parent!.kind !== ts.SyntaxKind.JsxElement;
     if (kind === ts.SyntaxKind.LessThanToken) {
-        if (parent!.parent!.kind === ts.SyntaxKind.JsxClosingElement)
+        if (parent!.kind === ts.SyntaxKind.JsxClosingElement)
             return false; // would be inside the element body
         if (parent!.kind === ts.SyntaxKind.JsxOpeningElement || parent!.kind === ts.SyntaxKind.JsxSelfClosingElement)
             // there can only be leading trivia if we are at the end of the top level element
             return parent!.parent!.parent!.kind !== ts.SyntaxKind.JsxElement;
     }
-    return true;
+    return kind !== ts.SyntaxKind.JsxText; // there is no trivia before JsxText
 }
 
 /** Exclude trailing positions that would lead to scanning for trivia inside JsxText */
 function canHaveTrailingTrivia({kind, parent}: ts.Node): boolean {
-    if (kind === ts.SyntaxKind.JsxText)
-        return false; // there is no trivia after JsxText
     if (kind === ts.SyntaxKind.CloseBraceToken)
         // after a JsxExpression inside a JsxElement's body can only be other JsxChild, but no trivia
         return parent!.kind !== ts.SyntaxKind.JsxExpression || parent!.parent!.kind !== ts.SyntaxKind.JsxElement;
@@ -355,7 +351,7 @@ function canHaveTrailingTrivia({kind, parent}: ts.Node): boolean {
             // there can only be trailing trivia if we are at the end of the top level element
             return parent!.parent!.parent!.kind !== ts.SyntaxKind.JsxElement;
     }
-    return true;
+    return kind !== ts.SyntaxKind.JsxText; // there is no trivia after JsxText
 }
 
 export function endsControlFlow(statement: ts.Statement | ts.BlockLike): boolean {
