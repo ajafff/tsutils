@@ -105,7 +105,6 @@
       {"type": "property", "modifiers": ["public", "static", "const"], "format": "UPPER_CASE"},
       {"type": "type", "format": "PascalCase"},
       {"type": "class", "modifiers": "abstract", "prefix": "Abstract"},
-      {"type": "interface", "prefix": "I"},
       {"type": "genericTypeParameter", "regex": "^[A-Z]$"},
       {"type": "enumMember", "format": "PascalCase"}
     ],

@@ -415,19 +415,29 @@ function hasReturnBreakContinueThrow(statement: ts.Statement): StatementType {
     return StatementType.None;
 }
 
-export function getLineRanges(sourceFile: ts.SourceFile): ts.TextRange[] {
+export interface LineRange extends ts.TextRange {
+    contentLength: number;
+}
+
+export function getLineRanges(sourceFile: ts.SourceFile): LineRange[] {
     const lineStarts = sourceFile.getLineStarts();
-    const result: ts.TextRange[] = [];
+    const result: LineRange[] = [];
     const length = lineStarts.length;
+    const sourceText = sourceFile.text;
+    let pos = 0;
     for (let i = 1; i < length; ++i) {
+        const end = lineStarts[i];
         result.push({
-            end: lineStarts[i],
-            pos: lineStarts[i - 1],
+            pos,
+            end,
+            contentLength: end - pos - (sourceText[end - 2] === '\r' ? 2 : 1),
         });
+        pos = end;
     }
     result.push({
+        pos,
         end: sourceFile.end,
-        pos: lineStarts[length - 1],
+        contentLength: sourceFile.end - pos,
     });
     return result;
 }
