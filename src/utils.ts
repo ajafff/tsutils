@@ -122,8 +122,10 @@ export function getPropertyName(propertyName: ts.PropertyName): string | undefin
     return propertyName.text;
 }
 
-export function forEachDestructuringIdentifier<T>(pattern: ts.BindingPattern,
-    fn: (element: ts.BindingElement & { name: ts.Identifier }) => T): T | undefined {
+export function forEachDestructuringIdentifier<T>(
+    pattern: ts.BindingPattern,
+    fn: (element: ts.BindingElement & { name: ts.Identifier }) => T,
+): T | undefined {
     for (const element of pattern.elements) {
         if (element.kind !== ts.SyntaxKind.BindingElement)
             continue;
@@ -138,8 +140,10 @@ export function forEachDestructuringIdentifier<T>(pattern: ts.BindingPattern,
     }
 }
 
-export function forEachDeclaredVariable<T>(declarationList: ts.VariableDeclarationList,
-    cb: (element: ts.VariableLikeDeclaration & { name: ts.Identifier }) => T) {
+export function forEachDeclaredVariable<T>(
+    declarationList: ts.VariableDeclarationList,
+    cb: (element: ts.VariableLikeDeclaration & { name: ts.Identifier }) => T,
+) {
     for (const declaration of declarationList.declarations) {
         let result: T | undefined;
         if (declaration.name.kind === ts.SyntaxKind.Identifier) {

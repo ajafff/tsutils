@@ -4,11 +4,20 @@
   ],
   "rules": {
     "adjacent-overload-signatures": true,
+    "align": [
+      true,
+      "statements",
+      "parameters",
+      "arguments",
+      "elements",
+      "members"
+    ],
     "array-type": [
       true,
       "array-simple"
     ],
     "arrow-parens": true,
+    "arrow-return-shorthand": true,
     "class-name": true,
     "comment-format": [true, "check-space"],
     "eofline": true,
@@ -16,6 +25,7 @@
     "indent": [true, "spaces"],
     "max-line-length": [true, 140],
     "member-access": true,
+    "new-parens": true,
     "no-arg": true,
     "no-conditional-assignment": true,
     "no-consecutive-blank-lines": [
@@ -32,21 +42,24 @@
     "no-construct": true,
     "no-debugger": true,
     "no-default-export": true,
+    "no-empty-interface": true,
     "no-eval": true,
     "no-invalid-this": true,
     "no-inferrable-types": [
       true,
       "ignore-params"
     ],
+    "no-null-keyword": true,
     "no-require-imports": true,
     "no-shadowed-variable": true,
     "no-string-literal": true,
     "no-switch-case-fall-through": true,
     "no-trailing-whitespace": true,
+    "no-unnecessary-initializer": true,
+    "no-unsafe-finally": true,
     "no-unused-expression": true,
-    "no-unused-new": true,
-    "no-use-before-declare": true,
     "no-var-keyword": true,
+    "object-literal-shorthand": true,
     "one-line": [true,
       "check-open-brace",
       "check-catch",
@@ -64,12 +77,23 @@
     ],
     "prefer-const": true,
     "prefer-for-of": true,
+    "prefer-function-over-method": true,
     "quotemark": [
       true, 
       "single"
     ],
     "radix": true,
     "semicolon": [true, "always"],
+    "space-before-function-paren": [
+      true,
+      {
+        "anonymous": false,
+        "named": false,
+        "asyncArrow": true,
+        "method": false,
+        "constructor": false
+      }
+    ],
     "trailing-comma": [true, {
       "singleline": "never",
       "multiline": "always"
@@ -82,6 +106,7 @@
       "property-declaration": "nospace",
       "variable-declaration": "nospace"
     }],
+    "unified-signatures": true,
     "use-isnan": true,
     "variable-name": [
       true,
@@ -123,7 +148,6 @@
       "member-access"
     ],
     "prefer-const-enum": true,
-    "prefer-static-method": true,
     "prefer-while": true
   }
 }
