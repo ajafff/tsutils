@@ -445,3 +445,17 @@ export function getLineRanges(sourceFile: ts.SourceFile): LineRange[] {
     });
     return result;
 }
+
+let scanner: ts.Scanner | undefined;
+export function isValidIdentifier(text: string): boolean {
+    if (text.length === 0) {
+        return false;
+    }
+    if (scanner === undefined) {
+        // cache scanner
+        scanner = ts.createScanner(ts.ScriptTarget.Latest, false);
+    }
+    scanner.setText(text);
+    // check if we scanned to the end and if the scanned item was an identifier
+    return scanner.scan() === ts.SyntaxKind.Identifier && scanner.getTextPos() === text.length;
+}
