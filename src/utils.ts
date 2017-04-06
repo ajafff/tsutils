@@ -366,20 +366,15 @@ export function forEachComment(node: ts.Node, cb: ForEachCommentCallback, source
     return forEachToken(
         node,
         (token) => {
-            if (notJsx || canHaveLeadingTrivia(token)) {
-                const comments = ts.getLeadingCommentRanges(fullText, token.pos);
-                if (comments !== undefined)
-                    for (const comment of comments)
-                        cb(fullText, comment);
-            }
-            if (notJsx || canHaveTrailingTrivia(token)) {
-                const comments = ts.getTrailingCommentRanges(fullText, token.end);
-                if (comments !== undefined)
-                    for (const comment of comments)
-                        cb(fullText, comment);
-            }
+            if (notJsx || canHaveLeadingTrivia(token))
+                ts.forEachLeadingCommentRange(fullText, token.pos, commentCallback);
+            if (notJsx || canHaveTrailingTrivia(token))
+                return ts.forEachTrailingCommentRange(fullText, token.end, commentCallback);
         },
         sourceFile);
+    function commentCallback(pos: number, end: number, kind: ts.CommentRange['kind']) {
+        return cb(fullText, {pos, end, kind});
+    }
 }
 
 /** Exclude leading positions that would lead to scanning for trivia inside JsxText */
