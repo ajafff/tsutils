@@ -1,5 +1,9 @@
 # Change Log
 
+## v1.6.0
+**Features:**
+* Add `isValidPropertyAccess`, `isValidNumericLiteral` and `isValidPropertyName`
+
 ## v1.5.0
 **Features:**
 * Add `isValidIdentifier`
