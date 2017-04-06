@@ -8,13 +8,11 @@ export function getChildOfKind(node: ts.Node, kind: ts.SyntaxKind, sourceFile?: 
 }
 
 export function isTokenKind(kind: ts.SyntaxKind) {
-    return kind >= ts.SyntaxKind.FirstToken && kind <= ts.SyntaxKind.LastToken ||
-        kind === ts.SyntaxKind.JsxText; // for compatibility with typescript 2.0.10
+    return kind >= ts.SyntaxKind.FirstToken && kind <= ts.SyntaxKind.LastToken;
 }
 
 export function isNodeKind(kind: ts.SyntaxKind) {
-    return kind >= ts.SyntaxKind.FirstNode &&
-        kind !== ts.SyntaxKind.JsxText; // for compatibility with typescript 2.0.10
+    return kind >= ts.SyntaxKind.FirstNode;
 }
 
 export function isAssignmentKind(kind: ts.SyntaxKind) {
