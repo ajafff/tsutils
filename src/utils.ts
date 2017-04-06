@@ -447,12 +447,35 @@ export function getLineRanges(sourceFile: ts.SourceFile): LineRange[] {
 }
 
 let scanner: ts.Scanner | undefined;
-export function isValidIdentifier(text: string): boolean {
-    if (text.length === 0)
-        return false;
+function scanToken(text: string) {
     if (scanner === undefined) // cache scanner
         scanner = ts.createScanner(ts.ScriptTarget.Latest, false);
     scanner.setText(text);
-    // check if we scanned to the end and if the scanned item was an identifier
-    return scanner.scan() === ts.SyntaxKind.Identifier && scanner.getTextPos() === text.length;
+    scanner.scan();
+    return scanner;
+}
+
+export function isValidIdentifier(text: string): boolean {
+    const scan = scanToken(text);
+    return scan.isIdentifier() && scan.getTextPos() === text.length;
+}
+
+export function isValidPropertyAccess(text: string): boolean {
+    const scan = scanToken(text);
+    return scan.getTextPos() === text.length && (scan.isIdentifier() || scan.isReservedWord());
+}
+
+export function isValidPropertyName(text: string) {
+    const scan = scanToken(text);
+    return scan.getTextPos() === text.length &&
+        (
+            scan.isIdentifier() ||
+            scan.isReservedWord() ||
+            scan.getToken() === ts.SyntaxKind.NumericLiteral && scan.getTokenValue() === text // ensure stringified number equals literal
+        );
+}
+
+export function isValidNumericLiteral(text: string): boolean {
+    const scan = scanToken(text);
+    return scan.getToken() === ts.SyntaxKind.NumericLiteral && scan.getTextPos() === text.length;
 }
