@@ -383,11 +383,6 @@ export function isNumericLiteral(node: ts.Node): node is ts.NumericLiteral {
     return node.kind === ts.SyntaxKind.NumericLiteral;
 }
 
-/** @deprecated use isNumericLiteral instead */
-export function isNumericliteral(node: ts.Node): node is ts.NumericLiteral {
-    return isNumericLiteral(node);
-}
-
 export function isObjectBindingPattern(node: ts.Node): node is ts.ObjectBindingPattern {
     return node.kind === ts.SyntaxKind.ObjectBindingPattern;
 }
