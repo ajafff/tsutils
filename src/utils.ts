@@ -179,8 +179,9 @@ export function isBlockScopedVariableDeclarationList(declarationList: ts.Variabl
 }
 
 export function isBlockScopedVariableDeclaration(declaration: ts.VariableDeclaration): boolean {
-    return (<ts.SyntaxKind>declaration.parent!.kind) === ts.SyntaxKind.CatchClause ||
-        isBlockScopedVariableDeclarationList(declaration.parent!);
+    const parent = declaration.parent!;
+    return parent.kind === ts.SyntaxKind.CatchClause ||
+        isBlockScopedVariableDeclarationList(parent);
 }
 
 export const enum ScopeBoundary {
