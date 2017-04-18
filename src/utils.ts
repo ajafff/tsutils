@@ -265,6 +265,22 @@ export function hasOwnThisReference(node: ts.Node): boolean {
     }
 }
 
+export function isFunctionWithBody(node: ts.Node): node is ts.FunctionLikeDeclaration {
+    switch (node.kind) {
+        case ts.SyntaxKind.GetAccessor:
+        case ts.SyntaxKind.SetAccessor:
+        case ts.SyntaxKind.FunctionDeclaration:
+        case ts.SyntaxKind.MethodDeclaration:
+            return (<ts.FunctionLikeDeclaration>node).body !== undefined;
+        case ts.SyntaxKind.FunctionExpression:
+        case ts.SyntaxKind.Constructor:
+        case ts.SyntaxKind.ArrowFunction:
+            return true;
+        default:
+            return false;
+    }
+}
+
 /**
  * Iterate over all tokens of `node`
  *
