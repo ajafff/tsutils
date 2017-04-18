@@ -492,3 +492,8 @@ export function isValidNumericLiteral(text: string): boolean {
     const scan = scanToken(text);
     return scan.getToken() === ts.SyntaxKind.NumericLiteral && scan.getTextPos() === text.length;
 }
+
+export function isSameLine(sourceFile: ts.SourceFile, pos1: number, pos2: number) {
+    return ts.getLineAndCharacterOfPosition(sourceFile, pos1).line
+        === ts.getLineAndCharacterOfPosition(sourceFile, pos2).line;
+}
