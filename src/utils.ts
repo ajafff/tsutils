@@ -29,6 +29,10 @@ export function isJsDocKind(kind: ts.SyntaxKind) {
     return kind >= ts.SyntaxKind.FirstJSDocNode && kind <= ts.SyntaxKind.LastJSDocNode;
 }
 
+export function isThisParameter(parameter: ts.ParameterDeclaration): boolean {
+    return parameter.name.kind === ts.SyntaxKind.Identifier && parameter.name.originalKeywordKind === ts.SyntaxKind.ThisKeyword;
+}
+
 export function hasModifier(modifiers: ts.Modifier[] | undefined, ...kinds: Array<ts.Modifier['kind']>) {
     if (modifiers === undefined)
         return false;
