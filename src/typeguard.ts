@@ -247,6 +247,10 @@ export function isInterfaceDeclaration(node: ts.Node): node is ts.InterfaceDecla
     return node.kind === ts.SyntaxKind.InterfaceDeclaration;
 }
 
+export function isIntersectionTypeNode(node: ts.Node): node is ts.IntersectionTypeNode {
+    return node.kind === ts.SyntaxKind.IntersectionType;
+}
+
 export function isIterationStatement(node: ts.Node): node is ts.IterationStatement {
     switch (node.kind) {
         case ts.SyntaxKind.ForStatement:
@@ -510,12 +514,28 @@ export function isTypeOfExpression(node: ts.Node): node is ts.TypeOfExpression {
     return node.kind === ts.SyntaxKind.TypeOfExpression;
 }
 
+export function isTypeOperatorNode(node: ts.Node): node is ts.TypeOperatorNode {
+    return node.kind === ts.SyntaxKind.TypeOperator;
+}
+
 export function isTypeParameterDeclaration(node: ts.Node): node is ts.TypeParameterDeclaration {
     return node.kind === ts.SyntaxKind.TypeParameter;
 }
 
+export function isTypePredicateNode(node: ts.Node): node is ts.TypePredicateNode {
+    return node.kind === ts.SyntaxKind.TypePredicate;
+}
+
 export function isTypeReferenceNode(node: ts.Node): node is ts.TypeReferenceNode {
     return node.kind === ts.SyntaxKind.TypeReference;
+}
+
+export function isTypeQueryNode(node: ts.Node): node is ts.TypeQueryNode {
+    return node.kind === ts.SyntaxKind.TypeQuery;
+}
+
+export function isUnionTypeNode(node: ts.Node): node is ts.UnionTypeNode {
+    return node.kind === ts.SyntaxKind.UnionType;
 }
 
 export function isVariableDeclaration(node: ts.Node): node is ts.VariableDeclaration {
