@@ -273,6 +273,10 @@ export function isJsxAttributeLike(node: ts.Node): node is ts.JsxAttributeLike {
         node.kind === ts.SyntaxKind.JsxSpreadAttribute;
 }
 
+export function isJsxAttributes(node: ts.Node): node is ts.JsxAttributes {
+    return node.kind === ts.SyntaxKind.JsxAttributes;
+}
+
 export function isJsxClosingElement(node: ts.Node): node is ts.JsxClosingElement {
     return node.kind === ts.SyntaxKind.JsxClosingElement;
 }
