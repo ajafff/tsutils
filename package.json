@@ -30,6 +30,6 @@
     "typescript": "^2.3.0"
   },
   "peerDependencies": {
-    "typescript": ">=2.0.0 || >=2.0.0-dev || >=2.1.0-dev || >=2.2.0-dev || >=2.3.0-dev"
+    "typescript": ">=2.0.0 || >=2.0.0-dev || >=2.1.0-dev || >=2.2.0-dev || >=2.3.0-dev || >= 2.4.0-dev"
   }
 }
