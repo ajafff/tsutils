@@ -75,6 +75,7 @@ export function getNextStatement(statement: ts.Statement): ts.Statement | undefi
     }
 }
 
+/** Returns the token before the start of `node` or `undefined` if there is none. */
 export function getPreviousToken(node: ts.Node, sourceFile?: ts.SourceFile) {
     let parent = node.parent;
     while (parent !== undefined && parent.pos === node.pos)
@@ -97,12 +98,16 @@ function findPreviousInternal(node: ts.Node, pos: number, sourceFile?: ts.Source
     }
 }
 
+/** Returns the next token that begins after the end of `node`. Returns `undefined` for SourceFile and EndOfFileToken */
 export function getNextToken(node: ts.Node, sourceFile?: ts.SourceFile) {
-    let parent = node.parent;
-    while (parent !== undefined && parent.end === node.end)
-        parent = parent.parent;
-    if (parent === undefined)
+    if (node.kind === ts.SyntaxKind.SourceFile || node.kind === ts.SyntaxKind.EndOfFileToken)
         return;
+    let parent = node.parent!;
+    while (parent.end === node.end) {
+        if (parent.parent === undefined)
+            return (<ts.SourceFile>parent).endOfFileToken;
+        parent = parent.parent;
+    }
     return findNextInternal(parent, node.end, sourceFile);
 }
 
