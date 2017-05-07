@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import { isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement } from './typeguard';
+import { isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement } from '../typeguard/node';
 
 export function getChildOfKind(node: ts.Node, kind: ts.SyntaxKind, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))

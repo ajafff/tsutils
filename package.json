@@ -2,11 +2,9 @@
   "name": "tsutils",
   "version": "1.9.1",
   "description": "utilities for working with typescript's AST",
-  "main": "src/index.js",
-  "types": "src/index.d.ts",
   "scripts": {
     "compile": "tsc -p .",
-    "lint": "tslint 'src/**/*.ts'",
+    "lint": "tslint -p .",
     "prepublish": "npm run compile"
   },
   "repository": {
