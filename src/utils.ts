@@ -44,17 +44,30 @@ export function hasModifier(modifiers: ts.Modifier[] | undefined, ...kinds: Arra
 
 export function isParameterProperty(node: ts.ParameterDeclaration) {
     return hasModifier(node.modifiers,
-        ts.SyntaxKind.PublicKeyword,
-        ts.SyntaxKind.ProtectedKeyword,
-        ts.SyntaxKind.PrivateKeyword,
-        ts.SyntaxKind.ReadonlyKeyword);
+                       ts.SyntaxKind.PublicKeyword,
+                       ts.SyntaxKind.ProtectedKeyword,
+                       ts.SyntaxKind.PrivateKeyword,
+                       ts.SyntaxKind.ReadonlyKeyword);
 }
 
 export function hasAccessModifier(node: ts.ClassElement | ts.ParameterDeclaration) {
     return hasModifier(node.modifiers,
-        ts.SyntaxKind.PublicKeyword,
-        ts.SyntaxKind.ProtectedKeyword,
-        ts.SyntaxKind.PrivateKeyword);
+                       ts.SyntaxKind.PublicKeyword,
+                       ts.SyntaxKind.ProtectedKeyword,
+                       ts.SyntaxKind.PrivateKeyword);
+}
+
+function isFlagSet(obj: {flags: number}, flag: number) {
+    return (obj.flags & flag) !== 0;
+}
+
+export const isNodeFlagSet: (node: ts.Node, flag: ts.NodeFlags) => boolean = isFlagSet;
+export const isTypeFlagSet: (type: ts.Type, flag: ts.TypeFlags) => boolean = isFlagSet;
+export const isSymbolFlagSet: (symbol: ts.Symbol, flag: ts.SymbolFlags) => boolean = isFlagSet;
+export const isObjectFlagSet: (objectType: ts.ObjectType, flag: ts.ObjectFlags) => boolean = isFlagSet;
+
+export function isModfierFlagSet(node: ts.Node, flag: ts.ModifierFlags) {
+    return (ts.getCombinedModifierFlags(node) & flag) !== 0;
 }
 
 export function getPreviousStatement(statement: ts.Statement): ts.Statement | undefined {
