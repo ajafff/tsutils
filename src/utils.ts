@@ -434,12 +434,14 @@ function getControlFlowEnd(statement: ts.Statement | ts.BlockLike): StatementTyp
 }
 
 function hasReturnBreakContinueThrow(statement: ts.Statement): StatementType {
-    if (statement.kind === ts.SyntaxKind.ReturnStatement ||
-        statement.kind === ts.SyntaxKind.ContinueStatement ||
-        statement.kind === ts.SyntaxKind.ThrowStatement)
-        return StatementType.Other;
-    if (statement.kind === ts.SyntaxKind.BreakStatement)
-        return StatementType.Break;
+    switch (statement.kind) {
+        case ts.SyntaxKind.ReturnStatement:
+        case ts.SyntaxKind.ContinueStatement:
+        case ts.SyntaxKind.ThrowStatement:
+            return StatementType.Other;
+        case ts.SyntaxKind.BreakStatement:
+            return StatementType.Break;
+    }
 
     if (isIfStatement(statement)) {
         if (statement.elseStatement === undefined)
@@ -455,19 +457,15 @@ function hasReturnBreakContinueThrow(statement: ts.Statement): StatementType {
 
     if (isSwitchStatement(statement)) {
         let hasDefault = false;
-        let fallthrough = false;
+        let type = StatementType.None;
         for (const clause of statement.caseBlock.clauses) {
-            const retVal = getControlFlowEnd(clause);
-            if (retVal === StatementType.None) {
-                fallthrough = true;
-            } else if (retVal === StatementType.Break) {
+            type = getControlFlowEnd(clause);
+            if (type === StatementType.Break)
                 return StatementType.None;
-            } else {
-                fallthrough = false;
-            }
-            hasDefault = hasDefault || clause.kind === ts.SyntaxKind.DefaultClause;
+            if (clause.kind === ts.SyntaxKind.DefaultClause)
+                hasDefault = true;
         }
-        return !fallthrough && hasDefault ? StatementType.Other : StatementType.None;
+        return hasDefault && type !== StatementType.None /* check if last clause falls through*/ ? StatementType.Other : StatementType.None;
     }
     return StatementType.None;
 }
