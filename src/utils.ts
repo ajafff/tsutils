@@ -64,7 +64,10 @@ function isFlagSet(obj: {flags: number}, flag: number) {
 export const isNodeFlagSet: (node: ts.Node, flag: ts.NodeFlags) => boolean = isFlagSet;
 export const isTypeFlagSet: (type: ts.Type, flag: ts.TypeFlags) => boolean = isFlagSet;
 export const isSymbolFlagSet: (symbol: ts.Symbol, flag: ts.SymbolFlags) => boolean = isFlagSet;
-export const isObjectFlagSet: (objectType: ts.ObjectType, flag: ts.ObjectFlags) => boolean = isFlagSet;
+
+export function isObjectFlagSet(objectType: ts.ObjectType, flag: ts.ObjectFlags) {
+    return (objectType.objectFlags & flag) !== 0;
+}
 
 export function isModfierFlagSet(node: ts.Node, flag: ts.ModifierFlags) {
     return (ts.getCombinedModifierFlags(node) & flag) !== 0;

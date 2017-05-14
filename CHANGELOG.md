@@ -1,12 +1,16 @@
 # Change Log
 
+## v1.9.1
+**Bugfixes:**
+* `isObjectFlagSet` now uses the correct `objectFlags` property
+
 ## v1.9.0
 **Bugfixes:**
 * `getNextToken` no longer omits `EndOfFileToken` when there is no trivia before EOF. That means the only inputs where `getNextToken` returns `undefined` are `SourceFile` and `EndOfFileToken`
 
 **Features**:
 * Added typeguards for types
-* Added utilities for flag checking: `isNodeFlagSet`, `isTypeFlagSet`, `isSymbolFlagSet`,`isObjectFlagSet`, `isModifierFlagSet`,  
+* Added utilities for flag checking: `isNodeFlagSet`, `isTypeFlagSet`, `isSymbolFlagSet`,`isObjectFlagSet`, `isModifierFlagSet` 
 
 ## v1.8.0
 **Features:**
