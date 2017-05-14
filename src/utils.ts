@@ -317,22 +317,25 @@ export function forEachTokenWithTrivia(node: ts.Node, cb: ForEachTokenCallback, 
     const fullText = sourceFile.text;
     const notJsx = sourceFile.languageVariant !== ts.LanguageVariant.JSX;
     const scanner = ts.createScanner(sourceFile.languageVersion, false, sourceFile.languageVariant, fullText);
-    return forEachToken(node, (token: ts.Node) => {
-        const tokenStart = token.getStart(sourceFile);
-        const end = token.end;
-        if (tokenStart !== token.pos && (notJsx || canHaveLeadingTrivia(token))) {
-            // we only have to handle trivia before each token. whitespace at the end of the file is followed by EndOfFileToken
-            scanner.setTextPos(token.pos);
-            let position: number;
-            // we only get here if token.getFullStart() !== token.getStart(), so we can scan at least one time
-            do {
-                const kind = scanner.scan();
-                position = scanner.getTextPos();
-                cb(fullText, kind, {pos: scanner.getTokenPos(), end: position}, token.parent!);
-            } while (position < tokenStart);
-        }
-        return cb(fullText, token.kind, {end, pos: tokenStart}, token.parent!);
-    }, sourceFile);
+    return forEachToken(
+        node,
+        (token: ts.Node) => {
+            const tokenStart = token.getStart(sourceFile);
+            const end = token.end;
+            if (tokenStart !== token.pos && (notJsx || canHaveLeadingTrivia(token))) {
+                // we only have to handle trivia before each token. whitespace at the end of the file is followed by EndOfFileToken
+                scanner.setTextPos(token.pos);
+                let position: number;
+                // we only get here if token.getFullStart() !== token.getStart(), so we can scan at least one time
+                do {
+                    const kind = scanner.scan();
+                    position = scanner.getTextPos();
+                    cb(fullText, kind, {pos: scanner.getTokenPos(), end: position}, token.parent!);
+                } while (position < tokenStart);
+            }
+            return cb(fullText, token.kind, {end, pos: tokenStart}, token.parent!);
+        },
+        sourceFile);
 }
 
 export type ForEachCommentCallback = (fullText: string, comment: ts.CommentRange) => void;
@@ -346,20 +349,23 @@ export function forEachComment(node: ts.Node, cb: ForEachCommentCallback, source
        Comment onwership is done right in this function*/
     const fullText = sourceFile.text;
     const notJsx = sourceFile.languageVariant !== ts.LanguageVariant.JSX;
-    return forEachToken(node, (token) => {
-        if (notJsx || canHaveLeadingTrivia(token)) {
-            const comments = ts.getLeadingCommentRanges(fullText, token.pos);
-            if (comments !== undefined)
-                for (const comment of comments)
-                    cb(fullText, comment);
-        }
-        if (notJsx || canHaveTrailingTrivia(token)) {
-            const comments = ts.getTrailingCommentRanges(fullText, token.end);
-            if (comments !== undefined)
-                for (const comment of comments)
-                    cb(fullText, comment);
-        }
-    }, sourceFile);
+    return forEachToken(
+        node,
+        (token) => {
+            if (notJsx || canHaveLeadingTrivia(token)) {
+                const comments = ts.getLeadingCommentRanges(fullText, token.pos);
+                if (comments !== undefined)
+                    for (const comment of comments)
+                        cb(fullText, comment);
+            }
+            if (notJsx || canHaveTrailingTrivia(token)) {
+                const comments = ts.getTrailingCommentRanges(fullText, token.end);
+                if (comments !== undefined)
+                    for (const comment of comments)
+                        cb(fullText, comment);
+            }
+        },
+        sourceFile);
 }
 
 /** Exclude leading positions that would lead to scanning for trivia inside JsxText */
