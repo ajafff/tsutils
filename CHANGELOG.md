@@ -1,5 +1,15 @@
 # Change Log
 
+## v2.0.0
+**Breaking Changes:**
+* Dropped compatibility with `typescript@<2.1.0`
+* Removed misnamed `isNumericliteral`, use `isNumericLiteral` instead (notice the uppercase L)
+* Removed `isEnumLiteralType` which will cause compile errors with typescript@2.4.0
+* Refactored directory structure: all imports that referenced subdirectories (e.g. `require('tsutils/src/typeguard')` will be broken
+
+**Features:**
+* New directory structure allows imports of typeguards or utils independently, e.g. (`require('tsutils/typeguard')`)
+
 ## v1.9.1
 **Bugfixes:**
 * `isObjectFlagSet` now uses the correct `objectFlags` property
