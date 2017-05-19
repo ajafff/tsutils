@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import { isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement } from '../typeguard/node';
+import { isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration } from '../typeguard/node';
 
 export function getChildOfKind(node: ts.Node, kind: ts.SyntaxKind, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))
@@ -534,4 +534,135 @@ export function isValidNumericLiteral(text: string): boolean {
 export function isSameLine(sourceFile: ts.SourceFile, pos1: number, pos2: number) {
     return ts.getLineAndCharacterOfPosition(sourceFile, pos1).line
         === ts.getLineAndCharacterOfPosition(sourceFile, pos2).line;
+}
+
+export const enum SideEffectOptions {
+    None,
+    TaggedTemplate,
+    Constructor,
+    JsxElement,
+}
+
+export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions): boolean {
+    switch (node.kind) {
+        case ts.SyntaxKind.CallExpression:
+        case ts.SyntaxKind.PostfixUnaryExpression:
+        case ts.SyntaxKind.AwaitExpression:
+        case ts.SyntaxKind.YieldExpression:
+        case ts.SyntaxKind.DeleteExpression:
+        case ts.SyntaxKind.Decorator:
+            return true;
+        case ts.SyntaxKind.TypeAssertionExpression:
+        case ts.SyntaxKind.AsExpression:
+        case ts.SyntaxKind.ParenthesizedExpression:
+        case ts.SyntaxKind.NonNullExpression:
+        case ts.SyntaxKind.VoidExpression:
+        case ts.SyntaxKind.TypeOfExpression:
+        case ts.SyntaxKind.PropertyAccessExpression:
+        case ts.SyntaxKind.SpreadElement:
+            return hasSideEffects(
+                (<ts.AssertionExpression | ts.ParenthesizedExpression | ts.NonNullExpression | ts.VoidExpression | ts.TypeOfExpression |
+                  ts.PropertyAccessExpression | ts.SpreadElement>node).expression,
+                options,
+            );
+        case ts.SyntaxKind.BinaryExpression:
+            return isAssignmentKind((<ts.BinaryExpression>node).operatorToken.kind) ||
+                hasSideEffects((<ts.BinaryExpression>node).left, options) ||
+                hasSideEffects((<ts.BinaryExpression>node).right, options);
+        case ts.SyntaxKind.PrefixUnaryExpression:
+            switch ((<ts.PrefixUnaryExpression>node).operator) {
+                case ts.SyntaxKind.PlusPlusToken:
+                case ts.SyntaxKind.MinusMinusToken:
+                    return true;
+                default:
+                    return hasSideEffects((<ts.PrefixUnaryExpression>node).operand, options);
+            }
+        case ts.SyntaxKind.ElementAccessExpression:
+            return hasSideEffects((<ts.ElementAccessExpression>node).expression, options) ||
+                (<ts.ElementAccessExpression>node).argumentExpression !== undefined &&
+                hasSideEffects((<ts.ElementAccessExpression>node).argumentExpression!, options);
+        case ts.SyntaxKind.ConditionalExpression:
+            return hasSideEffects((<ts.ConditionalExpression>node).condition, options) ||
+                hasSideEffects((<ts.ConditionalExpression>node).whenTrue, options) ||
+                hasSideEffects((<ts.ConditionalExpression>node).whenFalse, options);
+        case ts.SyntaxKind.NewExpression:
+            if (options! & SideEffectOptions.Constructor || hasSideEffects((<ts.NewExpression>node).expression, options))
+                return true;
+            if ((<ts.NewExpression>node).arguments !== undefined)
+                for (const child of (<ts.NewExpression>node).arguments!)
+                    if (hasSideEffects(child, options))
+                        return true;
+            return false;
+        case ts.SyntaxKind.TaggedTemplateExpression:
+            if (options! & SideEffectOptions.TaggedTemplate || hasSideEffects((<ts.TaggedTemplateExpression>node).tag, options))
+                return true;
+            node = (<ts.TaggedTemplateExpression>node).template;
+            // falls through
+        case ts.SyntaxKind.TemplateExpression:
+            for (const child of (<ts.TemplateExpression>node).templateSpans)
+                if (hasSideEffects(child.expression, options))
+                    return true;
+            return false;
+        case ts.SyntaxKind.ClassExpression:
+            return classExpressionHasSideEffects(<ts.ClassExpression>node, options);
+        case ts.SyntaxKind.ArrayLiteralExpression:
+            for (const child of (<ts.ArrayLiteralExpression>node).elements)
+                if (hasSideEffects(child, options))
+                    return true;
+            return false;
+        case ts.SyntaxKind.ObjectLiteralExpression:
+            for (const child of (<ts.ObjectLiteralExpression>node).properties) {
+                if (child.name !== undefined && child.name.kind === ts.SyntaxKind.ComputedPropertyName &&
+                    hasSideEffects(child.name.expression, options))
+                    return true;
+                switch (child.kind) {
+                    case ts.SyntaxKind.PropertyAssignment:
+                        if (hasSideEffects(child.initializer, options))
+                            return true;
+                        break;
+                    case ts.SyntaxKind.SpreadAssignment:
+                        if (hasSideEffects(child.expression, options))
+                            return true;
+                        break;
+                }
+            }
+            return false;
+        case ts.SyntaxKind.JsxExpression:
+            return (<ts.JsxExpression>node).expression !== undefined && hasSideEffects((<ts.JsxExpression>node).expression!, options);
+        case ts.SyntaxKind.JsxElement:
+            for (const child of (<ts.JsxElement>node).children)
+                if (child.kind !== ts.SyntaxKind.JsxText && hasSideEffects(child, options))
+                    return true;
+            node = (<ts.JsxElement>node).openingElement;
+            // falls through
+        case ts.SyntaxKind.JsxSelfClosingElement:
+        case ts.SyntaxKind.JsxOpeningElement:
+            if (options! & SideEffectOptions.JsxElement)
+                return true;
+            for (const child of (<ts.JsxOpeningLikeElement>node).attributes.properties) {
+                if (child.kind === ts.SyntaxKind.JsxSpreadAttribute) {
+                    if (hasSideEffects(child.expression, options))
+                        return true;
+                } else if (child.initializer !== undefined && hasSideEffects(child.initializer, options)) {
+                    return true;
+                }
+            }
+            return false;
+        default:
+            return false;
+    }
+}
+
+function classExpressionHasSideEffects(node: ts.ClassExpression, options?: SideEffectOptions): boolean {
+    if (node.heritageClauses !== undefined && node.heritageClauses[0].token === ts.SyntaxKind.ExtendsKeyword)
+        for (const base of node.heritageClauses[0].types)
+            if (hasSideEffects(base.expression, options))
+                return true;
+    for (const child of node.members)
+        if (child.name !== undefined && child.name.kind === ts.SyntaxKind.ComputedPropertyName &&
+            hasSideEffects(child.name.expression, options) ||
+            isPropertyDeclaration(child) && child.initializer !== undefined &&
+            hasSideEffects(child.initializer, options))
+            return true;
+    return false;
 }
