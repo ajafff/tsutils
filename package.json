@@ -1,6 +1,6 @@
 {
   "name": "tsutils",
-  "version": "1.9.1",
+  "version": "2.0.0",
   "description": "utilities for working with typescript's AST",
   "scripts": {
     "compile": "tsc -p .",
