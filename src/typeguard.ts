@@ -580,10 +580,6 @@ export function isEnumType(type: ts.Type): type is ts.EnumType {
     return (type.flags & ts.TypeFlags.Enum) !== 0;
 }
 
-export function isEnumLiteralType(type: ts.Type): type is ts.EnumLiteralType {
-    return (type.flags & ts.TypeFlags.EnumLiteral) !== 0;
-}
-
 export function isGenericType(type: ts.Type): type is ts.GenericType {
     return (type.flags & ts.TypeFlags.Object) !== 0 &&
         ((<ts.ObjectType>type).objectFlags & ts.ObjectFlags.ClassOrInterface) !== 0 &&
