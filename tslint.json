@@ -1,6 +1,6 @@
 {
   "rulesDirectory": [
-    "./node_modules/tslint-consistent-codestyle/rules"
+    "tslint-consistent-codestyle"
   ],
   "rules": {
     "adjacent-overload-signatures": true,

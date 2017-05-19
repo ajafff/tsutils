@@ -3,9 +3,11 @@
   "version": "2.0.0",
   "description": "utilities for working with typescript's AST",
   "scripts": {
-    "compile": "rm -rf {,util,typeguard,src}/*.js; tsc -p .",
-    "lint": "tslint -p .",
-    "prepublish": "npm run compile"
+    "compile": "rm -rf {,util,typeguard,src,test}/*.js; tsc -p .",
+    "lint": "tslint -p ./tsconfig.json",
+    "test": "mocha test/*Tests.js",
+    "verify": "npm run compile && npm run lint && npm test",
+    "prepublish": "npm run verify"
   },
   "repository": {
     "type": "git",
@@ -23,6 +25,11 @@
   "author": "Klaus Meinhardt",
   "license": "MIT",
   "devDependencies": {
+    "@types/chai": "^3.5.2",
+    "@types/mocha": "^2.2.41",
+    "@types/node": "^7.0.18",
+    "chai": "^3.5.0",
+    "mocha": "^3.4.1",
     "tslint": "^5.2.0",
     "tslint-consistent-codestyle": "^1.2.0",
     "typescript": "^2.3.0"

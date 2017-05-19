@@ -2,3 +2,4 @@
 *.json
 *.ts
 !*.d.ts
+/test
