@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "description": "utilities for working with typescript's AST",
   "scripts": {
-    "compile": "tsc -p .",
+    "compile": "rm -rf {,util,typeguard,src}/*.js; tsc -p .",
     "lint": "tslint -p .",
     "prepublish": "npm run compile"
   },
