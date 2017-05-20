@@ -550,7 +550,6 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
         case ts.SyntaxKind.AwaitExpression:
         case ts.SyntaxKind.YieldExpression:
         case ts.SyntaxKind.DeleteExpression:
-        case ts.SyntaxKind.Decorator:
             return true;
         case ts.SyntaxKind.TypeAssertionExpression:
         case ts.SyntaxKind.AsExpression:
@@ -639,7 +638,7 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
         case ts.SyntaxKind.JsxOpeningElement:
             if (options! & SideEffectOptions.JsxElement)
                 return true;
-            for (const child of (<ts.JsxOpeningLikeElement>node).attributes.properties) {
+            for (const child of getJsxAttributes(<ts.JsxOpeningLikeElement>node)) {
                 if (child.kind === ts.SyntaxKind.JsxSpreadAttribute) {
                     if (hasSideEffects(child.expression, options))
                         return true;
@@ -651,6 +650,12 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
         default:
             return false;
     }
+}
+
+function getJsxAttributes(openElement: ts.JsxOpeningLikeElement): ts.JsxAttributeLike[] {
+    // for back-compat with typescript@<2.3
+    const attributes: ts.JsxAttributeLike[] | ts.JsxAttributes = openElement.attributes;
+    return Array.isArray(attributes) ? attributes : attributes.properties;
 }
 
 function classExpressionHasSideEffects(node: ts.ClassExpression, options?: SideEffectOptions): boolean {
