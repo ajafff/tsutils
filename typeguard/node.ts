@@ -175,6 +175,55 @@ export function isExportSpecifier(node: ts.Node): node is ts.ExportSpecifier {
     return node.kind === ts.SyntaxKind.ExportSpecifier;
 }
 
+export function isExpression(node: ts.Node): node is ts.Expression {
+    switch (node.kind) {
+        case ts.SyntaxKind.ArrayLiteralExpression:
+        case ts.SyntaxKind.ArrowFunction:
+        case ts.SyntaxKind.AsExpression:
+        case ts.SyntaxKind.AwaitExpression:
+        case ts.SyntaxKind.BinaryExpression:
+        case ts.SyntaxKind.CallExpression:
+        case ts.SyntaxKind.ClassExpression:
+        case ts.SyntaxKind.ConditionalExpression:
+        case ts.SyntaxKind.DeleteExpression:
+        case ts.SyntaxKind.ElementAccessExpression:
+        case ts.SyntaxKind.FalseKeyword:
+        case ts.SyntaxKind.FunctionExpression:
+        case ts.SyntaxKind.Identifier:
+        case ts.SyntaxKind.JsxElement:
+        case ts.SyntaxKind.JsxExpression:
+        case ts.SyntaxKind.JsxOpeningElement:
+        case ts.SyntaxKind.JsxSelfClosingElement:
+        case ts.SyntaxKind.MetaProperty:
+        case ts.SyntaxKind.NewExpression:
+        case ts.SyntaxKind.NonNullExpression:
+        case ts.SyntaxKind.NoSubstitutionTemplateLiteral:
+        case ts.SyntaxKind.NullKeyword:
+        case ts.SyntaxKind.NumericLiteral:
+        case ts.SyntaxKind.ObjectLiteralExpression:
+        case ts.SyntaxKind.OmittedExpression:
+        case ts.SyntaxKind.ParenthesizedExpression:
+        case ts.SyntaxKind.PostfixUnaryExpression:
+        case ts.SyntaxKind.PrefixUnaryExpression:
+        case ts.SyntaxKind.PropertyAccessExpression:
+        case ts.SyntaxKind.RegularExpressionLiteral:
+        case ts.SyntaxKind.SpreadElement:
+        case ts.SyntaxKind.StringLiteral:
+        case ts.SyntaxKind.SuperKeyword:
+        case ts.SyntaxKind.TaggedTemplateExpression:
+        case ts.SyntaxKind.TemplateExpression:
+        case ts.SyntaxKind.ThisKeyword:
+        case ts.SyntaxKind.TrueKeyword:
+        case ts.SyntaxKind.TypeAssertionExpression:
+        case ts.SyntaxKind.TypeOfExpression:
+        case ts.SyntaxKind.VoidExpression:
+        case ts.SyntaxKind.YieldExpression:
+            return true;
+        default:
+            return false;
+    }
+}
+
 export function isExpressionStatement(node: ts.Node): node is ts.ExpressionStatement {
     return node.kind === ts.SyntaxKind.ExpressionStatement;
 }

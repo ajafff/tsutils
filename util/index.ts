@@ -559,9 +559,10 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
         case ts.SyntaxKind.TypeOfExpression:
         case ts.SyntaxKind.PropertyAccessExpression:
         case ts.SyntaxKind.SpreadElement:
+        case ts.SyntaxKind.PartiallyEmittedExpression:
             return hasSideEffects(
                 (<ts.AssertionExpression | ts.ParenthesizedExpression | ts.NonNullExpression | ts.VoidExpression | ts.TypeOfExpression |
-                  ts.PropertyAccessExpression | ts.SpreadElement>node).expression,
+                  ts.PropertyAccessExpression | ts.SpreadElement | ts.PartiallyEmittedExpression>node).expression,
                 options,
             );
         case ts.SyntaxKind.BinaryExpression:
