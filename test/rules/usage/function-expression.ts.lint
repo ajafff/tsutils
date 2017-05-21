@@ -1,0 +1,51 @@
+export {};
+
+(function foo(bar: typeof foo){
+          ~~~ [Unused]
+    var foo: number;
+    return bar;
+})(1);
+
+(function foo(bar: typeof foo){
+    return bar;
+})();
+
+// Not 100% correct, but it's a compiler error anyway
+(function foo(bar = foo){
+    var foo = 1;
+        ~~~ [Unused]
+    return bar;
+})();
+
+(function foo(foo) {
+          ~~~ [Unused]
+    return foo;
+})();
+
+(function foo() {
+    return foo;
+})();
+
+(function foo() {
+          ~~~ [Unused]
+    var foo = 1;
+    return foo;
+})();
+
+let bar = 2;
+    ~~~ [Unused]
+{
+    let bar = 1;
+    (function foo() {
+              ~~~ [Unused]
+        return bar;
+    })();
+}
+
+{
+    var baz;
+}
+(function foo(bar = baz) {
+          ~~~ [Unused]
+    return bar;
+})();

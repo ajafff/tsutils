@@ -1,0 +1,38 @@
+let foo = 1, bar = 1, baz = 1, bas = 1, someOtherVar = 1;
+    ~~~ [Unused]
+                               ~~~ [Unused]
+                                        ~~~~~~~~~~~~ [Unused]
+namespace ns {
+    export let someOtherVar = 2;
+    enum Foo {
+         ~~~ [Unused]
+        foo,
+    }
+    enum Foo {
+         ~~~ [Unused]
+        bar = foo,
+    }
+}
+namespace ns {
+    enum Foo {
+         ~~~ [Unused]
+        baz = bar,
+    }
+}
+namespace ns {
+    export enum Foo {
+        bas = baz + someOtherVar,
+    }
+    export const enum Foo {
+        moar = bas,
+    }
+}
+namespace ns {
+    let moar = 1;
+        ~~~~ [Unused]
+    export enum Foo {
+        ajaff = moar,
+    }
+}
+
+export {ns};

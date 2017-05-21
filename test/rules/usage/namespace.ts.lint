@@ -1,0 +1,75 @@
+export {};
+namespace one {}
+class one {}
+let varOne: typeof one;
+    ~~~~~~ [Unused]
+
+interface three {}
+namespace ns {
+          ~~ [Unused]
+    namespace three {}
+              ~~~~~ [Unused]
+    let varThree: three;
+        ~~~~~~~~ [Unused]
+}
+
+interface four {}
+namespace four {}
+let varFour: four;
+    ~~~~~~~ [Unused]
+
+function foo1() {}
+         ~~~~ [Unused]
+function foo2() {}
+         ~~~~ [Unused]
+function foo3() {}
+namespace extended {
+          ~~~~~~~~ [Unused]
+    function foo1() {}
+    export function foo2() {}
+    export namespace nested {
+        foo1();
+        foo2();
+        export function foo3() {}
+    }
+    foo1();
+    foo2();
+}
+namespace extended.nested {
+          ~~~~~~~~ [Unused]
+    foo2();
+}
+namespace extended {
+          ~~~~~~~~ [Unused]
+    namespace nested {
+              ~~~~~~ [Unused]
+        foo3();
+    }
+}
+
+namespace T {
+    class T {
+          ~ [Unused]
+        static readonly V = class {}
+    }
+    export type V = any;
+
+    export let foo: T.V;
+}
+
+namespace T2 {
+    class T2 {
+          ~~ [Unused]
+        static readonly V = class {}
+    }
+    export let V;
+
+    export let foo: typeof T2.V;
+}
+
+let nested;
+    ~~~~~~ [Unused]
+namespace T3.nested {
+    export let T;
+    export let foo: T3.nested.T;
+}

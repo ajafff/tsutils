@@ -1,0 +1,5 @@
+export default foo;
+let foo, bar, baz;
+export {bar};
+export {baz as foo};
+export {bas};

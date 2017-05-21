@@ -1,0 +1,3 @@
+import foo, {bar, baz} from "foobar";
+                  ~~~ [Unused]
+export = foo[bar];

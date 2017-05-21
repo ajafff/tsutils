@@ -1,0 +1,38 @@
+export {};
+
+type T = any;
+     ~ [Unused]
+type U = any;
+     ~ [Unused]
+type V = any;
+     ~ [Unused]
+
+type Foo<T> = T;
+type Bar<T, U> = U;
+         ~ [Unused]
+type Baz<T, U extends T, V> = U | V;
+
+let foo: Foo<void>;
+    ~~~ [Unused]
+let bar: Bar<number, string>;
+    ~~~ [Unused]
+let baz: Baz<{}, object, number>;
+    ~~~ [Unused]
+
+class Test<T> {
+           ~ [Unused]
+    fn<T>():T {}
+    fn<S extends T, T>(): S {}
+}
+
+interface Extended<T, U = T> {
+    prop: U;
+}
+
+class Extending<T, U> extends Test<T> implements Extended<T> {}
+      ~~~~~~~~~ [Unused]
+                   ~ [Unused]
+
+class Base {}
+interface ExtendsBase extends Base {}
+          ~~~~~~~~~~~ [Unused]

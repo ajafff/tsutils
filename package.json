@@ -4,9 +4,9 @@
   "description": "utilities for working with typescript's AST",
   "scripts": {
     "compile": "rm -rf {,util,typeguard,test/**}/*.js; tsc -p .",
-    "lint": "tslint -p ./tsconfig.json",
+    "lint": "tslint -p . -e 'test/rules/*/*Rule.ts'",
     "lint:fix": "tslint --fix -p ./tsconfig.json",
-    "test": "mocha test/*Tests.js",
+    "test": "mocha test/*Tests.js; tslint --test test/rules/*/tslint.json",
     "verify": "npm run compile && npm run lint && npm run coverage",
     "prepublish": "npm run verify",
     "coverage": "rm -rf coverage .nyc_output && nyc npm test",
@@ -37,7 +37,7 @@
     "nyc": "^10.3.2",
     "tslint": "^5.4.0",
     "tslint-consistent-codestyle": "^1.4.0",
-    "typescript": "^2.3.0"
+    "typescript": "^2.3.4"
   },
   "peerDependencies": {
     "typescript": ">=2.1.0 || >=2.1.0-dev || >=2.2.0-dev || >=2.3.0-dev || >= 2.4.0-dev || >= 2.5.0-dev"

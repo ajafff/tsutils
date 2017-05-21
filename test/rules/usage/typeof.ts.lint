@@ -1,0 +1,14 @@
+let bar, baz, p1, p2, p3;
+    ~~~ [Unused]
+         ~~~ [Unused]
+              ~~ [Unused]
+                      ~~ [Unused]
+function fn(foo: typeof bar, bar: typeof baz, baz: typeof bas, p1 = p2, p2 = 2, p3 = 3, p4 = p3) {
+            ~~~ [Unused]
+                                                               ~~ [Unused]
+                                                                        ~~ [Unused]
+                                                                                        ~~ [Unused]          
+    let bas: boolean;
+}
+
+export {fn};
