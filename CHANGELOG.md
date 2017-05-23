@@ -1,5 +1,10 @@
 # Change Log
 
+## v2.1.0
+**Features:**
+* Added typeguard `isExpression`
+* Added utilities: `hasSideEffects`, `getDeclarationOfBindingElement`
+
 ## v2.0.0
 **Breaking Changes:**
 * Dropped compatibility with `typescript@<2.1.0`
