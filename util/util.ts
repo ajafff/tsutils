@@ -537,10 +537,10 @@ export function isSameLine(sourceFile: ts.SourceFile, pos1: number, pos2: number
 }
 
 export const enum SideEffectOptions {
-    None,
-    TaggedTemplate,
-    Constructor,
-    JsxElement,
+    None = 0,
+    TaggedTemplate = 1,
+    Constructor = 2,
+    JsxElement = 4,
 }
 
 export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions): boolean {
