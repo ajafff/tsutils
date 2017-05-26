@@ -129,6 +129,8 @@ export function getNextToken(node: ts.Node, sourceFile?: ts.SourceFile) {
 export function getTokenAtPosition(node: ts.Node, pos: number, sourceFile?: ts.SourceFile) {
     if (isTokenKind(node.kind))
         return pos < node.end ? node : undefined;
+    if (sourceFile === undefined)
+        sourceFile = node.getSourceFile();
     outer: while (true) {
         for (const child of node.getChildren(sourceFile)) {
             if (child.end >= pos && child.kind !== ts.SyntaxKind.JSDocComment) {
@@ -145,7 +147,7 @@ export function getTokenAtPosition(node: ts.Node, pos: number, sourceFile?: ts.S
 
 export function isPositionInComment(sourceFile: ts.SourceFile, pos: number, startNode: ts.Node = sourceFile): boolean {
     const token = getTokenAtPosition(startNode, pos, sourceFile);
-    if (token === undefined || pos >= token.end - ts.tokenToString(token.kind).length)
+    if (token === undefined || pos >= token.end - (ts.tokenToString(token.kind) || '').length)
         return false;
     const cb = (start: number, end: number) => pos >= start && pos < end;
     return token.pos !== 0 && ts.forEachTrailingCommentRange(sourceFile.text, token.pos, cb) ||
