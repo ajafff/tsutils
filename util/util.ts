@@ -125,15 +125,17 @@ export function getNextToken(node: ts.Node, sourceFile?: ts.SourceFile) {
     return getTokenAtPosition(parent, node.end + 1, sourceFile);
 }
 
-/** Returns the token at or following the specified position or undefined if none is found inside `parent`. */
-export function getTokenAtPosition(parent: ts.Node, pos: number, sourceFile?: ts.SourceFile) {
+/** Returns the token at or following the specified position or undefined if none is found inside `node`. */
+export function getTokenAtPosition(node: ts.Node, pos: number, sourceFile?: ts.SourceFile) {
+    if (isTokenKind(node.kind))
+        return pos < node.end ? node : undefined;
     outer: while (true) {
-        for (const child of parent.getChildren(sourceFile)) {
+        for (const child of node.getChildren(sourceFile)) {
             if (child.end >= pos && child.kind !== ts.SyntaxKind.JSDocComment) {
                 if (isTokenKind(child.kind))
                     return child;
                 // next token is nested in another node
-                parent = child;
+                node = child;
                 continue outer;
             }
         }
@@ -141,8 +143,8 @@ export function getTokenAtPosition(parent: ts.Node, pos: number, sourceFile?: ts
     }
 }
 
-export function isPositionInComment(sourceFile: ts.SourceFile, pos: number): boolean {
-    const token = getTokenAtPosition(sourceFile, pos, sourceFile);
+export function isPositionInComment(sourceFile: ts.SourceFile, pos: number, startNode: ts.Node = sourceFile): boolean {
+    const token = getTokenAtPosition(startNode, pos, sourceFile);
     if (token === undefined || pos >= token.end - ts.tokenToString(token.kind).length)
         return false;
     const cb = (start: number, end: number) => pos >= start && pos < end;
