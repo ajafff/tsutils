@@ -96,19 +96,19 @@ export function getPreviousToken(node: ts.Node, sourceFile?: ts.SourceFile) {
         parent = parent.parent;
     if (parent === undefined)
         return;
-    return findPreviousInternal(parent, node.pos, sourceFile);
-}
-
-function findPreviousInternal(node: ts.Node, pos: number, sourceFile?: ts.SourceFile): ts.Node | undefined {
-    const children = node.getChildren(sourceFile);
-    for (let i = children.length - 1; i >= 0; --i) {
-        const child = children[i];
-        if (child.pos < pos && child.kind !== ts.SyntaxKind.JSDocComment) {
-            if (isTokenKind(child.kind))
-                return child;
-            // previous token is nested in another node
-            return findPreviousInternal(child, pos, sourceFile);
+    outer: while (true) {
+        const children = parent.getChildren(sourceFile);
+        for (let i = children.length - 1; i >= 0; --i) {
+            const child = children[i];
+            if (child.pos < node.pos && child.kind !== ts.SyntaxKind.JSDocComment) {
+                if (isTokenKind(child.kind))
+                    return child;
+                // previous token is nested in another node
+                parent = child;
+                continue outer;
+            }
         }
+        return;
     }
 }
 
@@ -122,18 +122,32 @@ export function getNextToken(node: ts.Node, sourceFile?: ts.SourceFile) {
             return (<ts.SourceFile>parent).endOfFileToken;
         parent = parent.parent;
     }
-    return findNextInternal(parent, node.end, sourceFile);
+    return getTokenAtPosition(parent, node.end + 1, sourceFile);
 }
 
-function findNextInternal(node: ts.Node, end: number, sourceFile?: ts.SourceFile): ts.Node | undefined {
-    for (const child of node.getChildren(sourceFile)) {
-        if (child.end > end && child.kind !== ts.SyntaxKind.JSDocComment) {
-            if (isTokenKind(child.kind))
-                return child;
-            // next token is nested in another node
-            return findNextInternal(child, end, sourceFile);
+/** Returns the token at or following the specified position or undefined if none is found inside `parent`. */
+export function getTokenAtPosition(parent: ts.Node, pos: number, sourceFile?: ts.SourceFile) {
+    outer: while (true) {
+        for (const child of parent.getChildren(sourceFile)) {
+            if (child.end >= pos && child.kind !== ts.SyntaxKind.JSDocComment) {
+                if (isTokenKind(child.kind))
+                    return child;
+                // next token is nested in another node
+                parent = child;
+                continue outer;
+            }
         }
+        return;
     }
+}
+
+export function isPositionInComment(sourceFile: ts.SourceFile, pos: number): boolean {
+    const token = getTokenAtPosition(sourceFile, pos, sourceFile);
+    if (token === undefined || pos >= token.end - ts.tokenToString(token.kind).length)
+        return false;
+    const cb = (start: number, end: number) => pos >= start && pos < end;
+    return token.pos !== 0 && ts.forEachTrailingCommentRange(sourceFile.text, token.pos, cb) ||
+        ts.forEachLeadingCommentRange(sourceFile.text, token.pos, cb) === true;
 }
 
 export function getPropertyName(propertyName: ts.PropertyName): string | undefined {
