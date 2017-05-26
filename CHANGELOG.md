@@ -1,5 +1,12 @@
 # Change Log
 
+## v2.2.0
+**Bugfixes:**
+* Fixed bit value of `SideEffectOptions.JsxElement` to be a power of 2
+
+**Features:**
+* Added utilities: `getTokenAtPosition` and `isPositionInComment`
+
 ## v2.1.0
 **Features:**
 * Added typeguard `isExpression`
