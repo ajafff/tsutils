@@ -5,6 +5,7 @@
   "scripts": {
     "compile": "rm -rf {,util,typeguard,src,test}/*.js; tsc -p .",
     "lint": "tslint -p ./tsconfig.json",
+    "lint:fix": "tslint --fix -p ./tsconfig.json",
     "test": "mocha test/*Tests.js",
     "verify": "npm run compile && npm run lint && npm test",
     "prepublish": "npm run verify"
@@ -31,7 +32,7 @@
     "chai": "^3.5.0",
     "mocha": "^3.4.1",
     "tslint": "^5.2.0",
-    "tslint-consistent-codestyle": "^1.2.0",
+    "tslint-consistent-codestyle": "^1.4.0",
     "typescript": "^2.3.0"
   },
   "peerDependencies": {

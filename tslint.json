@@ -126,6 +126,12 @@
       "check-type"
     ],
     /* custom rules */
+    "ext-curly": [
+      true,
+      "else",
+      "nested-if-else",
+      "braced-child"
+    ],
     "naming-convention": [
       true,
       {"type": "default", "format": "camelCase", "leadingUnderscore": "forbid", "trailingUnderscore": "forbid"},

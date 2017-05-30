@@ -536,17 +536,15 @@ export function isValidIdentifier(text: string): boolean {
 export function isValidPropertyAccess(text: string): boolean {
     if (!ts.isIdentifierStart(text.charCodeAt(0), ts.ScriptTarget.Latest))
         return false;
-    for (let i = 1; i < text.length; ++i) {
+    for (let i = 1; i < text.length; ++i)
         if (!ts.isIdentifierPart(text.charCodeAt(i), ts.ScriptTarget.Latest))
             return false;
-    }
     return true;
 }
 
 export function isValidPropertyName(text: string) {
-    if (isValidPropertyAccess(text)) {
+    if (isValidPropertyAccess(text))
         return true;
-    }
     const scan = scanToken(text);
     return scan.getTextPos() === text.length &&
         scan.getToken() === ts.SyntaxKind.NumericLiteral && scan.getTokenValue() === text; // ensure stringified number equals literal
