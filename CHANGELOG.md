@@ -1,5 +1,13 @@
 # Change Log
 
+## v2.3.0
+**Bugfixes:**
+* `forEachComment` no longer omits some comments when callback returns a truthy value
+* `isPositionInComment` fixed false positive inside JSXText
+
+**Features:**
+* Added utility: `getCommentAtPosition`
+
 ## v2.2.0
 **Bugfixes:**
 * Fixed bit value of `SideEffectOptions.JsxElement` to be a power of 2
