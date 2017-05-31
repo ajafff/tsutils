@@ -11,7 +11,19 @@ export function findTestFiles(dir: string) {
 }
 
 export function getSourceFile(fileName: string) {
-    return ts.createSourceFile(fileName, fs.readFileSync(fileName, 'utf-8'), ts.ScriptTarget.ESNext, true);
+    return ts.createSourceFile(fileName, fs.readFileSync(fileName, 'utf-8'), ts.ScriptTarget.ESNext, true, fileNameToScriptKind(fileName));
+}
+
+function fileNameToScriptKind(fileName: string): ts.ScriptKind {
+    if (fileName.endsWith('.ts'))
+        return ts.ScriptKind.TS;
+    if (fileName.endsWith('.js'))
+        return ts.ScriptKind.JS;
+    if (fileName.endsWith('.tsx'))
+        return ts.ScriptKind.TSX;
+    if (fileName.endsWith('.jsx'))
+        return ts.ScriptKind.JSX;
+    return ts.ScriptKind.Unknown;
 }
 
 export function getFirstToken(sourceFile: ts.SourceFile) {

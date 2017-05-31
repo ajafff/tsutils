@@ -152,14 +152,28 @@ function getTokenAtPositionWorker(node: ts.Node, pos: number, sourceFile: ts.Sou
     }
 }
 
-/** Returns whether the specified position is inside a comment within `parent` (if specified, `sourceFile` otherwise). */
-export function isPositionInComment(sourceFile: ts.SourceFile, pos: number, parent: ts.Node = sourceFile): boolean {
+/**
+ * Return the comment at the specified position.
+ * You can pass an optional `parent` to avoid some work finding the corresponding token starting at `sourceFile`.
+ * If the `parent` parameter is passed, `pos` must be between `parent.pos` and `parent.end`.
+*/
+export function getCommentAtPosition(sourceFile: ts.SourceFile, pos: number, parent: ts.Node = sourceFile): ts.CommentRange | undefined {
     const token = getTokenAtPosition(parent, pos, sourceFile);
-    if (token === undefined || pos >= token.end - (ts.tokenToString(token.kind) || '').length)
-        return false;
-    const cb = (start: number, end: number) => pos >= start && pos < end;
-    return token.pos !== 0 && ts.forEachTrailingCommentRange(sourceFile.text, token.pos, cb) ||
-        ts.forEachLeadingCommentRange(sourceFile.text, token.pos, cb) === true;
+    if (token === undefined || token.kind === ts.SyntaxKind.JsxText || pos >= token.end - (ts.tokenToString(token.kind) || '').length)
+        return;
+    const cb = (start: number, end: number, kind: ts.CommentKind): ts.CommentRange | undefined => pos >= start && pos < end
+        ? {end, kind, pos: start} : undefined;
+    return  token.pos !== 0 && ts.forEachTrailingCommentRange(sourceFile.text, token.pos, cb) ||
+        ts.forEachLeadingCommentRange(sourceFile.text, token.pos, cb);
+}
+
+/**
+ * Returns whether the specified position is inside a comment.
+ * You can pass an optional `parent` to avoid some work finding the corresponding token starting at `sourceFile`.
+ * If the `parent` parameter is passed, `pos` must be between `parent.pos` and `parent.end`.
+ */
+export function isPositionInComment(sourceFile: ts.SourceFile, pos: number, parent?: ts.Node): boolean {
+    return getCommentAtPosition(sourceFile, pos, parent) !== undefined;
 }
 
 export function getPropertyName(propertyName: ts.PropertyName): string | undefined {
@@ -398,8 +412,8 @@ export function forEachComment(node: ts.Node, cb: ForEachCommentCallback, source
                 return ts.forEachTrailingCommentRange(fullText, token.end, commentCallback);
         },
         sourceFile);
-    function commentCallback(pos: number, end: number, kind: ts.CommentRange['kind']) {
-        return cb(fullText, {pos, end, kind});
+    function commentCallback(pos: number, end: number, kind: ts.CommentKind) {
+        cb(fullText, {pos, end, kind});
     }
 }
 
