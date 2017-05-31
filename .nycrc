@@ -1,0 +1,18 @@
+{
+    "include": [
+        "util/*.js"
+    ],
+    "exclude": [
+        "**/index.js"
+    ],
+    "extension": [
+        ".js"
+    ],
+    "reporter": [
+        "text-summary",
+        "html",
+        "lcov"
+    ],
+    "sourceMap": true,
+    "all": true
+}

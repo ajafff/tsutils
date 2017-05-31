@@ -3,3 +3,7 @@
 *.ts
 !*.d.ts
 /test
+/.nycrc
+/.vscode
+/coverage/
+/.nyc_output

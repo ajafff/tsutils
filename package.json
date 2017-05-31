@@ -7,8 +7,10 @@
     "lint": "tslint -p ./tsconfig.json",
     "lint:fix": "tslint --fix -p ./tsconfig.json",
     "test": "mocha test/*Tests.js",
-    "verify": "npm run compile && npm run lint && npm test",
-    "prepublish": "npm run verify"
+    "verify": "npm run compile && npm run lint && npm run coverage",
+    "prepublish": "npm run verify",
+    "coverage": "rm -rf coverage .nyc_output && nyc npm test",
+    "report-coverage": "cat ./coverage/lcov.info | coveralls"
   },
   "repository": {
     "type": "git",
@@ -30,7 +32,9 @@
     "@types/mocha": "^2.2.41",
     "@types/node": "^7.0.18",
     "chai": "^3.5.0",
+    "coveralls": "^2.13.1",
     "mocha": "^3.4.1",
+    "nyc": "^10.3.2",
     "tslint": "^5.2.0",
     "tslint-consistent-codestyle": "^1.4.0",
     "typescript": "^2.3.0"
