@@ -661,7 +661,6 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
                     case ts.SyntaxKind.SpreadAssignment:
                         if (hasSideEffects(child.expression, options))
                             return true;
-                        break;
                 }
             }
             return false;

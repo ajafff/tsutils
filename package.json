@@ -35,7 +35,7 @@
     "coveralls": "^2.13.1",
     "mocha": "^3.4.1",
     "nyc": "^10.3.2",
-    "tslint": "^5.2.0",
+    "tslint": "^5.4.0",
     "tslint-consistent-codestyle": "^1.4.0",
     "typescript": "^2.3.0"
   },
