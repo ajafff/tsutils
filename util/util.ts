@@ -226,15 +226,15 @@ export const enum VariableDeclarationKind {
 }
 
 export function getVariableDeclarationKind(declarationList: ts.VariableDeclarationList): VariableDeclarationKind {
-    if ((declarationList.flags & ts.NodeFlags.Let) !== 0)
+    if (declarationList.flags & ts.NodeFlags.Let)
         return VariableDeclarationKind.Let;
-    if ((declarationList.flags & ts.NodeFlags.Const) !== 0)
+    if (declarationList.flags & ts.NodeFlags.Const)
         return VariableDeclarationKind.Const;
     return VariableDeclarationKind.Var;
 }
 
 export function isBlockScopedVariableDeclarationList(declarationList: ts.VariableDeclarationList): boolean {
-    return getVariableDeclarationKind(declarationList) !== VariableDeclarationKind.Var;
+    return (declarationList.flags & ts.NodeFlags.BlockScoped) !== 0;
 }
 
 export function isBlockScopedVariableDeclaration(declaration: ts.VariableDeclaration): boolean {
