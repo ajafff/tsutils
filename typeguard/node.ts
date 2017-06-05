@@ -317,6 +317,10 @@ export function isIterationStatement(node: ts.Node): node is ts.IterationStateme
     }
 }
 
+export function isJsDoc(node: ts.Node): node is ts.JSDoc {
+    return node.kind === ts.SyntaxKind.JSDocComment;
+}
+
 export function isJsxAttribute(node: ts.Node): node is ts.JsxAttribute {
     return node.kind === ts.SyntaxKind.JsxAttribute;
 }
