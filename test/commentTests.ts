@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { forEachComment, getCommentAtPosition, getTokenAtPosition } from '../util';
+import { forEachComment, getCommentAtPosition, getTokenAtPosition, isPositionInComment } from '../util/util';
 import { getSourceFile } from './utils';
 
 describe('getCommentAtPosition', () => {
@@ -16,8 +16,13 @@ describe('getCommentAtPosition', () => {
             const comment = getCommentAtPosition(sourceFile, i);
             if (comment === undefined)
                 continue;
-            if (i === comment.pos + 2)
+            if (i === comment.pos + 2) {
                 result.push(sourceFile.text.substr(comment.pos + 2, 1));
+                for (let pos = comment.pos; pos < comment.end; ++pos)
+                    assert.isTrue(isPositionInComment(sourceFile, pos));
+                assert.isFalse(isPositionInComment(sourceFile, comment.pos - 1));
+                assert.isFalse(isPositionInComment(sourceFile, comment.end));
+            }
         }
         assert.deepEqual(result, ['1', '2', '3', '4', '7', 'b', 'e', 'f', 'g', 'h']);
     });

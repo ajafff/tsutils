@@ -123,12 +123,12 @@ export function getNextToken(node: ts.Node, sourceFile = node.getSourceFile()) {
             return (<ts.SourceFile>node).endOfFileToken;
         node = node.parent;
     }
-    return getTokenAtPositionWorker(node, end + 1, sourceFile);
+    return getTokenAtPositionWorker(node, end, sourceFile);
 }
 
 /** Returns the token at or following the specified position or undefined if none is found inside `parent`. */
 export function getTokenAtPosition(parent: ts.Node, pos: number, sourceFile?: ts.SourceFile) {
-    if (pos < parent.pos || pos > parent.end)
+    if (pos < parent.pos || pos >= parent.end)
         return;
     if (isTokenKind(parent.kind))
         return parent;
@@ -140,7 +140,7 @@ export function getTokenAtPosition(parent: ts.Node, pos: number, sourceFile?: ts
 function getTokenAtPositionWorker(node: ts.Node, pos: number, sourceFile: ts.SourceFile) {
     outer: while (true) {
         for (const child of node.getChildren(sourceFile)) {
-            if (child.end >= pos && child.kind !== ts.SyntaxKind.JSDocComment) {
+            if (child.end > pos && child.kind !== ts.SyntaxKind.JSDocComment) {
                 if (isTokenKind(child.kind))
                     return child;
                 // next token is nested in another node
@@ -161,8 +161,8 @@ export function getCommentAtPosition(sourceFile: ts.SourceFile, pos: number, par
     const token = getTokenAtPosition(parent, pos, sourceFile);
     if (token === undefined || token.kind === ts.SyntaxKind.JsxText || pos >= token.end - (ts.tokenToString(token.kind) || '').length)
         return;
-    const cb = (start: number, end: number, kind: ts.CommentKind): ts.CommentRange | undefined => pos >= start && pos < end
-        ? {end, kind, pos: start} : undefined;
+    const cb = (start: number, end: number, kind: ts.CommentKind): ts.CommentRange | undefined =>
+        pos >= start && pos < end ? {end, kind, pos: start} : undefined;
     return  token.pos !== 0 && ts.forEachTrailingCommentRange(sourceFile.text, token.pos, cb) ||
         ts.forEachLeadingCommentRange(sourceFile.text, token.pos, cb);
 }
