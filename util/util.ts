@@ -518,10 +518,14 @@ export function getLineRanges(sourceFile: ts.SourceFile): LineRange[] {
     let pos = 0;
     for (let i = 1; i < length; ++i) {
         const end = lineStarts[i];
+        let lineEnd = end;
+        for (; lineEnd > pos; --lineEnd)
+            if (!ts.isLineBreak(sourceText.charCodeAt(lineEnd - 1)))
+                break;
         result.push({
             pos,
             end,
-            contentLength: end - pos - (sourceText[end - 2] === '\r' ? 2 : 1),
+            contentLength: lineEnd - pos,
         });
         pos = end;
     }
@@ -570,8 +574,7 @@ export function isValidNumericLiteral(text: string): boolean {
 }
 
 export function isSameLine(sourceFile: ts.SourceFile, pos1: number, pos2: number) {
-    return ts.getLineAndCharacterOfPosition(sourceFile, pos1).line
-        === ts.getLineAndCharacterOfPosition(sourceFile, pos2).line;
+    return ts.getLineAndCharacterOfPosition(sourceFile, pos1).line === ts.getLineAndCharacterOfPosition(sourceFile, pos2).line;
 }
 
 export const enum SideEffectOptions {
