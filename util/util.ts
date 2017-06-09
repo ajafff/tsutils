@@ -67,8 +67,15 @@ export function isObjectFlagSet(objectType: ts.ObjectType, flag: ts.ObjectFlags)
     return (objectType.objectFlags & flag) !== 0;
 }
 
-export function isModfierFlagSet(node: ts.Node, flag: ts.ModifierFlags) {
+export function isModifierFlagSet(node: ts.Node, flag: ts.ModifierFlags) {
     return (ts.getCombinedModifierFlags(node) & flag) !== 0;
+}
+
+/**
+ * @deprecated Use isModifierFlagSet.
+ */
+export function isModfierFlagSet(node: ts.Node, flag: ts.ModifierFlags) {
+    return isModifierFlagSet(node, flag);
 }
 
 export function getPreviousStatement(statement: ts.Statement): ts.Statement | undefined {
