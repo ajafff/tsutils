@@ -1,5 +1,7 @@
 import * as ts from 'typescript';
-import { isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration } from '../typeguard/node';
+import {
+    isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration,
+} from '../typeguard/node';
 
 export function getChildOfKind(node: ts.Node, kind: ts.SyntaxKind, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))
@@ -731,4 +733,174 @@ export function getDeclarationOfBindingElement(node: ts.BindingElement): ts.Vari
     while (parent.kind === ts.SyntaxKind.BindingElement)
         parent = parent.parent!.parent!;
     return parent;
+}
+
+export function isExpressionValueUsed(node: ts.Expression): boolean {
+    while (true) {
+        const parent = node.parent!;
+        switch (parent.kind) {
+            case ts.SyntaxKind.CallExpression:
+            case ts.SyntaxKind.NewExpression:
+            case ts.SyntaxKind.ElementAccessExpression:
+            case ts.SyntaxKind.WhileStatement:
+            case ts.SyntaxKind.DoStatement:
+            case ts.SyntaxKind.WithStatement:
+            case ts.SyntaxKind.ThrowStatement:
+            case ts.SyntaxKind.ReturnStatement:
+            case ts.SyntaxKind.JsxExpression:
+            case ts.SyntaxKind.JsxSpreadAttribute:
+            case ts.SyntaxKind.JsxElement:
+            case ts.SyntaxKind.JsxSelfClosingElement:
+            case ts.SyntaxKind.ComputedPropertyName:
+            case ts.SyntaxKind.ArrowFunction:
+            case ts.SyntaxKind.ExportSpecifier:
+            case ts.SyntaxKind.ExportAssignment:
+            case ts.SyntaxKind.ImportDeclaration:
+            case ts.SyntaxKind.ExternalModuleReference:
+            case ts.SyntaxKind.Decorator:
+            case ts.SyntaxKind.TaggedTemplateExpression:
+            case ts.SyntaxKind.TemplateSpan:
+            case ts.SyntaxKind.ExpressionWithTypeArguments:
+            case ts.SyntaxKind.TypeOfExpression:
+            case ts.SyntaxKind.AwaitExpression:
+            case ts.SyntaxKind.YieldExpression:
+            case ts.SyntaxKind.LiteralType:
+            case ts.SyntaxKind.JsxAttributes:
+            case ts.SyntaxKind.JsxOpeningElement:
+            case ts.SyntaxKind.JsxClosingElement:
+            case ts.SyntaxKind.IfStatement:
+            case ts.SyntaxKind.CaseClause:
+            case ts.SyntaxKind.SwitchStatement:
+                return true;
+            case ts.SyntaxKind.PropertyAccessExpression:
+                return (<ts.PropertyAccessExpression>parent).expression === node;
+            case ts.SyntaxKind.QualifiedName:
+                return (<ts.QualifiedName>parent).left === node;
+            case ts.SyntaxKind.ShorthandPropertyAssignment:
+                return (<ts.ShorthandPropertyAssignment>parent).objectAssignmentInitializer === node ||
+                    !isInDestructuringAssignment(<ts.ShorthandPropertyAssignment>parent);
+            case ts.SyntaxKind.PropertyAssignment:
+                return (<ts.PropertyAssignment>parent).initializer === node && !isInDestructuringAssignment(<ts.PropertyAssignment>parent);
+            case ts.SyntaxKind.SpreadAssignment:
+            case ts.SyntaxKind.SpreadElement:
+            case ts.SyntaxKind.ArrayLiteralExpression:
+                return !isInDestructuringAssignment(<ts.SpreadAssignment | ts.SpreadElement | ts.ArrayLiteralExpression>parent);
+            case ts.SyntaxKind.ParenthesizedExpression:
+            case ts.SyntaxKind.AsExpression:
+            case ts.SyntaxKind.TypeAssertionExpression:
+            case ts.SyntaxKind.PostfixUnaryExpression:
+            case ts.SyntaxKind.PrefixUnaryExpression:
+            case ts.SyntaxKind.NonNullExpression:
+                node = <ts.Expression>parent;
+                break;
+            case ts.SyntaxKind.ForStatement:
+                return (<ts.ForStatement>parent).condition === node;
+            case ts.SyntaxKind.ForInStatement:
+            case ts.SyntaxKind.ForOfStatement:
+                return (<ts.ForInStatement | ts.ForOfStatement>parent).expression === node;
+            case ts.SyntaxKind.ConditionalExpression:
+                if ((<ts.ConditionalExpression>parent).condition === node)
+                    return true;
+                node = <ts.Expression>parent;
+                break;
+            case ts.SyntaxKind.PropertyDeclaration:
+            case ts.SyntaxKind.BindingElement:
+            case ts.SyntaxKind.VariableDeclaration:
+            case ts.SyntaxKind.Parameter:
+            case ts.SyntaxKind.EnumMember:
+                return (<ts.VariableLikeDeclaration>parent).initializer === node;
+            case ts.SyntaxKind.ImportEqualsDeclaration:
+                return (<ts.ImportEqualsDeclaration>parent).moduleReference === node;
+            case ts.SyntaxKind.CommaListExpression:
+                if ((<ts.CommaListExpression>parent).elements[(<ts.CommaListExpression>parent).elements.length - 1] !== node)
+                    return false;
+                node = <ts.Expression>parent;
+                break;
+            case ts.SyntaxKind.BinaryExpression:
+                if ((<ts.BinaryExpression>parent).right === node) {
+                    if ((<ts.BinaryExpression>parent).operatorToken.kind === ts.SyntaxKind.CommaToken) {
+                        node = <ts.Expression>parent;
+                        break;
+                    }
+                    return true;
+                }
+                switch ((<ts.BinaryExpression>parent).operatorToken.kind) {
+                    case ts.SyntaxKind.CommaToken:
+                    case ts.SyntaxKind.EqualsToken:
+                        return false;
+                    case ts.SyntaxKind.EqualsEqualsEqualsToken:
+                    case ts.SyntaxKind.EqualsEqualsToken:
+                    case ts.SyntaxKind.ExclamationEqualsEqualsToken:
+                    case ts.SyntaxKind.ExclamationEqualsToken:
+                    case ts.SyntaxKind.InstanceOfKeyword:
+                    case ts.SyntaxKind.PlusToken:
+                    case ts.SyntaxKind.MinusToken:
+                    case ts.SyntaxKind.AsteriskToken:
+                    case ts.SyntaxKind.SlashToken:
+                    case ts.SyntaxKind.PercentToken:
+                    case ts.SyntaxKind.AsteriskAsteriskToken:
+                    case ts.SyntaxKind.GreaterThanToken:
+                    case ts.SyntaxKind.GreaterThanGreaterThanToken:
+                    case ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken:
+                    case ts.SyntaxKind.GreaterThanEqualsToken:
+                    case ts.SyntaxKind.LessThanToken:
+                    case ts.SyntaxKind.LessThanLessThanToken:
+                    case ts.SyntaxKind.LessThanEqualsToken:
+                    case ts.SyntaxKind.AmpersandToken:
+                    case ts.SyntaxKind.BarToken:
+                    case ts.SyntaxKind.CaretToken:
+                    case ts.SyntaxKind.BarBarToken:
+                    case ts.SyntaxKind.AmpersandAmpersandToken:
+                    case ts.SyntaxKind.InKeyword:
+                        return true;
+                    default:
+                        node = <ts.Expression>parent;
+                }
+                break;
+            default:
+                return false;
+        }
+    }
+}
+
+function isInDestructuringAssignment(
+    node: ts.PropertyAssignment | ts.ShorthandPropertyAssignment | ts.SpreadAssignment | ts.SpreadElement |
+          ts.ObjectLiteralExpression | ts.ArrayLiteralExpression,
+): boolean {
+    switch (node.kind) {
+        case ts.SyntaxKind.ShorthandPropertyAssignment:
+            if (node.objectAssignmentInitializer !== undefined)
+                return true;
+            // falls through
+        case ts.SyntaxKind.PropertyAssignment:
+        case ts.SyntaxKind.SpreadAssignment:
+            node = <ts.ArrayLiteralExpression | ts.ObjectLiteralExpression>node.parent;
+            break;
+        case ts.SyntaxKind.SpreadElement:
+            if (node.parent!.kind !== ts.SyntaxKind.ArrayLiteralExpression)
+                return false;
+            node = <ts.ArrayLiteralExpression>node.parent;
+    }
+    while (true) {
+        switch (node.parent!.kind) {
+            case ts.SyntaxKind.BinaryExpression:
+                return (<ts.BinaryExpression>node.parent).left === node &&
+                    (<ts.BinaryExpression>node.parent).operatorToken.kind === ts.SyntaxKind.EqualsToken;
+            case ts.SyntaxKind.ArrayLiteralExpression:
+            case ts.SyntaxKind.ObjectLiteralExpression:
+                node = <ts.ArrayLiteralExpression | ts.ObjectLiteralExpression>node.parent;
+                break;
+            case ts.SyntaxKind.SpreadAssignment:
+            case ts.SyntaxKind.PropertyAssignment:
+                node = <ts.ObjectLiteralExpression>node.parent!.parent;
+                break;
+            case ts.SyntaxKind.SpreadElement:
+                if (node.parent!.parent!.kind !== ts.SyntaxKind.ArrayLiteralExpression)
+                    return false;
+                node = <ts.ArrayLiteralExpression>node.parent!.parent;
+                break;
+            default:
+                return false;
+        }
+    }
 }

@@ -1,0 +1,140 @@
+(function() {});
+(function() {})();
+~~~~~~~~~~~~~~~ [Used]
+ ~~~~~~~~~~~~~ [Used]
+a = b;
+    ~ [Used]
+a + b;
+~ [Used]
+    ~ [Used]
+a = b + c;
+    ~~~~~[Used]
+    ~ [Used]
+        ~ [Used]
+[a, b, ...c];
+ ~ [Used]
+    ~ [Used]
+       ~~~~ [Used]
+          ~ [Used]
+a = b = [];
+    ~~~~~~ [Used]
+        ~~ [Used]
+a += b;
+     ~ [Used]
+a += b += c;
+     ~ [Used]
+     ~~~~~~ [Used]
+          ~ [Used]
+[a = foo, (b) = bar, {foo: {e = {}, ...{d}} = baz, ...(c)}, {g}, ...[...f]] = null as any;
+     ~~~ [Used]
+                ~~~ [Used]
+                                ~~ [Used]
+                                              ~~~ [Used]
+                                                                              ~~~~ [Used]
+                                                                              ~~~~~~~~~~~ [Used]
+foo, bar;
+(0, eval)('foobar')
+~~~~~~~~~ [Used]
+ ~~~~~~~ [Used]
+    ~~~~ [Used]
+          ~~~~~~~~ [Used]
+a instanceof b;
+~ [Used]
+             ~ [Used]
+if (condition);
+    ~~~~~~~~~ [Used]
+while (true);
+       ~~~~ [Used]
+var i = foo++;
+        ~~~ [Used]
+        ~~~~~ [Used]
+for (i = 0; i < len; ++i);
+         ~ [Used]
+            ~ [Used]
+            ~~~~~~~ [Used]
+                ~~~ [Used]
+for (key in obj);
+            ~~~ [Used]
+for (element of arr);
+                ~~~ [Used]
+import Foo = Bar.Foo;
+             ~~~ [Used]
+import Foo2 = Foo;
+              ~~~ [Used]
+const enum Bar {
+    foo = a,
+          ~ [Used]
+    bar = b,
+          ~ [Used]
+    baz = foo + bar,
+          ~~~ [Used]
+          ~~~~~~~~~ [Used]
+                ~~~ [Used]
+    bas = Bar.foo,
+          ~~~ [Used]
+          ~~~~~~~ [Used]
+}
+a ? b : c;
+~ [Used]
+new (a ? b : c)(d);
+    ~~~~~~~~~~~ [Used]
+     ~ [Used]
+     ~~~~~~~~~ [Used]
+         ~ [Used]
+             ~ [Used]
+                ~ [Used]
+a == b === c;
+~ [Used]
+     ~ [Used]
+~~~~~~ [Used]
+           ~ [Used]
+a != b !== c;
+~ [Used]
+     ~ [Used]
+~~~~~~ [Used]
+           ~ [Used]
+
+b > a && b < c + d;
+~ [Used]
+    ~ [Used]
+~~~~~ [Used]
+         ~ [Used]
+             ~ [Used]
+                 ~ [Used]
+             ~~~~~ [Used]
+         ~~~~~~~~~ [Used]
+
+let {x, y: foo = 1, z: [a, b = {}, ...c], ...d} = null as any;
+                 ~ [Used]
+                               ~~ [Used]
+                                                  ~~~~ [Used]
+                                                  ~~~~~~~~~~~ [Used]
+((foo = bar) => foo)();
+~~~~~~~~~~~~~~~~~~~~ [Used]
+ ~~~~~~~~~~~~~~~~~~ [Used]
+        ~~~ [Used]
+                ~~~ [Used]
+function fn({prop}: any) {
+    if (prop)
+        ~~~~ [Used]
+        throw prop;
+              ~~~~ [Used]
+    return undefined;
+           ~~~~~~~~~ [Used]
+}
+class Clazz {
+    public foo = bar;
+                 ~~~ [Used]
+    public bar = this.foo;
+                 ~~~~~~~~ [Used]
+                 ~~~~ [Used]
+    public baz = [];
+                 ~~ [Used]
+    public get(index: number) {
+        return this.baz[index];
+               ~~~~~~~~~~~~~~~ [Used]
+               ~~~~~~~~ [Used]
+               ~~~~ [Used]
+                        ~~~~~ [Used]
+    }
+}

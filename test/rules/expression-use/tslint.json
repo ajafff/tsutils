@@ -1,0 +1,8 @@
+{
+    "rulesDirectory": [
+        "."
+    ],
+    "rules":{
+        "test-expression-use": true
+    }
+}
