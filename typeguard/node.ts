@@ -102,6 +102,10 @@ export function isClassLikeDeclaration(node: ts.Node): node is ts.ClassLikeDecla
         node.kind === ts.SyntaxKind.ClassExpression;
 }
 
+export function isCommaListExpression(node: ts.Node): node is ts.CommaListExpression {
+    return node.kind === ts.SyntaxKind.CommaListExpression;
+}
+
 export function isConditionalExpression(node: ts.Node): node is ts.ConditionalExpression {
     return node.kind === ts.SyntaxKind.ConditionalExpression;
 }
@@ -184,6 +188,7 @@ export function isExpression(node: ts.Node): node is ts.Expression {
         case ts.SyntaxKind.BinaryExpression:
         case ts.SyntaxKind.CallExpression:
         case ts.SyntaxKind.ClassExpression:
+        case ts.SyntaxKind.CommaListExpression:
         case ts.SyntaxKind.ConditionalExpression:
         case ts.SyntaxKind.DeleteExpression:
         case ts.SyntaxKind.ElementAccessExpression:

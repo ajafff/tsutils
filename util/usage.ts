@@ -100,7 +100,7 @@ export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
         case ts.SyntaxKind.PropertyAssignment:
         case ts.SyntaxKind.PropertyAccessExpression:
         case ts.SyntaxKind.ImportEqualsDeclaration:
-            if ((<ts.Declaration>parent).name !== node)
+            if ((<ts.NamedDeclaration>parent).name !== node)
                 return UsageDomain.ValueOrNamespace;
             break;
         case ts.SyntaxKind.JsxAttribute:
