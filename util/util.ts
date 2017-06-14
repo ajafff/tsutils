@@ -695,6 +695,11 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
                 }
             }
             return false;
+        case ts.SyntaxKind.CommaListExpression:
+            for (const child of (<ts.CommaListExpression>node).elements)
+                if (hasSideEffects(child, options))
+                    return true;
+            return false;
         default:
             return false;
     }
