@@ -1,0 +1,24 @@
+class Foo {}
+      ~~~ [Unused]
+class Bar {}
+
+export declare namespace a {
+    class Foo {}
+    export {Foo as Foo}
+    namespace inner {
+              ~~~~~ [Unused]
+        class Bar {}
+    }
+}
+export declare namespace a.inner {
+    let v: Bar;
+}
+
+export declare namespace i {
+    namespace inner {
+        class Bar {}
+    }
+}
+export declare namespace i.inner {
+    let v: Bar;
+}

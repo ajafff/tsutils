@@ -1,0 +1,135 @@
+class Foo {}
+      ~~~ [Unused]
+class Bar {}
+      ~~~ [Unused]
+class Baz {}
+      ~~~ [Unused]
+class Bas {}
+      ~~~ [Unused]
+export declare namespace a {
+    class Foo {}
+    export {Foo as Bar, Bar as Baz, Baz as Bas};
+    namespace inner {
+              ~~~~~ [Unused]
+        let v: Bas;
+    }
+}
+
+export declare namespace b {
+    class Foo {}
+    class Bar {}
+    export {Foo as Bar, Bar as Foo};
+}
+export declare namespace b {
+    let v: Foo & Bar;
+}
+
+class FooC {}
+export declare namespace c {
+    class FooC {}
+    export class Bar {}
+    class Bas {}
+    export {FooC as Other};
+    export {Bas as Bas};
+}
+export declare namespace c {
+    let v: FooC & Bar & Bas;
+}
+
+declare class Outer { }
+export declare namespace d {
+    export {Outer as Bar, Bar as Baz, Baz as Bas};
+}
+export declare namespace d.inner {
+    export { Bas as Inner };
+}
+export declare namespace d.inner.nested {
+    export { Inner as Renamed };
+}
+export declare namespace d.inner.nested {
+    let v: Renamed;
+}
+
+class FooE {}
+      ~~~~ [Unused]
+class BarE {}
+      ~~~~ [Unused]
+export declare namespace e {
+    class FooE {}
+    export class BarE {}
+}
+export declare namespace e {
+    let v: FooE & BarE;
+}
+
+class FooF {}
+class BarF {}
+      ~~~~ [Unused]
+class BazF {}
+      ~~~~ [Unused]
+export declare namespace f {
+    class FooF {}
+    export class BarF {}
+    class BazF {}
+    export {BazF};
+}
+export declare namespace f {
+    let v: FooF & BarF & BazF;
+}
+
+declare namespace g {
+    class Foo { static foo }
+    export {Foo as Bar}
+}
+declare namespace g {
+    class Bar { static bar }
+    export { Bar as Foo };
+}
+declare namespace g {
+    let v: Foo & Bar;
+}
+
+class OuterH {}
+export declare namespace h.inner {
+    export {OuterH as Foo}
+}
+export declare namespace h {
+    class OuterH {}
+          ~~~~~~ [Unused]
+    class Foo {}
+          ~~~ [Unused]
+    export namespace inner {
+        let v: Foo;
+    }
+    export {inner as other};
+}
+
+export declare namespace i {
+    namespace inner {
+        class Baz {}
+    }
+}
+export declare namespace i.inner {
+    let v: Baz;
+}
+
+class OuterJ {}
+      ~~~~~~ [Unused]
+export declare namespace j.inner {
+    export {OuterJ as Foo}
+}
+export declare namespace h {
+    class OuterJ {}
+    class Foo {}
+    namespace inner {
+        let v: Foo;
+    }
+}
+
+export declare namespace k {
+    class Foo {}
+    export {Foo as Foo};
+}
+export declare namespace k {
+    let v: Foo;
+}

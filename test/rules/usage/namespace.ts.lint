@@ -15,6 +15,7 @@ namespace ns {
 
 interface four {}
 namespace four {}
+          ~~~~ [Unused]
 let varFour: four;
     ~~~~~~~ [Unused]
 
@@ -72,4 +73,72 @@ let nested;
 namespace T3.nested {
     export let T;
     export let foo: T3.nested.T;
+}
+
+interface Test {
+    foo,
+}
+export namespace Test {
+    export function fn(): Test {}
+}
+
+interface Test2 {
+          ~~~~~ [Unused]
+    foo,
+}
+export namespace Test2 {
+    export function fn(): void {}
+}
+
+let someVar = true;
+let someVar2 = true;
+let someVar3 = true;
+let someVar4 = true;
+let someVar5 = true;
+let someVar6 = true;
+let someVar7 = false;
+    ~~~~~~~~ [Unused]
+let local = true;
+let exported = true;
+export namespace outer {
+    export namespace inner {
+        export let someVar = 1;
+        export namespace innerInner {
+            export let someVar2 = 2;
+            export namespace innerInnerInner {
+                export let someVar2 = 3;
+                export let someVar7 = 7;
+            }
+        }
+    }
+    someVar;
+    namespace other {
+              ~~~~~ [Unused]
+        someVar3;
+        export let someVar4 = 4;
+        export namespace exported {
+            export let someVar5 = 5;
+        }
+        namespace local {
+                  ~~~~~ [Unused]
+            export let someVar6 = 6;
+        }
+    }
+    someVar4;
+    local;
+}
+export namespace outer {
+    someVar2;
+    someVar5;
+    someVar6;
+    exported;
+    export namespace inner.innerInner.innerInnerInner {
+        someVar7;
+    }
+}
+
+declare namespace ambient {
+                  ~~~~~~~ [Unused]
+    function foo(bar: number): void;
+                 ~~~ [Unused]
 }

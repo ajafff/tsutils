@@ -1,0 +1,17 @@
+declare module "foo" {
+    let bar: number;
+    let baz: string;
+    let bas: boolean;
+}
+let bar = "";
+    ~~~ [Unused]
+declare module "foo" {
+    type T = typeof bar;
+}
+type T = any;
+declare namespace foo {
+                  ~~~ [Unused]
+    let v: T;
+}
+
+export {};

@@ -1,14 +1,23 @@
-let bar, baz, p1, p2, p3;
+let bar, baz, bas, p1, p2, p3;
     ~~~ [Unused]
          ~~~ [Unused]
-              ~~ [Unused]
-                      ~~ [Unused]
-function fn(foo: typeof bar, bar: typeof baz, baz: typeof bas, p1 = p2, p2 = 2, p3 = 3, p4 = p3) {
+                   ~~ [Unused]
+                           ~~ [Unused]
+function fn(foo: typeof bar, bar: typeof baz, baz: typeof bas, p1 = p2, p2 = 2, p3 = 3, p4 = p3, p5: typeof quux) {
             ~~~ [Unused]
                                                                ~~ [Unused]
                                                                         ~~ [Unused]
-                                                                                        ~~ [Unused]          
+                                                                                        ~~ [Unused]
+                                                                                                 ~~ [Unused]
     let bas: boolean;
+        ~~~ [Unused]
+    var quux: string;
 }
 
-export {fn};
+function fn2(foo: typeof bar) {
+             ~~~ [Unused]
+    let bas: number;
+    var bar: typeof bas;
+}
+
+export {fn, fn2};

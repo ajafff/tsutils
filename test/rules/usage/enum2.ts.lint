@@ -23,7 +23,7 @@ namespace ns {
     export enum Foo {
         bas = baz + someOtherVar,
     }
-    export const enum Foo {
+    export enum Foo {
         moar = bas,
     }
 }

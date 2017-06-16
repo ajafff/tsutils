@@ -1,0 +1,10 @@
+new (class T {
+    foo(): T { return this; }
+})();
+new (class T {
+           ~ [Unused]
+})();
+new (class T<T> {
+           ~ [Unused]
+    foo(): T { return null!; }
+})();

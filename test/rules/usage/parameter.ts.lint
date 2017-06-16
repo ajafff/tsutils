@@ -15,10 +15,15 @@ export function func3(x?: number, y?: number) {
 
 export interface ITestInterface {
     func4(x: number, y: number): number;
+          ~ [Unused]
+                     ~ [Unused]
 }
 
 export class ABCD {
     constructor(private x: number, public y: number, private z: number) {
+                        ~ [Unused]
+                                          ~ [Unused]
+                                                             ~ [Unused]
     }
 
     func5() {
@@ -28,6 +33,7 @@ export class ABCD {
 
 export interface ITestMapInterface {
     [key: string]: string;
+     ~~~ [Unused]
 }
 
 export function func6(...args: number[]) {
@@ -35,6 +41,7 @@ export function func6(...args: number[]) {
 }
 
 export function func7(f: (x: number) => number) {
+                          ~ [Unused]
     return f;
 }
 
@@ -45,6 +52,9 @@ export function func8([x, y]: [number, number]) {
 
 export class DestructuringTests {
     constructor(public x: number, public [y, z]) { // tsc error on binding pattern
+                       ~ [Unused]
+                                          ~ [Unused]
+                                             ~ [Unused]
     }
 
     public func9({a, b}) {
@@ -67,4 +77,20 @@ export class DestructuringTests {
 abstract class AbstractTest {
                ~~~~~~~~~~~~ [Unused]
     abstract foo(x);
+                 ~ [Unused]
+}
+
+let foo, bar;
+    ~~~ [Unused]
+         ~~~ [Unused]
+
+function overload(): typeof overload;
+function overload(foo: boolean): typeof foo;
+function overload(foo: number, bar: typeof foo): typeof foo;
+                               ~~~ [Unused]
+function overload(foo: string, bar: typeof foo): typeof bar;
+function overload(foo: typeof bar, bar: string): typeof foo;
+function overload(...args: any[]): any {
+                     ~~~~ [Unused]
+    return;
 }

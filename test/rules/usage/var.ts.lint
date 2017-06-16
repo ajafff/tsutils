@@ -16,7 +16,7 @@ class ABCD {
 try {
   // code here
 } catch (e) {
-  // e is unused but that's still ok
+         ~ [Unused]
 }
 
 declare var tmp: any;

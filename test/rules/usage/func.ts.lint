@@ -1,0 +1,20 @@
+function foo(): void;
+         ~~~ [Unused]
+function foo(bar: number): number;
+         ~~~ [Unused]
+             ~~~ [Unused]
+function foo(bar: string): string;
+         ~~~ [Unused]
+             ~~~ [Unused]
+function foo(bar: any): any {
+         ~~~ [Unused]
+    return bar;
+}
+
+declare function fn(): void;
+                 ~~ [Unused]
+
+interface Foo {}
+function takeFoo(param: Partial<Foo>) {}
+         ~~~~~~~ [Unused]
+                 ~~~~~ [Unused]
