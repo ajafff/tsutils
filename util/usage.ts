@@ -133,6 +133,34 @@ export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
     }
 }
 
+export function getDeclarationDomain(node: ts.Identifier): DeclarationDomain | undefined {
+    switch (node.parent!.kind) {
+        case ts.SyntaxKind.TypeParameter:
+        case ts.SyntaxKind.InterfaceDeclaration:
+        case ts.SyntaxKind.TypeAliasDeclaration:
+            return DeclarationDomain.Type;
+        case ts.SyntaxKind.ClassDeclaration:
+        case ts.SyntaxKind.ClassExpression:
+        case ts.SyntaxKind.EnumDeclaration:
+            return DeclarationDomain.Type | DeclarationDomain.Value;
+        case ts.SyntaxKind.NamespaceImport:
+        case ts.SyntaxKind.ImportClause:
+            return DeclarationDomain.Any;
+        case ts.SyntaxKind.ImportEqualsDeclaration:
+        case ts.SyntaxKind.ImportSpecifier:
+            return (<ts.ImportEqualsDeclaration | ts.ImportSpecifier>node.parent).name === node ? DeclarationDomain.Any : undefined;
+        case ts.SyntaxKind.ModuleDeclaration:
+            return DeclarationDomain.Namespace;
+        case ts.SyntaxKind.Parameter:
+        case ts.SyntaxKind.BindingElement:
+        case ts.SyntaxKind.VariableDeclaration:
+            return (<ts.VariableLikeDeclaration>node.parent).name === node ? DeclarationDomain.Value : undefined;
+        case ts.SyntaxKind.FunctionDeclaration:
+        case ts.SyntaxKind.FunctionExpression:
+            return DeclarationDomain.Value;
+    }
+}
+
 export function collectVariableUsage(sourceFile: ts.SourceFile) {
     return new UsageWalker().getUsage(sourceFile);
 }

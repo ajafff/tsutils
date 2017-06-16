@@ -138,3 +138,12 @@ class Clazz {
                         ~~~~~ [Used]
     }
 }
+
+switch (kind) {
+        ~~~~ [Used]
+    case ts.SyntaxKind.SwitchStatement:
+         ~~ [Used]
+         ~~~~~~~~~~~~~ [Used]
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ [Used]
+        break foo;
+}
