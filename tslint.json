@@ -128,6 +128,11 @@
       "check-type"
     ],
     /* custom rules */
+    "no-unused": [
+      true,
+      "unused-class-expression-name",
+      "unused-function-expression-name"
+    ],
     "ext-curly": [
       true,
       "else",
