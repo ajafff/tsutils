@@ -8,7 +8,7 @@
     "lint:fix": "tslint --fix -p ./tsconfig.json",
     "test": "mocha test/*Tests.js; tslint --test test/rules/*/tslint.json",
     "verify": "npm run compile && npm run lint && npm run coverage",
-    "prepublish": "npm run verify",
+    "prepublishOnly": "npm run verify",
     "coverage": "rm -rf coverage .nyc_output && nyc npm test",
     "report-coverage": "cat ./coverage/lcov.info | coveralls"
   },
@@ -34,10 +34,10 @@
     "chai": "^3.5.0",
     "coveralls": "^2.13.1",
     "mocha": "^3.4.1",
-    "nyc": "^10.3.2",
+    "nyc": "^11.0.3",
     "tslint": "^5.4.3",
     "tslint-consistent-codestyle": "^1.5.0",
-    "typescript": "^2.4.0"
+    "typescript": "^2.4.1"
   },
   "peerDependencies": {
     "typescript": ">=2.1.0 || >=2.1.0-dev || >=2.2.0-dev || >=2.3.0-dev || >= 2.4.0-dev || >= 2.5.0-dev || >= 2.6.0-dev"
