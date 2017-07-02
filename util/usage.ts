@@ -105,6 +105,8 @@ export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
         case ts.SyntaxKind.GetAccessor:
         case ts.SyntaxKind.SetAccessor:
         case ts.SyntaxKind.LabeledStatement:
+        case ts.SyntaxKind.BreakStatement:
+        case ts.SyntaxKind.ContinueStatement:
         case ts.SyntaxKind.ImportClause:
         case ts.SyntaxKind.ImportSpecifier:
         case ts.SyntaxKind.TypePredicate:

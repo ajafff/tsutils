@@ -1,0 +1,7 @@
+let i;
+    ~ [Unused]
+i: while(true) {
+    if (condition)
+        break i;
+    continue i;
+}
