@@ -33,6 +33,13 @@ export function isThisParameter(parameter: ts.ParameterDeclaration): boolean {
     return parameter.name.kind === ts.SyntaxKind.Identifier && parameter.name.originalKeywordKind === ts.SyntaxKind.ThisKeyword;
 }
 
+export function getModifier(node: ts.Node, kind: ts.Modifier['kind']): ts.Modifier | undefined {
+    if (node.modifiers !== undefined)
+        for (const modifier of node.modifiers)
+            if (modifier.kind === kind)
+                return modifier;
+}
+
 export function hasModifier(modifiers: ts.Modifier[] | undefined, ...kinds: Array<ts.Modifier['kind']>) {
     if (modifiers === undefined)
         return false;
