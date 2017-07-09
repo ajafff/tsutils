@@ -1,0 +1,7 @@
+import {test} from "./test";
+// TODO ~~~~ [Unused]
+
+declare interface T {}
+declare interface U {}
+export declare interface V {}
+declare let v: T;

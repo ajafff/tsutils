@@ -293,6 +293,10 @@ abstract class AbstractScope implements Scope {
 class RootScope extends AbstractScope {
     private _exports: string[] | undefined = undefined;
 
+    constructor(private _exportAll: boolean, global: boolean) {
+        super(global);
+    }
+
     public markExported({text}: ts.Identifier) {
         if (this._exports === undefined) {
             this._exports = [text];
@@ -303,7 +307,8 @@ class RootScope extends AbstractScope {
 
     public end(cb: VariableCallback) {
         return super.end((value, key, scope) =>  {
-            if (this._exports !== undefined && this._exports.indexOf(key.text) !== -1)
+            if (!value.exported && scope === this &&
+                (this._exportAll || this._exports !== undefined && this._exports.indexOf(key.text) !== -1))
                 value.exported = true;
             return cb(value, key, scope);
         });
@@ -550,7 +555,10 @@ class UsageWalker {
         const variableCallback = (variable: VariableInfo, key: ts.Identifier) => {
             this._result.set(key, variable);
         };
-        this._scope = new RootScope(!ts.isExternalModule(sourceFile));
+        this._scope = new RootScope(
+            sourceFile.isDeclarationFile && !hasExportStatement(sourceFile),
+            !ts.isExternalModule(sourceFile),
+        );
         const cb = (node: ts.Node): void => {
             if (isBlockScopeBoundary(node)) {
                 if (node.kind === ts.SyntaxKind.CatchClause)
@@ -739,7 +747,11 @@ function isNamespaceExported(node: ts.NamespaceDeclaration) {
 function namespaceHasExportStatement(ns: ts.ModuleDeclaration): boolean {
     if (ns.body === undefined || ns.body.kind !== ts.SyntaxKind.ModuleBlock)
         return false;
-    for (const statement of ns.body.statements)
+    return hasExportStatement(ns.body);
+}
+
+function hasExportStatement(block: ts.BlockLike): boolean {
+    for (const statement of block.statements)
         if (statement.kind === ts.SyntaxKind.ExportDeclaration || statement.kind === ts.SyntaxKind.ExportAssignment)
             return true;
     return false;
