@@ -893,6 +893,8 @@ function isInDestructuringAssignment(
             case ts.SyntaxKind.BinaryExpression:
                 return (<ts.BinaryExpression>node.parent).left === node &&
                     (<ts.BinaryExpression>node.parent).operatorToken.kind === ts.SyntaxKind.EqualsToken;
+            case ts.SyntaxKind.ForOfStatement:
+                return (<ts.ForOfStatement>node.parent).initializer === node;
             case ts.SyntaxKind.ArrayLiteralExpression:
             case ts.SyntaxKind.ObjectLiteralExpression:
                 node = <ts.ArrayLiteralExpression | ts.ObjectLiteralExpression>node.parent;

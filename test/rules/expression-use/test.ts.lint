@@ -147,3 +147,16 @@ switch (kind) {
          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ [Used]
         break foo;
 }
+
+for ({foo: [foo], bar} of baz) {}
+                          ~~~ [Used]
+log(...bar);
+~~~ [Used]
+    ~~~~~~ [Used]
+       ~~~ [Used]
+log(...[...bar]);
+~~~ [Used]
+    ~~~~~~~~~~~ [Used]
+       ~~~~~~~~ [Used]
+        ~~~~~~ [Used]
+           ~~~ [Used]

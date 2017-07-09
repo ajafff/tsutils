@@ -61,4 +61,13 @@ export function testRenamingDestructure() {
   return a + y;
 }
 
+export function testRenamingDestructure2() {
+    var a = 2;
+    for ({a} of []) {}
+    var b = 1;
+        ~ [Unused]
+    var c = 1;
+    for ({b: c} of []) {}
+}
+
 setTimeout();
