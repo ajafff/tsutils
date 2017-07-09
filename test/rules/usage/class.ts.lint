@@ -8,3 +8,13 @@ new (class T<T> {
            ~ [Unused]
     foo(): T { return null!; }
 })();
+
+export class Outer<T> {
+                   ~ [Unused]
+    constructor() {
+        class Inner<T> {
+              ~~~~~ [Unused]
+            static foo(): T {} // gives compile error, but resolves to Inner's T
+        }
+    }
+}
