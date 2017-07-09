@@ -1,5 +1,5 @@
 import {test} from "./test";
-// TODO ~~~~ [Unused]
+        ~~~~ [Unused]
 
 declare interface T {}
 declare interface U {}

@@ -1,0 +1,12 @@
+import {A, B, C} from './test';
+           ~ [Unused]
+interface A {}
+export let t: A;
+export let v = A;
+
+interface B {}
+export type T = B;
+
+interface C {}
+          ~ [Unused]
+export let v2 = C;

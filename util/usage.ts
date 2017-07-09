@@ -36,6 +36,7 @@ export const enum DeclarationDomain {
     Namespace = 1,
     Type = 2,
     Value = 4,
+    Import = 8,
     Any = Namespace | Type | Value,
 }
 
@@ -138,10 +139,12 @@ export function getDeclarationDomain(node: ts.Identifier): DeclarationDomain | u
             return DeclarationDomain.Any;
         case ts.SyntaxKind.NamespaceImport:
         case ts.SyntaxKind.ImportClause:
-            return DeclarationDomain.Any;
+            return DeclarationDomain.Any | DeclarationDomain.Import;
         case ts.SyntaxKind.ImportEqualsDeclaration:
         case ts.SyntaxKind.ImportSpecifier:
-            return (<ts.ImportEqualsDeclaration | ts.ImportSpecifier>node.parent).name === node ? DeclarationDomain.Any : undefined;
+            return (<ts.ImportEqualsDeclaration | ts.ImportSpecifier>node.parent).name === node
+                ? DeclarationDomain.Any | DeclarationDomain.Import
+                : undefined;
         case ts.SyntaxKind.ModuleDeclaration:
             return DeclarationDomain.Namespace;
         case ts.SyntaxKind.Parameter:
@@ -292,9 +295,22 @@ abstract class AbstractScope implements Scope {
 
 class RootScope extends AbstractScope {
     private _exports: string[] | undefined = undefined;
+    private _innerScope = new NonRootScope(this);
 
     constructor(private _exportAll: boolean, global: boolean) {
         super(global);
+    }
+
+    public addVariable(identifier: string, name: ts.PropertyName, blockScoped: boolean, exported: boolean, domain: DeclarationDomain) {
+        if (domain & DeclarationDomain.Import)
+            return super.addVariable(identifier, name, blockScoped, exported, domain);
+        return this._innerScope.addVariable(identifier, name, blockScoped, exported, domain);
+    }
+
+    public addUse(use: VariableUse, origin?: Scope) {
+        if (origin === this._innerScope)
+            return super.addUse(use);
+        return this._innerScope.addUse(use);
     }
 
     public markExported({text}: ts.Identifier) {
@@ -306,10 +322,12 @@ class RootScope extends AbstractScope {
     }
 
     public end(cb: VariableCallback) {
+        this._innerScope.end((value, key) => {
+            value.exported = value.exported || this._exportAll || this._exports !== undefined && this._exports.indexOf(key.text) !== -1;
+            return cb(value, key, this);
+        });
         return super.end((value, key, scope) =>  {
-            if (!value.exported && scope === this &&
-                (this._exportAll || this._exports !== undefined && this._exports.indexOf(key.text) !== -1))
-                value.exported = true;
+            value.exported = value.exported || scope === this && this._exports !== undefined && this._exports.indexOf(key.text) !== -1;
             return cb(value, key, scope);
         });
     }
@@ -555,9 +573,10 @@ class UsageWalker {
         const variableCallback = (variable: VariableInfo, key: ts.Identifier) => {
             this._result.set(key, variable);
         };
+        const isModule = ts.isExternalModule(sourceFile);
         this._scope = new RootScope(
-            sourceFile.isDeclarationFile && !hasExportStatement(sourceFile),
-            !ts.isExternalModule(sourceFile),
+            sourceFile.isDeclarationFile && isModule && !hasExportStatement(sourceFile),
+            !isModule,
         );
         const cb = (node: ts.Node): void => {
             if (isBlockScopeBoundary(node)) {
@@ -619,7 +638,7 @@ class UsageWalker {
                 case ts.SyntaxKind.ImportSpecifier:
                 case ts.SyntaxKind.NamespaceImport:
                 case ts.SyntaxKind.ImportEqualsDeclaration:
-                    this._handleDeclaration(<ts.NamedDeclaration>node, false, DeclarationDomain.Any);
+                    this._handleDeclaration(<ts.NamedDeclaration>node, false, DeclarationDomain.Any | DeclarationDomain.Import);
                     break;
                 case ts.SyntaxKind.TypeParameter:
                     this._scope.addVariable(
