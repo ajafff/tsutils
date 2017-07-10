@@ -576,7 +576,7 @@ class UsageWalker {
         };
         const isModule = ts.isExternalModule(sourceFile);
         this._scope = new RootScope(
-            sourceFile.isDeclarationFile && isModule && !hasExportStatement(sourceFile),
+            sourceFile.isDeclarationFile && isModule && !containsExportStatement(sourceFile),
             !isModule,
         );
         const cb = (node: ts.Node): void => {
@@ -767,10 +767,10 @@ function isNamespaceExported(node: ts.NamespaceDeclaration) {
 function namespaceHasExportStatement(ns: ts.ModuleDeclaration): boolean {
     if (ns.body === undefined || ns.body.kind !== ts.SyntaxKind.ModuleBlock)
         return false;
-    return hasExportStatement(ns.body);
+    return containsExportStatement(ns.body);
 }
 
-function hasExportStatement(block: ts.BlockLike): boolean {
+function containsExportStatement(block: ts.BlockLike): boolean {
     for (const statement of block.statements)
         if (statement.kind === ts.SyntaxKind.ExportDeclaration || statement.kind === ts.SyntaxKind.ExportAssignment)
             return true;

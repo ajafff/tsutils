@@ -553,13 +553,13 @@ export function getLineRanges(sourceFile: ts.SourceFile): LineRange[] {
     return result;
 }
 
-let scanner: ts.Scanner | undefined;
+let cachedScanner: ts.Scanner | undefined;
 function scanToken(text: string) {
-    if (scanner === undefined) // cache scanner
-        scanner = ts.createScanner(ts.ScriptTarget.Latest, false);
-    scanner.setText(text);
-    scanner.scan();
-    return scanner;
+    if (cachedScanner === undefined) // cache scanner
+        cachedScanner = ts.createScanner(ts.ScriptTarget.Latest, false);
+    cachedScanner.setText(text);
+    cachedScanner.scan();
+    return cachedScanner;
 }
 
 export function isValidIdentifier(text: string): boolean {
