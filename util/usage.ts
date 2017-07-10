@@ -180,7 +180,7 @@ abstract class AbstractScope implements Scope {
     protected _namespaceScopes: Map<string, NamespaceScope> | undefined = undefined;
     private _enumScopes: Map<string, EnumScope> | undefined = undefined;
 
-    constructor(private _global: boolean) {}
+    constructor(protected _global: boolean) {}
 
     public addVariable(identifier: string, name: ts.PropertyName, blockScoped: boolean, exported: boolean, domain: DeclarationDomain) {
         const variables = this._getDestinationScope(blockScoped).getVariables();
@@ -324,6 +324,7 @@ class RootScope extends AbstractScope {
     public end(cb: VariableCallback) {
         this._innerScope.end((value, key) => {
             value.exported = value.exported || this._exportAll || this._exports !== undefined && this._exports.indexOf(key.text) !== -1;
+            value.inGlobalScope = this._global;
             return cb(value, key, this);
         });
         return super.end((value, key, scope) =>  {
