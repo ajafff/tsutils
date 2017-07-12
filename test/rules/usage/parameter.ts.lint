@@ -33,7 +33,11 @@ export class ABCD {
 
 export interface ITestMapInterface {
     [key: string]: string;
-     ~~~ [Unused]
+}
+
+export type MappedType<T> = {
+    [K in T]: T;
+     ~ [Unused]
 }
 
 export function func6(...args: number[]) {
@@ -93,4 +97,9 @@ function overload(foo: typeof bar, bar: string): typeof foo;
 function overload(...args: any[]): any {
                      ~~~~ [Unused]
     return;
+}
+
+let key;
+export function funxion(param: {[key: string]: string}) {
+    return param[key];
 }

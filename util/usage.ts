@@ -84,9 +84,9 @@ export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
             if ((<ts.BindingElement>parent).initializer === node)
                 return UsageDomain.ValueOrNamespace;
             break;
+        case ts.SyntaxKind.Parameter:
         case ts.SyntaxKind.EnumMember:
         case ts.SyntaxKind.PropertyDeclaration:
-        case ts.SyntaxKind.Parameter:
         case ts.SyntaxKind.VariableDeclaration:
         case ts.SyntaxKind.PropertyAssignment:
         case ts.SyntaxKind.PropertyAccessExpression:
@@ -148,6 +148,9 @@ export function getDeclarationDomain(node: ts.Identifier): DeclarationDomain | u
         case ts.SyntaxKind.ModuleDeclaration:
             return DeclarationDomain.Namespace;
         case ts.SyntaxKind.Parameter:
+            if (node.parent!.parent!.kind === ts.SyntaxKind.IndexSignature)
+                return;
+            // falls through
         case ts.SyntaxKind.BindingElement:
         case ts.SyntaxKind.VariableDeclaration:
             return (<ts.VariableLikeDeclaration>node.parent).name === node ? DeclarationDomain.Value : undefined;
@@ -626,8 +629,9 @@ class UsageWalker {
                     this._handleVariableDeclaration(<ts.VariableDeclarationList>node);
                     break;
                 case ts.SyntaxKind.Parameter:
-                    if ((<ts.ParameterDeclaration>node).name.kind !== ts.SyntaxKind.Identifier ||
-                        (<ts.Identifier>(<ts.NamedDeclaration>node).name).originalKeywordKind !== ts.SyntaxKind.ThisKeyword)
+                    if (node.parent!.kind !== ts.SyntaxKind.IndexSignature &&
+                        ((<ts.ParameterDeclaration>node).name.kind !== ts.SyntaxKind.Identifier ||
+                         (<ts.Identifier>(<ts.NamedDeclaration>node).name).originalKeywordKind !== ts.SyntaxKind.ThisKeyword))
                         this._handleBindingName(<ts.Identifier>(<ts.NamedDeclaration>node).name, false, false, true);
                     break;
                 case ts.SyntaxKind.EnumMember:
