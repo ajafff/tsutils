@@ -1,5 +1,9 @@
 # Change Log
 
+## v2.7.0
+**Features:**
+* Added `isReassignmentTarget` utility
+
 ## v2.6.1
 **Bugfixes:**
 * `getDeclarationDomain` now returns `undefined` for Parameter in IndexSignature
