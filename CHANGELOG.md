@@ -1,5 +1,9 @@
 # Change Log
 
+## v2.7.1
+**Bugfixes:**
+* `isReassignmentTarget` don't return `true` for right side of assignment
+
 ## v2.7.0
 **Features:**
 * Added `isReassignmentTarget` utility

@@ -924,7 +924,8 @@ export function isReassignmentTarget(node: ts.Expression): boolean {
             return (<ts.PrefixUnaryExpression>parent).operator === ts.SyntaxKind.PlusPlusToken ||
                 (<ts.PrefixUnaryExpression>parent).operator === ts.SyntaxKind.MinusMinusToken;
         case ts.SyntaxKind.BinaryExpression:
-            return isAssignmentKind((<ts.BinaryExpression>parent).operatorToken.kind);
+            return (<ts.BinaryExpression>parent).left === node &&
+                isAssignmentKind((<ts.BinaryExpression>parent).operatorToken.kind);
         case ts.SyntaxKind.ShorthandPropertyAssignment:
             return (<ts.ShorthandPropertyAssignment>parent).name === node &&
                 isInDestructuringAssignment(<ts.ShorthandPropertyAssignment>parent);
