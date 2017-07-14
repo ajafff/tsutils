@@ -913,3 +913,36 @@ function isInDestructuringAssignment(
         }
     }
 }
+
+export function isReassignmentTarget(node: ts.Expression): boolean {
+    const parent = node.parent!;
+    switch (parent.kind) {
+        case ts.SyntaxKind.PostfixUnaryExpression:
+        case ts.SyntaxKind.DeleteExpression:
+            return true;
+        case ts.SyntaxKind.PrefixUnaryExpression:
+            return (<ts.PrefixUnaryExpression>parent).operator === ts.SyntaxKind.PlusPlusToken ||
+                (<ts.PrefixUnaryExpression>parent).operator === ts.SyntaxKind.MinusMinusToken;
+        case ts.SyntaxKind.BinaryExpression:
+            return isAssignmentKind((<ts.BinaryExpression>parent).operatorToken.kind);
+        case ts.SyntaxKind.ShorthandPropertyAssignment:
+            return (<ts.ShorthandPropertyAssignment>parent).name === node &&
+                isInDestructuringAssignment(<ts.ShorthandPropertyAssignment>parent);
+        case ts.SyntaxKind.PropertyAssignment:
+            return (<ts.PropertyAssignment>parent).initializer === node &&
+                isInDestructuringAssignment(<ts.PropertyAssignment>parent);
+        case ts.SyntaxKind.ObjectLiteralExpression:
+        case ts.SyntaxKind.ArrayLiteralExpression:
+        case ts.SyntaxKind.SpreadElement:
+        case ts.SyntaxKind.SpreadAssignment:
+            return isInDestructuringAssignment(
+                <ts.SpreadElement | ts.SpreadAssignment | ts.ObjectLiteralExpression | ts.ArrayLiteralExpression>parent,
+            );
+        case ts.SyntaxKind.ParenthesizedExpression:
+            return isReassignmentTarget(<ts.Expression>parent);
+        case ts.SyntaxKind.ForOfStatement:
+        case ts.SyntaxKind.ForInStatement:
+            return (<ts.ForOfStatement | ts.ForInStatement>parent).initializer === node;
+    }
+    return false;
+}
