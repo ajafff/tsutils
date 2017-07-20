@@ -1,6 +1,6 @@
 import * as ts from 'typescript';
 import {
-    isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration,
+    isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration, isIdentifier
 } from '../typeguard/node';
 
 export function getChildOfKind(node: ts.Node, kind: ts.SyntaxKind, sourceFile?: ts.SourceFile) {
@@ -198,7 +198,7 @@ export function getPropertyName(propertyName: ts.PropertyName): string | undefin
             return;
         return propertyName.expression.text;
     }
-    return propertyName.text;
+    return isIdentifier(propertyName) ? getIdentifierText(propertyName) : propertyName.text;
 }
 
 export function forEachDestructuringIdentifier<T>(
@@ -946,4 +946,12 @@ export function isReassignmentTarget(node: ts.Expression): boolean {
             return (<ts.ForOfStatement | ts.ForInStatement>parent).initializer === node;
     }
     return false;
+}
+
+/**
+ * Safely gets the text of an identifier across typescript versions
+ * @param node The identifier to get the text of
+ */
+export function getIdentifierText(node: ts.Identifier) {
+    return ts.unescapeIdentifier(<string>node.text);
 }
