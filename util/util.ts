@@ -40,7 +40,7 @@ export function getModifier(node: ts.Node, kind: ts.Modifier['kind']): ts.Modifi
                 return modifier;
 }
 
-export function hasModifier(modifiers: ts.Modifier[] | undefined, ...kinds: Array<ts.Modifier['kind']>) {
+export function hasModifier(modifiers: ReadonlyArray<ts.Modifier> | undefined, ...kinds: Array<ts.Modifier['kind']>) {
     if (modifiers === undefined)
         return false;
     for (const modifier of modifiers)
@@ -714,9 +714,9 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
     }
 }
 
-function getJsxAttributes(openElement: ts.JsxOpeningLikeElement): ts.JsxAttributeLike[] {
+function getJsxAttributes(openElement: ts.JsxOpeningLikeElement): ReadonlyArray<ts.JsxAttributeLike> {
     // for back-compat with typescript@<2.3
-    const attributes: ts.JsxAttributeLike[] | ts.JsxAttributes = openElement.attributes;
+    const attributes: ReadonlyArray<ts.JsxAttributeLike> | ts.JsxAttributes = openElement.attributes;
     return Array.isArray(attributes) ? attributes : attributes.properties;
 }
 
