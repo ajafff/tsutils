@@ -1,6 +1,6 @@
 import * as ts from 'typescript';
 import {
-    isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration, isIdentifier,
+    isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration,
 } from '../typeguard/node';
 
 export function getChildOfKind(node: ts.Node, kind: ts.SyntaxKind, sourceFile?: ts.SourceFile) {
@@ -198,7 +198,7 @@ export function getPropertyName(propertyName: ts.PropertyName): string | undefin
             return;
         return propertyName.expression.text;
     }
-    return isIdentifier(propertyName) ? getIdentifierText(propertyName) : propertyName.text;
+    return propertyName.kind === ts.SyntaxKind.Identifier ? getIdentifierText(propertyName) : propertyName.text;
 }
 
 export function forEachDestructuringIdentifier<T>(
