@@ -302,10 +302,9 @@ export function isFunctionScopeBoundary(node: ts.Node): boolean {
     }
 }
 
-export function isBlockScopeBoundary(node: ts.Node): boolean {
+export function isBlockScopeBoundary(node: ts.Node, parent = node.parent!): boolean {
     switch (node.kind) {
         case ts.SyntaxKind.Block:
-            const parent = node.parent!;
             return parent.kind !== ts.SyntaxKind.CatchClause &&
                    // blocks inside SourceFile are block scope boundaries
                    (parent.kind === ts.SyntaxKind.SourceFile ||

@@ -50,22 +50,24 @@ export const enum UsageDomain {
     TypeQuery = 8,
 }
 
-export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
-    const parent = node.parent!;
+export type ParentNodes = ReadonlyArray<ts.Node>;
+
+export function getUsageDomain(node: ts.Identifier, parents: ParentNodes): UsageDomain | undefined {
+    const parent = parents[0];
     switch (parent.kind) {
         case ts.SyntaxKind.TypeReference:
         case ts.SyntaxKind.TypeOperator:
             return UsageDomain.Type;
         case ts.SyntaxKind.ExpressionWithTypeArguments:
-            return (<ts.HeritageClause>parent.parent).token === ts.SyntaxKind.ImplementsKeyword ||
-                parent.parent!.parent!.kind === ts.SyntaxKind.InterfaceDeclaration
+            return (<ts.HeritageClause>parents[1]).token === ts.SyntaxKind.ImplementsKeyword ||
+                parents[2].kind === ts.SyntaxKind.InterfaceDeclaration
                 ? UsageDomain.Type
                 : UsageDomain.Value;
         case ts.SyntaxKind.TypeQuery:
             return UsageDomain.ValueOrNamespace | UsageDomain.TypeQuery;
         case ts.SyntaxKind.QualifiedName:
             if ((<ts.QualifiedName>parent).left === node) {
-                if (getEntityNameParent(<ts.QualifiedName>parent).kind === ts.SyntaxKind.TypeQuery)
+                if (findQualifiedNameParent(parents).kind === ts.SyntaxKind.TypeQuery)
                     return UsageDomain.Namespace | UsageDomain.TypeQuery;
                 return UsageDomain.Namespace;
             }
@@ -127,8 +129,8 @@ export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
     }
 }
 
-export function getDeclarationDomain(node: ts.Identifier): DeclarationDomain | undefined {
-    switch (node.parent!.kind) {
+export function getDeclarationDomain(node: ts.Identifier, [parent, grandparent]: ParentNodes): DeclarationDomain | undefined {
+    switch (parent.kind) {
         case ts.SyntaxKind.TypeParameter:
         case ts.SyntaxKind.InterfaceDeclaration:
         case ts.SyntaxKind.TypeAliasDeclaration:
@@ -143,18 +145,18 @@ export function getDeclarationDomain(node: ts.Identifier): DeclarationDomain | u
             return DeclarationDomain.Any | DeclarationDomain.Import;
         case ts.SyntaxKind.ImportEqualsDeclaration:
         case ts.SyntaxKind.ImportSpecifier:
-            return (<ts.ImportEqualsDeclaration | ts.ImportSpecifier>node.parent).name === node
+            return (<ts.ImportEqualsDeclaration | ts.ImportSpecifier>parent).name === node
                 ? DeclarationDomain.Any | DeclarationDomain.Import
                 : undefined;
         case ts.SyntaxKind.ModuleDeclaration:
             return DeclarationDomain.Namespace;
         case ts.SyntaxKind.Parameter:
-            if (node.parent!.parent!.kind === ts.SyntaxKind.IndexSignature)
+            if (grandparent.kind === ts.SyntaxKind.IndexSignature)
                 return;
             // falls through
         case ts.SyntaxKind.BindingElement:
         case ts.SyntaxKind.VariableDeclaration:
-            return (<ts.VariableLikeDeclaration>node.parent).name === node ? DeclarationDomain.Value : undefined;
+            return (<ts.VariableLikeDeclaration>parent).name === node ? DeclarationDomain.Value : undefined;
         case ts.SyntaxKind.FunctionDeclaration:
         case ts.SyntaxKind.FunctionExpression:
             return DeclarationDomain.Value;
@@ -172,7 +174,7 @@ interface Scope {
     addUse(use: VariableUse, scope?: Scope): void;
     getVariables(): Map<string, InternalVariableInfo>;
     getFunctionScope(): Scope;
-    end(cb: VariableCallback): void;
+    end(cb: VariableCallback, parentNodes: ParentNodes): void;
     markExported(name: ts.Identifier, as?: ts.Identifier): void;
     createOrReuseNamespaceScope(name: string, exported: boolean, ambient: boolean, hasExportStatement: boolean): NamespaceScope;
     createOrReuseEnumScope(name: string, exported: boolean): EnumScope;
@@ -218,7 +220,7 @@ abstract class AbstractScope implements Scope {
         return this;
     }
 
-    public end(cb: VariableCallback) {
+    public end(cb: VariableCallback, _parents?: ParentNodes) {
         if (this._namespaceScopes !== undefined)
             this._namespaceScopes.forEach((value) => value.finish(cb));
         this._namespaceScopes = this._enumScopes = undefined;
@@ -333,7 +335,7 @@ class RootScope extends AbstractScope {
             value.inGlobalScope = this._global;
             return cb(value, key, this);
         });
-        return super.end((value, key, scope) =>  {
+        return super.end((value, key, scope) => {
             value.exported = value.exported || scope === this
                 && this._exports !== undefined && this._exports.indexOf(getIdentifierText(key)) !== -1;
             return cb(value, key, scope);
@@ -481,11 +483,11 @@ class BlockScope extends NonRootScope {
     }
 }
 
-function mapDeclaration(declaration: ts.Identifier): DeclarationInfo {
+function mapDeclaration(declaration: ts.Identifier, parents: ParentNodes): DeclarationInfo {
     return {
         declaration,
         exported: true,
-        domain: getDeclarationDomain(declaration)!,
+        domain: getDeclarationDomain(declaration, parents)!,
     };
 }
 
@@ -501,7 +503,7 @@ class NamespaceScope extends NonRootScope {
         return super.end(cb);
     }
 
-    public end(cb: VariableCallback) {
+    public end(cb: VariableCallback, parentNodes: ParentNodes) {
         this._innerScope.end((variable, key, scope) => {
             if (scope !== this._innerScope ||
                 !variable.exported && (!this._ambient || this._exports !== undefined && !this._exports.has(getIdentifierText(key))))
@@ -509,7 +511,7 @@ class NamespaceScope extends NonRootScope {
             const namespaceVar = this._variables.get(getIdentifierText(key));
             if (namespaceVar === undefined) {
                 this._variables.set(getIdentifierText(key), {
-                    declarations: variable.declarations.map(mapDeclaration),
+                    declarations: variable.declarations.map((decl) => mapDeclaration(decl, parentNodes)),
                     domain: variable.domain,
                     uses: [...variable.uses],
                 });
@@ -518,7 +520,7 @@ class NamespaceScope extends NonRootScope {
                     for (const existing of namespaceVar.declarations)
                         if (existing.declaration === declaration)
                             continue outer;
-                    namespaceVar.declarations.push(mapDeclaration(declaration));
+                    namespaceVar.declarations.push(mapDeclaration(declaration, parentNodes));
                 }
                 namespaceVar.domain |= variable.domain;
                 for (const use of variable.uses) {
@@ -567,27 +569,23 @@ class NamespaceScope extends NonRootScope {
     }
 }
 
-function getEntityNameParent(name: ts.EntityName) {
-    let parent = name.parent!;
-    while (parent.kind === ts.SyntaxKind.QualifiedName)
-        parent = parent.parent!;
-    return parent;
+function findQualifiedNameParent(parentNodes: ParentNodes) {
+    return parentNodes.find((n) => n.kind !== ts.SyntaxKind.QualifiedName)!;
 }
 
 class UsageWalker {
     private _result = new Map<ts.Identifier, VariableInfo>();
     private _scope: Scope;
+    private _parents: ts.Node[] = [];
+
     public getUsage(sourceFile: ts.SourceFile) {
         const variableCallback = (variable: VariableInfo, key: ts.Identifier) => {
             this._result.set(key, variable);
         };
-        const isModule = ts.isExternalModule(sourceFile);
-        this._scope = new RootScope(
-            sourceFile.isDeclarationFile && isModule && !containsExportStatement(sourceFile),
-            !isModule,
-        );
+
         const cb = (node: ts.Node): void => {
-            if (isBlockScopeBoundary(node)) {
+            const parent = this._parents[0];
+            if (isBlockScopeBoundary(node, parent)) {
                 if (node.kind === ts.SyntaxKind.CatchClause)
                         this._handleBindingName((<ts.CatchClause>node).variableDeclaration.name, true, false);
                 return continueWithScope(node, new BlockScope(this._scope.getFunctionScope(), this._scope));
@@ -612,7 +610,7 @@ class UsageWalker {
                                                            hasModifier(node.modifiers, ts.SyntaxKind.ExportKeyword)),
                     );
                 case ts.SyntaxKind.ModuleDeclaration:
-                    return this._handleModule(<ts.ModuleDeclaration>node, continueWithScope);
+                    return this._handleModule(<ts.ModuleDeclaration>node, parent, continueWithScope);
                 case ts.SyntaxKind.MappedType:
                     return continueWithScope(node, new NonRootScope(this._scope));
                 case ts.SyntaxKind.FunctionExpression:
@@ -630,10 +628,10 @@ class UsageWalker {
                     return this._handleFunctionLikeDeclaration(<ts.FunctionLikeDeclaration>node, cb, variableCallback);
                 // End of Scope specific handling
                 case ts.SyntaxKind.VariableDeclarationList:
-                    this._handleVariableDeclaration(<ts.VariableDeclarationList>node);
+                    this._handleVariableDeclaration(<ts.VariableDeclarationList>node, parent);
                     break;
                 case ts.SyntaxKind.Parameter:
-                    if (node.parent!.kind !== ts.SyntaxKind.IndexSignature &&
+                    if (parent.kind !== ts.SyntaxKind.IndexSignature &&
                         ((<ts.ParameterDeclaration>node).name.kind !== ts.SyntaxKind.Identifier ||
                          (<ts.Identifier>(<ts.NamedDeclaration>node).name).originalKeywordKind !== ts.SyntaxKind.ThisKeyword))
                         this._handleBindingName(<ts.Identifier>(<ts.NamedDeclaration>node).name, false, false, true);
@@ -666,27 +664,47 @@ class UsageWalker {
                         return this._scope.markExported(<ts.Identifier>(<ts.ExportAssignment>node).expression);
                     break;
                 case ts.SyntaxKind.Identifier:
-                    const domain = getUsageDomain(<ts.Identifier>node);
+                    const domain = getUsageDomain(<ts.Identifier>node, this._parents);
                     if (domain !== undefined)
                         this._scope.addUse({domain, location: <ts.Identifier>node});
                     return;
 
             }
 
-            return ts.forEachChild(node, cb);
+            return this._visitEachChild(node, cb);
         };
+
         const continueWithScope = (node: ts.Node, scope: Scope) => {
             const savedScope = this._scope;
             this._scope = scope;
-            ts.forEachChild(node, cb);
-            this._scope.end(variableCallback);
+            this._visitEachChild(node, cb);
+            this._scope.end(variableCallback, this._parents);
             this._scope = savedScope;
         };
 
-        ts.forEachChild(sourceFile, cb);
-        this._scope.end(variableCallback);
+        const isModule = ts.isExternalModule(sourceFile);
+        this._scope = new RootScope(
+            sourceFile.isDeclarationFile && isModule && !containsExportStatement(sourceFile),
+            !isModule,
+        );
+        this._visitEachChild(sourceFile, cb);
+        this._scope.end(variableCallback, this._parents);
         return this._result;
 
+    }
+
+    private _visitEachChild(node: ts.Node, cbNode: (node: ts.Node) => void) {
+        this._parents.unshift(node);
+        const value = ts.forEachChild(node, cbNode);
+        this._parents.shift();
+        return value;
+    }
+
+    private _visitKnownChildren(cbNode: (node: ts.Node) => void, parent: ts.Node, ...children: ts.Node[]) {
+        this._parents.unshift(parent);
+        for (const node of children)
+            cbNode(node);
+        this._parents.shift();
     }
 
     private _handleFunctionLikeDeclaration(node: ts.FunctionLikeDeclaration, cb: (node: ts.Node) => void, varCb: VariableCallback) {
@@ -697,31 +715,28 @@ class UsageWalker {
             ? new FunctionExpressionScope(<ts.Identifier>node.name, savedScope)
             : new FunctionScope(savedScope);
         if (node.decorators !== undefined)
-            for (const decorator of node.decorators)
-                cb(decorator);
+            this._visitKnownChildren(cb, node, ...node.decorators);
         if (node.name !== undefined)
-            cb(node.name);
+            this._visitKnownChildren(cb, node, node.name);
         if (node.typeParameters !== undefined)
-            for (const param of node.typeParameters)
-                cb(param);
+            this._visitKnownChildren(cb, node, ...node.typeParameters);
         scope.updateState(FunctionScopeState.Parameter);
-        for (const param of node.parameters)
-            cb(param);
+        this._visitKnownChildren(cb, node, ...node.parameters);
         if (node.type !== undefined) {
             scope.updateState(FunctionScopeState.ReturnType);
-            cb(node.type);
+            this._visitKnownChildren(cb, node, node.type);
         }
         if (node.body !== undefined) {
             scope.updateState(FunctionScopeState.Body);
-            cb(node.body);
+            this._visitKnownChildren(cb, node, node.body);
         }
         scope.end(varCb);
         this._scope = savedScope;
     }
 
-    private _handleModule(node: ts.ModuleDeclaration, next: (node: ts.Node, scope: Scope) => void) {
+    private _handleModule(node: ts.ModuleDeclaration, parent: ts.Node, next: (node: ts.Node, scope: Scope) => void) {
         if (node.name.kind === ts.SyntaxKind.Identifier) {
-            const exported = isNamespaceExported(<ts.NamespaceDeclaration>node);
+            const exported = isNamespaceExported(<ts.NamespaceDeclaration>node, parent);
             this._scope.addVariable(
                 getIdentifierText(node.name), node.name, false, exported, DeclarationDomain.Namespace | DeclarationDomain.Value,
             );
@@ -763,17 +778,17 @@ class UsageWalker {
         });
     }
 
-    private _handleVariableDeclaration(declarationList: ts.VariableDeclarationList) {
+    private _handleVariableDeclaration(declarationList: ts.VariableDeclarationList, parent: ts.Node) {
         const blockScoped = isBlockScopedVariableDeclarationList(declarationList);
-        const exported = declarationList.parent!.kind === ts.SyntaxKind.VariableStatement &&
-            hasModifier(declarationList.parent!.modifiers, ts.SyntaxKind.ExportKeyword);
+        const exported = parent.kind === ts.SyntaxKind.VariableStatement &&
+            hasModifier(parent.modifiers, ts.SyntaxKind.ExportKeyword);
         for (const declaration of declarationList.declarations)
             this._handleBindingName(declaration.name, blockScoped, exported);
     }
 }
 
-function isNamespaceExported(node: ts.NamespaceDeclaration) {
-    return node.parent!.kind === ts.SyntaxKind.ModuleDeclaration || hasModifier(node.modifiers, ts.SyntaxKind.ExportKeyword);
+function isNamespaceExported(node: ts.NamespaceDeclaration, parent: ts.Node) {
+    return parent.kind === ts.SyntaxKind.ModuleDeclaration || hasModifier(node.modifiers, ts.SyntaxKind.ExportKeyword);
 }
 
 function namespaceHasExportStatement(ns: ts.ModuleDeclaration): boolean {
