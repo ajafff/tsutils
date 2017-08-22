@@ -18,3 +18,14 @@ export class Outer<T> {
         }
     }
 }
+
+let fn: any;
+let v;
+export class C {
+    @fn((param) => v = param)
+    public method(param, v) {
+                  ~~~~~ [Unused]
+                         ~ [Unused]
+    }
+}
+

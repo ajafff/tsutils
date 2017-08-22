@@ -690,23 +690,20 @@ class UsageWalker {
     }
 
     private _handleFunctionLikeDeclaration(node: ts.FunctionLikeDeclaration, cb: (node: ts.Node) => void, varCb: VariableCallback) {
+        if (node.decorators !== undefined)
+            node.decorators.forEach(cb);
         const savedScope = this._scope;
         if (node.kind === ts.SyntaxKind.FunctionDeclaration)
             this._handleDeclaration(node, false, DeclarationDomain.Value);
         const scope = this._scope = node.kind === ts.SyntaxKind.FunctionExpression && node.name !== undefined
             ? new FunctionExpressionScope(<ts.Identifier>node.name, savedScope)
             : new FunctionScope(savedScope);
-        if (node.decorators !== undefined)
-            for (const decorator of node.decorators)
-                cb(decorator);
         if (node.name !== undefined)
             cb(node.name);
         if (node.typeParameters !== undefined)
-            for (const param of node.typeParameters)
-                cb(param);
+            node.typeParameters.forEach(cb);
         scope.updateState(FunctionScopeState.Parameter);
-        for (const param of node.parameters)
-            cb(param);
+        node.parameters.forEach(cb);
         if (node.type !== undefined) {
             scope.updateState(FunctionScopeState.ReturnType);
             cb(node.type);
