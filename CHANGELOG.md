@@ -1,5 +1,10 @@
 # Change Log
 
+## v2.8.1
+**Bugfixes:**
+* Support `typescript@2.5.1` with optional catch binding
+* `collectVariableUsage` fixed a bug where method decorator had method's parameters in scope
+
 ## v2.8.0
 * Compatibility with the latest typescript nightly
 * Added `getIdentifierText` to unescape identifiers across typescript versions
