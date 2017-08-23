@@ -588,8 +588,8 @@ class UsageWalker {
         );
         const cb = (node: ts.Node): void => {
             if (isBlockScopeBoundary(node)) {
-                if (node.kind === ts.SyntaxKind.CatchClause)
-                        this._handleBindingName((<ts.CatchClause>node).variableDeclaration.name, true, false);
+                if (node.kind === ts.SyntaxKind.CatchClause && (<ts.CatchClause>node).variableDeclaration !== undefined)
+                    this._handleBindingName((<ts.CatchClause>node).variableDeclaration!.name, true, false);
                 return continueWithScope(node, new BlockScope(this._scope.getFunctionScope(), this._scope));
             }
             switch (node.kind) {
