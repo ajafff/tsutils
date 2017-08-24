@@ -717,6 +717,16 @@ class UsageWalker {
     }
 
     private _handleModule(node: ts.ModuleDeclaration, next: (node: ts.Node, scope: Scope) => void) {
+        if (node.flags & ts.NodeFlags.GlobalAugmentation)
+            return next(
+                node,
+                this._scope.createOrReuseNamespaceScope(
+                    '-global',
+                    false,
+                    true,
+                    false,
+                ),
+        );
         if (node.name.kind === ts.SyntaxKind.Identifier) {
             const exported = isNamespaceExported(<ts.NamespaceDeclaration>node);
             this._scope.addVariable(

@@ -142,3 +142,13 @@ declare namespace ambient {
     function foo(bar: number): void;
                  ~~~ [Unused]
 }
+
+interface Foo {}
+          ~~~ [Unused]
+declare global {
+    interface Foo {}
+}
+
+declare global {
+    let foo: Foo;
+}
