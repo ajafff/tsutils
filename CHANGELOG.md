@@ -1,5 +1,9 @@
 # Change Log
 
+## v2.8.2
+**Bugfixes:**
+* `collectVariableUsage`: handle global augmentation like other module augmentations
+
 ## v2.8.1
 **Bugfixes:**
 * Support `typescript@2.5.1` with optional catch binding
