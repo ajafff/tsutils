@@ -381,6 +381,10 @@ export function isLiteralExpression(node: ts.Node): node is ts.LiteralExpression
            node.kind <= ts.SyntaxKind.LastLiteralToken;
 }
 
+export function isMappedTypeNode(node: ts.Node): node is ts.MappedTypeNode {
+    return node.kind === ts.SyntaxKind.MappedType;
+}
+
 export function isMetaProperty(node: ts.Node): node is ts.MetaProperty {
     return node.kind === ts.SyntaxKind.MetaProperty;
 }
