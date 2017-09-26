@@ -1,7 +1,5 @@
 import * as ts from 'typescript';
-import {
-    isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration,
-} from '../typeguard/node';
+import { isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration } from '../typeguard/node';
 
 export function getChildOfKind(node: ts.Node, kind: ts.SyntaxKind, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))
@@ -954,4 +952,60 @@ export function isReassignmentTarget(node: ts.Expression): boolean {
  */
 export function getIdentifierText(node: ts.Identifier) {
     return ts.unescapeIdentifier(<string>node.text);
+}
+
+export function canHaveJsDoc(node: ts.Node): boolean {
+    switch (node.kind) {
+        case ts.SyntaxKind.Parameter:
+        case ts.SyntaxKind.CallSignature:
+        case ts.SyntaxKind.ConstructSignature:
+        case ts.SyntaxKind.MethodSignature:
+        case ts.SyntaxKind.PropertySignature:
+        case ts.SyntaxKind.ArrowFunction:
+        case ts.SyntaxKind.ParenthesizedExpression:
+        case ts.SyntaxKind.SpreadAssignment:
+        case ts.SyntaxKind.ShorthandPropertyAssignment:
+        case ts.SyntaxKind.PropertyAssignment:
+        case ts.SyntaxKind.FunctionExpression:
+        case ts.SyntaxKind.FunctionDeclaration:
+        case ts.SyntaxKind.LabeledStatement:
+        case ts.SyntaxKind.ExpressionStatement:
+        case ts.SyntaxKind.VariableStatement:
+        case ts.SyntaxKind.Constructor:
+        case ts.SyntaxKind.MethodDeclaration:
+        case ts.SyntaxKind.PropertyDeclaration:
+        case ts.SyntaxKind.GetAccessor:
+        case ts.SyntaxKind.SetAccessor:
+        case ts.SyntaxKind.ClassDeclaration:
+        case ts.SyntaxKind.ClassExpression:
+        case ts.SyntaxKind.InterfaceDeclaration:
+        case ts.SyntaxKind.TypeAliasDeclaration:
+        case ts.SyntaxKind.EnumMember:
+        case ts.SyntaxKind.EnumDeclaration:
+        case ts.SyntaxKind.ModuleDeclaration:
+        case ts.SyntaxKind.ImportEqualsDeclaration:
+        case ts.SyntaxKind.IndexSignature:
+        case ts.SyntaxKind.FunctionType:
+        case ts.SyntaxKind.ConstructorType:
+        case ts.SyntaxKind.JSDocFunctionType:
+        case ts.SyntaxKind.EndOfFileToken:
+            return true;
+        default:
+            return false;
+    }
+}
+
+/** Gets the JSDoc of any node. For performance reasons this function should only be called when `canHaveJsDoc` return true. */
+export function getJsDoc(node: ts.Node, sourceFile: ts.SourceFile): ts.JSDoc[] | undefined {
+    const children = node.getChildren(sourceFile);
+    if (children.length === 0 || children[0].kind !== ts.SyntaxKind.JSDocComment)
+        return;
+    const result = [<ts.JSDoc>children[0]];
+    for (let i = 1; i < children.length; ++i) {
+        if (children[i].kind !== ts.SyntaxKind.JSDocComment)
+            break;
+        result.push(<ts.JSDoc>children[i]);
+    }
+
+    return result;
 }
