@@ -1,5 +1,5 @@
 import * as ts from 'typescript';
-import { isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration } from '../typeguard/node';
+import { isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration, isJsDoc } from '../typeguard/node';
 
 export function getChildOfKind(node: ts.Node, kind: ts.SyntaxKind, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))
@@ -996,15 +996,12 @@ export function canHaveJsDoc(node: ts.Node): boolean {
 }
 
 /** Gets the JSDoc of any node. For performance reasons this function should only be called when `canHaveJsDoc` return true. */
-export function getJsDoc(node: ts.Node, sourceFile: ts.SourceFile): ts.JSDoc[] | undefined {
-    const children = node.getChildren(sourceFile);
-    if (children.length === 0 || children[0].kind !== ts.SyntaxKind.JSDocComment)
-        return;
-    const result = [<ts.JSDoc>children[0]];
-    for (let i = 1; i < children.length; ++i) {
-        if (children[i].kind !== ts.SyntaxKind.JSDocComment)
+export function getJsDoc(node: ts.Node, sourceFile: ts.SourceFile): ts.JSDoc[] {
+    const result = [];
+    for (const child of node.getChildren(sourceFile)) {
+        if (!isJsDoc(child))
             break;
-        result.push(<ts.JSDoc>children[i]);
+        result.push(child);
     }
 
     return result;
