@@ -996,7 +996,7 @@ export function canHaveJsDoc(node: ts.Node): boolean {
 }
 
 /** Gets the JSDoc of any node. For performance reasons this function should only be called when `canHaveJsDoc` return true. */
-export function getJsDoc(node: ts.Node, sourceFile: ts.SourceFile): ts.JSDoc[] {
+export function getJsDoc(node: ts.Node, sourceFile?: ts.SourceFile): ts.JSDoc[] {
     const result = [];
     for (const child of node.getChildren(sourceFile)) {
         if (!isJsDoc(child))
