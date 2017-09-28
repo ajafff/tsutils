@@ -1,5 +1,8 @@
 import * as ts from 'typescript';
-import { isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration, isJsDoc } from '../typeguard/node';
+import {
+    isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration, isJsDoc, isImportDeclaration,
+    isTextualLiteral, isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration,
+} from '../typeguard/node';
 
 export function getChildOfKind(node: ts.Node, kind: ts.SyntaxKind, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))
@@ -1005,4 +1008,75 @@ export function getJsDoc(node: ts.Node, sourceFile?: ts.SourceFile): ts.JSDoc[] 
     }
 
     return result;
+}
+
+export const enum ImportOptions {
+    ImportDeclaration = 1,
+    ImportEquals = 2,
+    ExportFrom = 4,
+    DynamicImport = 8,
+    Require = 16,
+    All = ImportDeclaration | ImportEquals | ExportFrom | DynamicImport | Require,
+    AllImports = ImportDeclaration | ImportEquals | DynamicImport | Require,
+    AllStaticImports = ImportDeclaration | ImportEquals,
+    AllDynamic = DynamicImport | Require,
+    AllRequireLike = ImportEquals | Require,
+}
+
+export function findImports(sourceFile: ts.SourceFile, options: ImportOptions) {
+    return new ImportFinder(sourceFile, options).find();
+}
+
+class ImportFinder {
+    constructor(private _sourceFile: ts.SourceFile, private _options: ImportOptions) {}
+
+    private _result: ts.LiteralExpression[] = [];
+
+    public find() {
+        this._findImports(this._sourceFile.statements);
+        return this._result;
+    }
+
+    private _findImports(statements: ReadonlyArray<ts.Statement>) {
+        for (const statement of statements) {
+            if (isImportDeclaration(statement)) {
+                if (this._options & ImportOptions.ImportDeclaration)
+                    this._addImport(statement.moduleSpecifier);
+            } else if (isImportEqualsDeclaration(statement)) {
+                if (this._options & ImportOptions.ImportEquals &&
+                    statement.moduleReference.kind === ts.SyntaxKind.ExternalModuleReference &&
+                    statement.moduleReference.expression !== undefined)
+                    this._addImport(statement.moduleReference.expression);
+            } else if (isExportDeclaration(statement)) {
+                if (statement.moduleSpecifier !== undefined && this._options & ImportOptions.ExportFrom)
+                    this._addImport(statement.moduleSpecifier);
+            } else if (isModuleDeclaration(statement) && statement.body !== undefined && this._sourceFile.isDeclarationFile) {
+                // There can't be any imports in a module augmentation or namespace
+                this._findImportsInModule(statement.body);
+            } else if (this._options & ImportOptions.AllDynamic && !this._sourceFile.isDeclarationFile) {
+                ts.forEachChild(statement, this._findDynamic);
+            }
+        }
+    }
+
+    private _findImportsInModule(body: ts.ModuleBody): void {
+        if (body.kind === ts.SyntaxKind.ModuleBlock)
+            return this._findImports(body.statements);
+        if (body.kind === ts.SyntaxKind.ModuleDeclaration && body.body !== undefined)
+            return this._findImportsInModule(body.body);
+    }
+
+    private _findDynamic = (node: ts.Node): void => {
+        if (isCallExpression(node) && node.arguments.length === 1 &&
+            (node.expression.kind === ts.SyntaxKind.ImportKeyword && this._options & ImportOptions.DynamicImport ||
+                this._options & ImportOptions.Require && node.expression.kind === ts.SyntaxKind.Identifier &&
+                    (<ts.Identifier>node.expression).text === 'require'))
+            this._addImport(node.arguments[0]);
+        ts.forEachChild(node, this._findDynamic);
+    }
+
+    private _addImport(expression: ts.Expression) {
+        if (isTextualLiteral(expression))
+            this._result.push(expression);
+    }
 }
