@@ -1,5 +1,9 @@
 # Change Log
 
+## v2.10.0
+**Features:**
+* added utility `findImports` to find all kinds of imports in a source file
+
 ## v2.9.0
 **Features:**
 * added typeguard `isMappedTypeNode`
