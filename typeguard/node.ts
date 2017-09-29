@@ -465,6 +465,10 @@ export function isParenthesizedExpression(node: ts.Node): node is ts.Parenthesiz
     return node.kind === ts.SyntaxKind.ParenthesizedExpression;
 }
 
+export function isParenthesizedTypeNode(node: ts.Node): node is ts.ParenthesizedTypeNode {
+    return node.kind === ts.SyntaxKind.ParenthesizedType;
+}
+
 export function isPostfixUnaryExpression(node: ts.Node): node is ts.PostfixUnaryExpression {
     return node.kind === ts.SyntaxKind.PostfixUnaryExpression;
 }
