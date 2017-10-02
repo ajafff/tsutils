@@ -1,5 +1,12 @@
 # Change Log
 
+## v2.11.0
+**Bugfixes:**
+* `getJsDoc` now correctly returns JsDoc for `EndOfFileToken`
+
+**Features:**
+* added utility `parseJsDocOfNode`
+
 ## v2.10.0
 **Features:**
 * added utility `findImports` to find all kinds of imports in a source file
