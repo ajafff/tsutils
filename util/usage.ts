@@ -754,7 +754,7 @@ class UsageWalker {
         );
     }
 
-    private _handleDeclaration(node: ts.NamedDeclaration, blockScoped: boolean, domain: DeclarationDomain ) {
+    private _handleDeclaration(node: ts.NamedDeclaration, blockScoped: boolean, domain: DeclarationDomain) {
         if (node.name !== undefined)
             this._scope.addVariable(getIdentifierText(<ts.Identifier>node.name), <ts.Identifier>node.name, blockScoped,
                                     hasModifier(node.modifiers, ts.SyntaxKind.ExportKeyword), domain);
