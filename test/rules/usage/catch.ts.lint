@@ -1,0 +1,14 @@
+try {
+    console.log(e);
+} catch(e) {}
+        ~ [Unused]
+try {
+} catch (err) {
+    console.log(err);
+}
+try {
+} catch(foo) {}
+        ~~~ [Unused]
+foo;
+
+try {} catch {}

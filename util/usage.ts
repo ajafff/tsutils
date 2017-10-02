@@ -587,11 +587,8 @@ class UsageWalker {
             !isModule,
         );
         const cb = (node: ts.Node): void => {
-            if (isBlockScopeBoundary(node)) {
-                if (node.kind === ts.SyntaxKind.CatchClause && (<ts.CatchClause>node).variableDeclaration !== undefined)
-                    this._handleBindingName((<ts.CatchClause>node).variableDeclaration!.name, true, false);
-                return continueWithScope(node, new BlockScope(this._scope.getFunctionScope(), this._scope));
-            }
+            if (isBlockScopeBoundary(node))
+                return continueWithScope(node, new BlockScope(this._scope.getFunctionScope(), this._scope), handleBlockScope);
             switch (node.kind) {
                 case ts.SyntaxKind.ClassExpression:
                     return continueWithScope(node, (<ts.ClassExpression>node).name !== undefined
@@ -675,18 +672,26 @@ class UsageWalker {
 
             return ts.forEachChild(node, cb);
         };
-        const continueWithScope = (node: ts.Node, scope: Scope) => {
+        const continueWithScope = <T extends ts.Node>(node: T, scope: Scope, next: (node: T) => void = forEachChild) => {
             const savedScope = this._scope;
             this._scope = scope;
-            ts.forEachChild(node, cb);
+            next(node);
             this._scope.end(variableCallback);
             this._scope = savedScope;
+        };
+        const handleBlockScope = (node: ts.Node) => {
+            if (node.kind === ts.SyntaxKind.CatchClause && (<ts.CatchClause>node).variableDeclaration !== undefined)
+                this._handleBindingName((<ts.CatchClause>node).variableDeclaration!.name, true, false);
+            return ts.forEachChild(node, cb);
         };
 
         ts.forEachChild(sourceFile, cb);
         this._scope.end(variableCallback);
         return this._result;
 
+        function forEachChild(node: ts.Node) {
+            return ts.forEachChild(node, cb);
+        }
     }
 
     private _handleFunctionLikeDeclaration(node: ts.FunctionLikeDeclaration, cb: (node: ts.Node) => void, varCb: VariableCallback) {
