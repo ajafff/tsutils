@@ -86,8 +86,9 @@
     "prefer-object-spread": true,
     "prefer-switch": [true, {"min-cases": 3}],
     "quotemark": [
-      true, 
-      "single"
+      true,
+      "single",
+      "avoid-escape"
     ],
     "radix": true,
     "semicolon": [true, "always"],

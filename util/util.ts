@@ -1000,6 +1000,8 @@ export function canHaveJsDoc(node: ts.Node): boolean {
 
 /** Gets the JSDoc of any node. For performance reasons this function should only be called when `canHaveJsDoc` return true. */
 export function getJsDoc(node: ts.Node, sourceFile?: ts.SourceFile): ts.JSDoc[] {
+    if (node.kind === ts.SyntaxKind.EndOfFileToken)
+        return parseJsDocOfNode(node, false, sourceFile);
     const result = [];
     for (const child of node.getChildren(sourceFile)) {
         if (!isJsDoc(child))
@@ -1008,6 +1010,31 @@ export function getJsDoc(node: ts.Node, sourceFile?: ts.SourceFile): ts.JSDoc[] 
     }
 
     return result;
+}
+
+/**
+ * Parses the JsDoc of any node. This function is made for nodes that don't get their JsDoc parsed by the TypeScript parser.
+ *
+ * @param considerTrailingComments When set to `true` this function uses the trailing comments if the node starts on the same line
+ *                                 as the previous node ends.
+ */
+export function parseJsDocOfNode(node: ts.Node, considerTrailingComments?: boolean, sourceFile = node.getSourceFile()): ts.JSDoc[] {
+    const nodeStart = node.getStart(sourceFile);
+    const start = ts[
+        considerTrailingComments && isSameLine(sourceFile, node.pos, nodeStart)
+            ? 'forEachTrailingCommentRange'
+            : 'forEachLeadingCommentRange'
+    ](
+        sourceFile.text,
+        node.pos,
+        // return object to make `0` a truthy value
+        (pos, _end, kind) => kind === ts.SyntaxKind.MultiLineCommentTrivia && sourceFile.text[pos + 2] === '*' ? {pos} : undefined,
+    );
+    if (start === undefined)
+        return [];
+    const text = sourceFile.text.slice(start.pos, nodeStart);
+    const newSourceFile = ts.createSourceFile('jsdoc.ts', `${text}var a;`, sourceFile.languageVersion);
+    return getJsDoc(newSourceFile.statements[0], newSourceFile);
 }
 
 export const enum ImportOptions {
