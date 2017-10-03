@@ -1,1 +1,1 @@
-var a; /** @const */ var b;
+var a; /** @param b */ var b;

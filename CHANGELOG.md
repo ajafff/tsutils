@@ -1,5 +1,9 @@
 # Change Log
 
+## v2.11.2
+**Bugfixes:**
+* `parseJsDocOfNode`: set correct `pos`, `end` and `parent` properties. Also affects `getJsDoc` of `EndOfFileToken`
+
 ## v2.11.1
 **Bugfixes:**
 * `collectVariableUsage`: correctly consider catch binding as block scoped declaration inside catch block

@@ -68,6 +68,6 @@ describe('parseJsDocOfNode', () => {
         assert.isDefined(doc.tags);
         assert.equal(doc.tags!.pos, doc.tags![0].pos);
         assert.equal(doc.tags!.end, doc.tags![0].end);
-        assert.equal(sourceFile.text.slice(doc.tags!.pos, doc.tags!.end), '@const');
+        assert.equal(sourceFile.text.slice(doc.tags!.pos, doc.tags!.end), '@param b');
     });
 });
