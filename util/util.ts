@@ -1001,7 +1001,7 @@ export function canHaveJsDoc(node: ts.Node): boolean {
 /** Gets the JSDoc of any node. For performance reasons this function should only be called when `canHaveJsDoc` return true. */
 export function getJsDoc(node: ts.Node, sourceFile?: ts.SourceFile): ts.JSDoc[] {
     if (node.kind === ts.SyntaxKind.EndOfFileToken)
-        return parseJsDocOfNode(node, false, sourceFile);
+        return parseJsDocWorker(node, sourceFile || <ts.SourceFile>node.parent);
     const result = [];
     for (const child of node.getChildren(sourceFile)) {
         if (!isJsDoc(child))
@@ -1019,6 +1019,15 @@ export function getJsDoc(node: ts.Node, sourceFile?: ts.SourceFile): ts.JSDoc[] 
  *                                 as the previous node ends.
  */
 export function parseJsDocOfNode(node: ts.Node, considerTrailingComments?: boolean, sourceFile = node.getSourceFile()): ts.JSDoc[] {
+    if (canHaveJsDoc(node) && node.kind !== ts.SyntaxKind.EndOfFileToken) {
+        const result = getJsDoc(node, sourceFile);
+        if (result.length !== 0 || !considerTrailingComments)
+            return result;
+    }
+    return parseJsDocWorker(node, sourceFile, considerTrailingComments);
+}
+
+function parseJsDocWorker(node: ts.Node, sourceFile: ts.SourceFile, considerTrailingComments?: boolean) {
     const nodeStart = node.getStart(sourceFile);
     const start = ts[
         considerTrailingComments && isSameLine(sourceFile, node.pos, nodeStart)
