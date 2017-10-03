@@ -1032,9 +1032,29 @@ export function parseJsDocOfNode(node: ts.Node, considerTrailingComments?: boole
     );
     if (start === undefined)
         return [];
-    const text = sourceFile.text.slice(start.pos, nodeStart);
+    const startPos = start.pos;
+    const text = sourceFile.text.slice(startPos, nodeStart);
     const newSourceFile = ts.createSourceFile('jsdoc.ts', `${text}var a;`, sourceFile.languageVersion);
-    return getJsDoc(newSourceFile.statements[0], newSourceFile);
+    const result = getJsDoc(newSourceFile.statements[0], newSourceFile);
+    for (const doc of result)
+        updateNode(doc, node);
+    return result;
+
+    function updateNode(n: ts.Node, parent: ts.Node): void {
+        n.pos += startPos;
+        n.end += startPos;
+        n.parent = parent;
+        return ts.forEachChild(
+            n,
+            (child) => updateNode(child, n),
+            (children) => {
+                children.pos += startPos;
+                children.end += startPos;
+                for (const child of children)
+                    updateNode(child, n);
+            },
+        );
+    }
 }
 
 export const enum ImportOptions {
