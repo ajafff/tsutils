@@ -1,5 +1,9 @@
 # Change Log
 
+## v2.12.0
+**API-Changes:**
+* deprecated `ImportOptions` if favor of the new `ImportKind` enum
+
 ## v2.11.2
 **Bugfixes:**
 * `parseJsDocOfNode`: set correct `pos`, `end` and `parent` properties. Also affects `getJsDoc` of `EndOfFileToken`
