@@ -1066,6 +1066,20 @@ function parseJsDocWorker(node: ts.Node, sourceFile: ts.SourceFile, considerTrai
     }
 }
 
+export const enum ImportKind {
+    ImportDeclaration = 1,
+    ImportEquals = 2,
+    ExportFrom = 4,
+    DynamicImport = 8,
+    Require = 16,
+    All = ImportDeclaration | ImportEquals | ExportFrom | DynamicImport | Require,
+    AllImports = ImportDeclaration | ImportEquals | DynamicImport | Require,
+    AllStaticImports = ImportDeclaration | ImportEquals,
+    AllImportExpressions = DynamicImport | Require,
+    AllRequireLike = ImportEquals | Require,
+}
+
+/** @deprecated use `ImportKind` instead. */
 export const enum ImportOptions {
     ImportDeclaration = 1,
     ImportEquals = 2,
@@ -1079,12 +1093,15 @@ export const enum ImportOptions {
     AllRequireLike = ImportEquals | Require,
 }
 
-export function findImports(sourceFile: ts.SourceFile, options: ImportOptions) {
+export function findImports(sourceFile: ts.SourceFile, kinds: ImportKind): ts.LiteralExpression[];
+/** @deprecated use `ImportKind` instead. */
+export function findImports(sourceFile: ts.SourceFile, options: ImportOptions): ts.LiteralExpression[]; // tslint:disable-line
+export function findImports(sourceFile: ts.SourceFile, options: any) {
     return new ImportFinder(sourceFile, options).find();
 }
 
 class ImportFinder {
-    constructor(private _sourceFile: ts.SourceFile, private _options: ImportOptions) {}
+    constructor(private _sourceFile: ts.SourceFile, private _options: ImportKind) {}
 
     private _result: ts.LiteralExpression[] = [];
 
@@ -1096,20 +1113,20 @@ class ImportFinder {
     private _findImports(statements: ReadonlyArray<ts.Statement>) {
         for (const statement of statements) {
             if (isImportDeclaration(statement)) {
-                if (this._options & ImportOptions.ImportDeclaration)
+                if (this._options & ImportKind.ImportDeclaration)
                     this._addImport(statement.moduleSpecifier);
             } else if (isImportEqualsDeclaration(statement)) {
-                if (this._options & ImportOptions.ImportEquals &&
+                if (this._options & ImportKind.ImportEquals &&
                     statement.moduleReference.kind === ts.SyntaxKind.ExternalModuleReference &&
                     statement.moduleReference.expression !== undefined)
                     this._addImport(statement.moduleReference.expression);
             } else if (isExportDeclaration(statement)) {
-                if (statement.moduleSpecifier !== undefined && this._options & ImportOptions.ExportFrom)
+                if (statement.moduleSpecifier !== undefined && this._options & ImportKind.ExportFrom)
                     this._addImport(statement.moduleSpecifier);
             } else if (isModuleDeclaration(statement) && statement.body !== undefined && this._sourceFile.isDeclarationFile) {
                 // There can't be any imports in a module augmentation or namespace
                 this._findImportsInModule(statement.body);
-            } else if (this._options & ImportOptions.AllDynamic && !this._sourceFile.isDeclarationFile) {
+            } else if (this._options & ImportKind.AllImportExpressions && !this._sourceFile.isDeclarationFile) {
                 ts.forEachChild(statement, this._findDynamic);
             }
         }
@@ -1124,8 +1141,8 @@ class ImportFinder {
 
     private _findDynamic = (node: ts.Node): void => {
         if (isCallExpression(node) && node.arguments.length === 1 &&
-            (node.expression.kind === ts.SyntaxKind.ImportKeyword && this._options & ImportOptions.DynamicImport ||
-                this._options & ImportOptions.Require && node.expression.kind === ts.SyntaxKind.Identifier &&
+            (node.expression.kind === ts.SyntaxKind.ImportKeyword && this._options & ImportKind.DynamicImport ||
+                this._options & ImportKind.Require && node.expression.kind === ts.SyntaxKind.Identifier &&
                     (<ts.Identifier>node.expression).text === 'require'))
             this._addImport(node.arguments[0]);
         ts.forEachChild(node, this._findDynamic);
