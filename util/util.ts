@@ -4,10 +4,10 @@ import {
     isTextualLiteral, isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration,
 } from '../typeguard/node';
 
-export function getChildOfKind(node: ts.Node, kind: ts.SyntaxKind, sourceFile?: ts.SourceFile) {
+export function getChildOfKind<T extends ts.SyntaxKind>(node: ts.Node, kind: T, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))
         if (child.kind === kind)
-            return child;
+            return <ts.Token<T>>child;
 }
 
 export function isTokenKind(kind: ts.SyntaxKind) {
