@@ -391,7 +391,7 @@ export function forEachTokenWithTrivia(node: ts.Node, cb: ForEachTokenCallback, 
     return forEachToken(
         node,
         (token: ts.Node) => {
-            const tokenStart = token.getStart(sourceFile);
+            const tokenStart = token.kind === ts.SyntaxKind.JsxText ? token.pos : token.getStart(sourceFile);
             const end = token.end;
             if (tokenStart !== token.pos && (notJsx || canHaveLeadingTrivia(token))) {
                 // we only have to handle trivia before each token. whitespace at the end of the file is followed by EndOfFileToken
