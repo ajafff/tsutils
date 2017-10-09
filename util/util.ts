@@ -396,13 +396,16 @@ export function forEachTokenWithTrivia(node: ts.Node, cb: ForEachTokenCallback, 
             if (tokenStart !== token.pos && (notJsx || canHaveLeadingTrivia(token))) {
                 // we only have to handle trivia before each token. whitespace at the end of the file is followed by EndOfFileToken
                 scanner.setTextPos(token.pos);
-                let position: number;
-                // we only get here if token.getFullStart() !== token.getStart(), so we can scan at least one time
-                do {
-                    const kind = scanner.scan();
-                    position = scanner.getTextPos();
-                    cb(fullText, kind, {pos: scanner.getTokenPos(), end: position}, token.parent!);
-                } while (position < tokenStart);
+                let kind = scanner.scan();
+                let pos = scanner.getTokenPos();
+                while (pos < tokenStart) {
+                    const textPos = scanner.getTextPos();
+                    cb(fullText, kind, {pos, end: textPos}, token.parent!);
+                    if (textPos === tokenStart)
+                        break;
+                    kind = scanner.scan();
+                    pos = scanner.getTokenPos();
+                }
             }
             return cb(fullText, token.kind, {end, pos: tokenStart}, token.parent!);
         },

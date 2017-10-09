@@ -2,6 +2,7 @@ import { assert } from 'chai';
 import * as ts from 'typescript';
 import { forEachToken, getNextToken, getPreviousToken } from '../util';
 import { findTestFiles, getSourceFile, getFirstToken } from './utils';
+import { forEachTokenWithTrivia } from '../util/util';
 
 const testFiles = findTestFiles('test/files/token');
 
@@ -14,6 +15,19 @@ describe('forEachToken', () => {
                 result += sourceFile.text.substring(token.pos, token.end);
             });
             assert.strictEqual(result, sourceFile.text, file);
+        }
+    });
+});
+
+describe('forEachTokenWithTrivia', () => {
+    it('visits every token in the SourceFile once', () => {
+        for (const file of testFiles) {
+            const sourceFile = getSourceFile(file);
+            let result = '';
+            forEachTokenWithTrivia(sourceFile, (text, _kind, range) => {
+                result += text.substring(range.pos, range.end);
+            });
+            assert.strictEqual(result, sourceFile.text.charCodeAt(0) === 0xFEFF ? sourceFile.text.slice(1) : sourceFile.text, file);
         }
     });
 });
