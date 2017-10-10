@@ -2,6 +2,8 @@ import { assert } from 'chai';
 import { forEachComment, getCommentAtPosition, getTokenAtPosition, isPositionInComment } from '../util/util';
 import { getSourceFile } from './utils';
 
+const comments = ['1', '2', '3', '4', 'i', 'j', '7', 'b', 'e', 'f', 'g', 'h'];
+
 describe('getCommentAtPosition', () => {
     it('handles JSX', () => {
         const sourceFile = getSourceFile('test/files/comment/noComment.tsx');
@@ -24,7 +26,7 @@ describe('getCommentAtPosition', () => {
                 assert.isFalse(isPositionInComment(sourceFile, comment.end));
             }
         }
-        assert.deepEqual(result, ['1', '2', '3', '4', '7', 'b', 'e', 'f', 'g', 'h']);
+        assert.deepEqual(result, comments);
     });
 
     it('return the same result if parent is passed', () => {
@@ -50,6 +52,6 @@ describe('forEachComment', () => {
         const sourceFile = getSourceFile('test/files/comment/comments.tsx');
         const result: string[] = [];
         forEachComment(sourceFile, (text, comment) => result.push(text.substr(comment.pos + 2, 1)));
-        assert.deepEqual(result, ['1', '2', '3', '4', '7', 'b', 'e', 'f', 'g', 'h']);
+        assert.deepEqual(result, comments);
     });
 });
