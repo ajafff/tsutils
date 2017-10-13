@@ -1,3 +1,4 @@
+import * as ts from 'typescript';
 import { getSourceFile } from './utils';
 import { assert } from 'chai';
 import { getJsDoc, parseJsDocOfNode } from '../util/util';
@@ -54,7 +55,7 @@ describe('parseJsDocOfNode', () => {
         const sourceFile = getSourceFile('test/files/jsdoc/none-before-eof.ts');
         const doc = parseJsDocOfNode(sourceFile.statements[1], true, sourceFile);
         assert.equal(doc.length, 1);
-        assert.equal(doc[0].parent, sourceFile.statements[1]);
+        assert.equal<ts.Node | undefined>(doc[0].parent, sourceFile.statements[1]);
         assert.equal(doc[0].getSourceFile(), sourceFile);
         assert.equal(doc[0].getText(), '/** test2 */');
         assert.equal(doc[0].getText(sourceFile), '/** test2 */');

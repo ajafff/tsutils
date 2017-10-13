@@ -960,8 +960,9 @@ export function getIdentifierText(node: ts.Identifier) {
     return ts.unescapeIdentifier(<string>node.text);
 }
 
-export function canHaveJsDoc(node: ts.Node): boolean {
-    switch (node.kind) {
+export function canHaveJsDoc(node: ts.Node): node is ts.HasJSDoc {
+    const kind = (<ts.HasJSDoc>node).kind;
+    switch (kind) {
         case ts.SyntaxKind.Parameter:
         case ts.SyntaxKind.CallSignature:
         case ts.SyntaxKind.ConstructSignature:
@@ -997,9 +998,11 @@ export function canHaveJsDoc(node: ts.Node): boolean {
         case ts.SyntaxKind.EndOfFileToken:
             return true;
         default:
-            return false;
+            return <AssertNever<typeof kind>>false;
     }
 }
+
+type AssertNever<T extends never> = T;
 
 /** Gets the JSDoc of any node. For performance reasons this function should only be called when `canHaveJsDoc` return true. */
 export function getJsDoc(node: ts.Node, sourceFile?: ts.SourceFile): ts.JSDoc[] {
