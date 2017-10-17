@@ -29,3 +29,13 @@ export class C {
     }
 }
 
+type T = any;
+     ~ [Unused]
+@function(...args: any[]) {
+             ~~~~ [Unused]
+    let tmp: T;
+        ~~~ [Unused]
+}
+class Foo<T, U> {}
+      ~~~ [Unused]
+             ~ [Unused]
