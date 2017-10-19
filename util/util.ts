@@ -568,7 +568,7 @@ function scanToken(text: string) {
 
 export function isValidIdentifier(text: string): boolean {
     const scan = scanToken(text);
-    return scan.isIdentifier() && scan.getTextPos() === text.length;
+    return scan.isIdentifier() && scan.getTextPos() === text.length && scan.getTokenPos() === 0;
 }
 
 export function isValidPropertyAccess(text: string): boolean {
@@ -590,7 +590,7 @@ export function isValidPropertyName(text: string) {
 
 export function isValidNumericLiteral(text: string): boolean {
     const scan = scanToken(text);
-    return scan.getToken() === ts.SyntaxKind.NumericLiteral && scan.getTextPos() === text.length;
+    return scan.getToken() === ts.SyntaxKind.NumericLiteral && scan.getTextPos() === text.length && scan.getTokenPos() === 0;
 }
 
 export function isSameLine(sourceFile: ts.SourceFile, pos1: number, pos2: number) {
