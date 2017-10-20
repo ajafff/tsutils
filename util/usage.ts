@@ -54,7 +54,6 @@ export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
     const parent = node.parent!;
     switch (parent.kind) {
         case ts.SyntaxKind.TypeReference:
-        case ts.SyntaxKind.TypeOperator:
             return UsageDomain.Type;
         case ts.SyntaxKind.ExpressionWithTypeArguments:
             return (<ts.HeritageClause>parent.parent).token === ts.SyntaxKind.ImplementsKeyword ||
@@ -70,8 +69,6 @@ export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
                 return UsageDomain.Namespace;
             }
             break;
-        case ts.SyntaxKind.NamespaceExportDeclaration:
-            return UsageDomain.Namespace;
         case ts.SyntaxKind.ExportSpecifier:
             // either {name} or {propertyName as name}
             if ((<ts.ExportSpecifier>parent).propertyName === undefined ||
@@ -115,9 +112,6 @@ export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
         case ts.SyntaxKind.MethodSignature:
         case ts.SyntaxKind.PropertySignature:
         case ts.SyntaxKind.NamespaceExportDeclaration:
-        case ts.SyntaxKind.QualifiedName:
-        case ts.SyntaxKind.TypeReference:
-        case ts.SyntaxKind.TypeOperator:
         case ts.SyntaxKind.InterfaceDeclaration:
         case ts.SyntaxKind.TypeAliasDeclaration:
         case ts.SyntaxKind.TypeParameter:
