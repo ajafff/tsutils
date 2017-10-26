@@ -1109,6 +1109,8 @@ class ImportFinder {
     private _result: ts.LiteralExpression[] = [];
 
     public find() {
+        if (this._sourceFile.isDeclarationFile)
+            this._options &= ~ImportKind.AllImportExpressions;
         this._findImports(this._sourceFile.statements);
         return this._result;
     }
@@ -1126,20 +1128,14 @@ class ImportFinder {
             } else if (isExportDeclaration(statement)) {
                 if (statement.moduleSpecifier !== undefined && this._options & ImportKind.ExportFrom)
                     this._addImport(statement.moduleSpecifier);
-            } else if (isModuleDeclaration(statement) && statement.body !== undefined && this._sourceFile.isDeclarationFile) {
-                // There can't be any imports in a module augmentation or namespace
-                this._findImportsInModule(statement.body);
-            } else if (this._options & ImportKind.AllImportExpressions && !this._sourceFile.isDeclarationFile) {
+            } else if (this._sourceFile.isDeclarationFile && isModuleDeclaration(statement) &&
+                       this._options & (ImportKind.ImportDeclaration | ImportKind.ExportFrom) &&
+                       statement.body !== undefined && statement.name.kind === ts.SyntaxKind.StringLiteral) {
+                this._findImports((<ts.ModuleBlock>statement.body).statements);
+            } else if (this._options & ImportKind.AllImportExpressions) {
                 ts.forEachChild(statement, this._findDynamic);
             }
         }
-    }
-
-    private _findImportsInModule(body: ts.ModuleBody): void {
-        if (body.kind === ts.SyntaxKind.ModuleBlock)
-            return this._findImports(body.statements);
-        if (body.kind === ts.SyntaxKind.ModuleDeclaration && body.body !== undefined)
-            return this._findImportsInModule(body.body);
     }
 
     private _findDynamic = (node: ts.Node): void => {
