@@ -1128,7 +1128,7 @@ class ImportFinder {
             } else if (isExportDeclaration(statement)) {
                 if (statement.moduleSpecifier !== undefined && this._options & ImportKind.ExportFrom)
                     this._addImport(statement.moduleSpecifier);
-            } else if (this._sourceFile.isDeclarationFile && isModuleDeclaration(statement) &&
+            } else if (isModuleDeclaration(statement) &&
                        this._options & (ImportKind.ImportDeclaration | ImportKind.ExportFrom) &&
                        statement.body !== undefined && statement.name.kind === ts.SyntaxKind.StringLiteral) {
                 this._findImports((<ts.ModuleBlock>statement.body).statements);
