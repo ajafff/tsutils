@@ -474,6 +474,7 @@ export function endsControlFlow(statement: ts.Statement | ts.BlockLike): boolean
 const enum StatementType {
     None,
     Break,
+    Continue,
     Other,
 }
 
@@ -492,11 +493,30 @@ function getControlFlowEnd(statement: ts.Statement | ts.BlockLike): StatementTyp
 function hasReturnBreakContinueThrow(statement: ts.Statement): StatementType {
     switch (statement.kind) {
         case ts.SyntaxKind.ReturnStatement:
-        case ts.SyntaxKind.ContinueStatement:
         case ts.SyntaxKind.ThrowStatement:
             return StatementType.Other;
+        case ts.SyntaxKind.ContinueStatement:
+            return StatementType.Continue;
         case ts.SyntaxKind.BreakStatement:
             return StatementType.Break;
+        case ts.SyntaxKind.ForStatement:
+        case ts.SyntaxKind.ForOfStatement:
+        case ts.SyntaxKind.ForInStatement:
+        case ts.SyntaxKind.DoStatement:
+        case ts.SyntaxKind.WhileStatement:
+            const type = hasReturnBreakContinueThrow((<ts.IterationStatement>statement).statement);
+            switch (type) {
+                case StatementType.Break:
+                case StatementType.Continue:
+                    return StatementType.None;
+                default:
+                    return type;
+            }
+        case ts.SyntaxKind.LabeledStatement:
+        case ts.SyntaxKind.WithStatement:
+            return hasReturnBreakContinueThrow((<ts.LabeledStatement | ts.WithStatement>statement).statement);
+        case ts.SyntaxKind.Block:
+            return getControlFlowEnd(<ts.Block>statement);
     }
 
     if (isIfStatement(statement)) {
