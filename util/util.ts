@@ -1,7 +1,7 @@
 import * as ts from 'typescript';
 import {
     isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration, isJsDoc, isImportDeclaration,
-    isTextualLiteral, isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration,
+    isTextualLiteral, isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration, isTryStatement,
 } from '../typeguard/node';
 
 export function getChildOfKind<T extends ts.SyntaxKind>(node: ts.Node, kind: T, sourceFile?: ts.SourceFile) {
@@ -523,6 +523,12 @@ function hasReturnBreakContinueThrow(statement: ts.Statement): StatementType {
         }
         return hasDefault && type !== StatementType.None /* check if last clause falls through*/ ? StatementType.Other : StatementType.None;
     }
+
+    if (isTryStatement(statement))
+        // if `finally` does not end control flow, check either `catchClause` if available or `tryBlock`
+        return (statement.finallyBlock  === undefined ? StatementType.None : getControlFlowEnd(statement.finallyBlock)) ||
+            getControlFlowEnd(statement.catchClause !== undefined ? statement.catchClause.block : statement.tryBlock);
+
     return StatementType.None;
 }
 
