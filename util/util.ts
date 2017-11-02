@@ -1,8 +1,11 @@
 import * as ts from 'typescript';
 import {
-    isBlockLike, isIfStatement, isLiteralExpression, isSwitchStatement, isPropertyDeclaration, isJsDoc, isImportDeclaration,
-    isTextualLiteral, isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration, isTryStatement,
+    isBlockLike, isLiteralExpression, isPropertyDeclaration, isJsDoc, isImportDeclaration,
+    isTextualLiteral, isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration,
 } from '../typeguard/node';
+
+// TODO remove on v3.0.0
+export * from './control-flow';
 
 export function getChildOfKind<T extends ts.SyntaxKind>(node: ts.Node, kind: T, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))
@@ -465,91 +468,6 @@ function canHaveTrailingTrivia({kind, parent}: ts.Node): boolean {
             return parent!.parent!.parent!.kind !== ts.SyntaxKind.JsxElement;
     }
     return kind !== ts.SyntaxKind.JsxText; // there is no trivia after JsxText
-}
-
-export function endsControlFlow(statement: ts.Statement | ts.BlockLike): boolean {
-    return getControlFlowEnd(statement) !== StatementType.None;
-}
-
-const enum StatementType {
-    None,
-    Break,
-    Continue,
-    Other,
-}
-
-function getControlFlowEnd(statement: ts.Statement | ts.BlockLike): StatementType {
-    // recurse into nested blocks
-    while (isBlockLike(statement)) {
-        if (statement.statements.length === 0)
-            return StatementType.None;
-
-        statement = statement.statements[statement.statements.length - 1];
-    }
-
-    return hasReturnBreakContinueThrow(<ts.Statement>statement);
-}
-
-function hasReturnBreakContinueThrow(statement: ts.Statement): StatementType {
-    switch (statement.kind) {
-        case ts.SyntaxKind.ReturnStatement:
-        case ts.SyntaxKind.ThrowStatement:
-            return StatementType.Other;
-        case ts.SyntaxKind.ContinueStatement:
-            return StatementType.Continue;
-        case ts.SyntaxKind.BreakStatement:
-            return StatementType.Break;
-        case ts.SyntaxKind.ForStatement:
-        case ts.SyntaxKind.ForOfStatement:
-        case ts.SyntaxKind.ForInStatement:
-        case ts.SyntaxKind.DoStatement:
-        case ts.SyntaxKind.WhileStatement:
-            const type = hasReturnBreakContinueThrow((<ts.IterationStatement>statement).statement);
-            switch (type) {
-                case StatementType.Break:
-                case StatementType.Continue:
-                    return StatementType.None;
-                default:
-                    return type;
-            }
-        case ts.SyntaxKind.LabeledStatement:
-        case ts.SyntaxKind.WithStatement:
-            return hasReturnBreakContinueThrow((<ts.LabeledStatement | ts.WithStatement>statement).statement);
-        case ts.SyntaxKind.Block:
-            return getControlFlowEnd(<ts.Block>statement);
-    }
-
-    if (isIfStatement(statement)) {
-        if (statement.elseStatement === undefined)
-            return StatementType.None;
-        const then = getControlFlowEnd(statement.thenStatement);
-        if (!then)
-            return then;
-        return Math.min(
-            then,
-            getControlFlowEnd(statement.elseStatement),
-        );
-    }
-
-    if (isSwitchStatement(statement)) {
-        let hasDefault = false;
-        let type = StatementType.None;
-        for (const clause of statement.caseBlock.clauses) {
-            type = getControlFlowEnd(clause);
-            if (type === StatementType.Break)
-                return StatementType.None;
-            if (clause.kind === ts.SyntaxKind.DefaultClause)
-                hasDefault = true;
-        }
-        return hasDefault && type !== StatementType.None /* check if last clause falls through*/ ? StatementType.Other : StatementType.None;
-    }
-
-    if (isTryStatement(statement))
-        // if `finally` does not end control flow, check either `catchClause` if available or `tryBlock`
-        return (statement.finallyBlock  === undefined ? StatementType.None : getControlFlowEnd(statement.finallyBlock)) ||
-            getControlFlowEnd(statement.catchClause !== undefined ? statement.catchClause.block : statement.tryBlock);
-
-    return StatementType.None;
 }
 
 export interface LineRange extends ts.TextRange {
