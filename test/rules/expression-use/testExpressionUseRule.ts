@@ -1,7 +1,7 @@
 import * as ts from 'typescript';
 import * as Lint from 'tslint';
 import { isExpression } from "../../../typeguard/node";
-import { isExpressionValueUsed } from "../../../util";
+import { isExpressionValueUsed } from "../../../util/util";
 
 export class Rule extends Lint.Rules.AbstractRule {
     public apply(sourceFile: ts.SourceFile): Lint.RuleFailure[] {

@@ -1,4 +1,4 @@
-import { collectVariableUsage } from '../../../util';
+import { collectVariableUsage } from '../../../util/usage';
 import * as ts from 'typescript';
 import * as Lint from 'tslint';
 

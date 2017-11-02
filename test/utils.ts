@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as ts from 'typescript';
-import { isTokenKind } from '../util';
+import { isTokenKind } from '../util/util';
 
 export function findTestFiles(dir: string) {
     const result = fs.readdirSync(dir);

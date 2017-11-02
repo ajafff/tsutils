@@ -1,8 +1,7 @@
 import { assert } from 'chai';
 import * as ts from 'typescript';
-import { forEachToken, getNextToken, getPreviousToken } from '../util';
+import { forEachToken, getNextToken, getPreviousToken, forEachTokenWithTrivia } from '../util/util';
 import { findTestFiles, getSourceFile, getFirstToken } from './utils';
-import { forEachTokenWithTrivia } from '../util/util';
 
 const testFiles = findTestFiles('test/files/token');
 
