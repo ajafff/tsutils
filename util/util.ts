@@ -393,7 +393,7 @@ export function forEachTokenWithTrivia(node: ts.Node, cb: ForEachTokenCallback, 
     const scanner = ts.createScanner(sourceFile.languageVersion, false, sourceFile.languageVariant, fullText);
     return forEachToken(
         node,
-        (token: ts.Node) => {
+        (token) => {
             const tokenStart = token.kind === ts.SyntaxKind.JsxText ? token.pos : token.getStart(sourceFile);
             const end = token.end;
             if (tokenStart !== token.pos && (notJsx || canHaveLeadingTrivia(token))) {
