@@ -444,13 +444,25 @@ export function forEachComment(node: ts.Node, cb: ForEachCommentCallback, source
 function canHaveLeadingTrivia({kind, parent}: ts.Node): boolean {
     if (kind === ts.SyntaxKind.OpenBraceToken)
         // before a JsxExpression inside a JsxElement's body can only be other JsxChild, but no trivia
-        return parent!.kind !== ts.SyntaxKind.JsxExpression || parent!.parent!.kind !== ts.SyntaxKind.JsxElement;
+        return parent!.kind !== ts.SyntaxKind.JsxExpression ||
+            parent!.parent!.kind !== ts.SyntaxKind.JsxElement && parent!.parent!.kind !== ts.SyntaxKind.JsxFragment;
     if (kind === ts.SyntaxKind.LessThanToken) {
-        if (parent!.kind === ts.SyntaxKind.JsxClosingElement)
-            return false; // would be inside the element body
-        if (parent!.kind === ts.SyntaxKind.JsxOpeningElement || parent!.kind === ts.SyntaxKind.JsxSelfClosingElement)
-            // there can only be leading trivia if we are at the end of the top level element
-            return parent!.parent!.parent!.kind !== ts.SyntaxKind.JsxElement;
+        switch (parent!.kind) {
+            case ts.SyntaxKind.JsxClosingElement:
+            case ts.SyntaxKind.JsxClosingFragment:
+                return false; // would be inside the element body
+            case ts.SyntaxKind.JsxOpeningElement:
+            case ts.SyntaxKind.JsxSelfClosingElement:
+            case ts.SyntaxKind.JsxOpeningFragment:
+                // there can only be leading trivia if we are at the beginning of the top level element
+                switch (parent!.parent!.parent!.kind) {
+                    case ts.SyntaxKind.JsxElement:
+                    case ts.SyntaxKind.JsxFragment:
+                        return false;
+                    default:
+                        return true;
+                }
+        }
     }
     return kind !== ts.SyntaxKind.JsxText; // there is no trivia before JsxText
 }
@@ -459,13 +471,25 @@ function canHaveLeadingTrivia({kind, parent}: ts.Node): boolean {
 function canHaveTrailingTrivia({kind, parent}: ts.Node): boolean {
     if (kind === ts.SyntaxKind.CloseBraceToken)
         // after a JsxExpression inside a JsxElement's body can only be other JsxChild, but no trivia
-        return parent!.kind !== ts.SyntaxKind.JsxExpression || parent!.parent!.kind !== ts.SyntaxKind.JsxElement;
+        return parent!.kind !== ts.SyntaxKind.JsxExpression ||
+            parent!.parent!.kind !== ts.SyntaxKind.JsxElement && parent!.parent!.kind !== ts.SyntaxKind.JsxFragment;
     if (kind === ts.SyntaxKind.GreaterThanToken) {
-        if (parent!.kind === ts.SyntaxKind.JsxOpeningElement)
-            return false; // would be inside the element
-        if (parent!.kind === ts.SyntaxKind.JsxClosingElement || parent!.kind === ts.SyntaxKind.JsxSelfClosingElement)
-            // there can only be trailing trivia if we are at the end of the top level element
-            return parent!.parent!.parent!.kind !== ts.SyntaxKind.JsxElement;
+        switch (parent!.kind) {
+            case ts.SyntaxKind.JsxOpeningElement:
+            case ts.SyntaxKind.JsxOpeningFragment:
+                return false; // would be inside the element
+            case ts.SyntaxKind.JsxClosingElement:
+            case ts.SyntaxKind.JsxSelfClosingElement:
+            case ts.SyntaxKind.JsxClosingFragment:
+                // there can only be trailing trivia if we are at the end of the top level element
+                switch (parent!.parent!.parent!.kind) {
+                    case ts.SyntaxKind.JsxElement:
+                    case ts.SyntaxKind.JsxFragment:
+                        return false;
+                    default:
+                        return true;
+                }
+        }
     }
     return kind !== ts.SyntaxKind.JsxText; // there is no trivia after JsxText
 }
@@ -634,9 +658,12 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
         case ts.SyntaxKind.JsxExpression:
             return (<ts.JsxExpression>node).expression !== undefined && hasSideEffects((<ts.JsxExpression>node).expression!, options);
         case ts.SyntaxKind.JsxElement:
-            for (const child of (<ts.JsxElement>node).children)
+        case ts.SyntaxKind.JsxFragment:
+            for (const child of (<ts.JsxElement | ts.JsxFragment>node).children)
                 if (child.kind !== ts.SyntaxKind.JsxText && hasSideEffects(child, options))
                     return true;
+            if (node.kind === ts.SyntaxKind.JsxFragment)
+                return false;
             node = (<ts.JsxElement>node).openingElement;
             // falls through
         case ts.SyntaxKind.JsxSelfClosingElement:
@@ -705,6 +732,7 @@ export function isExpressionValueUsed(node: ts.Expression): boolean {
             case ts.SyntaxKind.JsxExpression:
             case ts.SyntaxKind.JsxSpreadAttribute:
             case ts.SyntaxKind.JsxElement:
+            case ts.SyntaxKind.JsxFragment:
             case ts.SyntaxKind.JsxSelfClosingElement:
             case ts.SyntaxKind.ComputedPropertyName:
             case ts.SyntaxKind.ArrowFunction:

@@ -22,3 +22,5 @@ function foo(/*3*/) {
     </span> /*e*/; //f
 } //g
 /*h*/
+
+let someVar = <>//k{/*l*/}//m<></>/*n*/</>;
