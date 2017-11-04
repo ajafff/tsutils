@@ -155,7 +155,7 @@
       true,
       {"type": "default", "format": "camelCase", "leadingUnderscore": "forbid", "trailingUnderscore": "forbid"},
       {"type": "variable", "modifiers": ["global", "const"], "format": ["camelCase", "UPPER_CASE"]},
-      {"type": "parameter", "leadingUnderscore": "allow", "final": true},
+      {"type": "parameter", "modifiers": "unused", "leadingUnderscore": "allow"},
       {"type": "member", "modifiers": "private", "leadingUnderscore": "require"},
       {"type": "member", "modifiers": "protected", "leadingUnderscore": "require"},
       {"type": "property", "modifiers": ["public", "static", "const"], "format": "UPPER_CASE"},
