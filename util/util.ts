@@ -389,14 +389,12 @@ export type ForEachTokenCallback = (fullText: string, kind: ts.SyntaxKind, range
  */
 export function forEachTokenWithTrivia(node: ts.Node, cb: ForEachTokenCallback, sourceFile: ts.SourceFile = node.getSourceFile()) {
     const fullText = sourceFile.text;
-    const notJsx = sourceFile.languageVariant !== ts.LanguageVariant.JSX;
     const scanner = ts.createScanner(sourceFile.languageVersion, false, sourceFile.languageVariant, fullText);
     return forEachToken(
         node,
         (token) => {
             const tokenStart = token.kind === ts.SyntaxKind.JsxText ? token.pos : token.getStart(sourceFile);
-            const end = token.end;
-            if (tokenStart !== token.pos && (notJsx || canHaveLeadingTrivia(token))) {
+            if (tokenStart !== token.pos) {
                 // we only have to handle trivia before each token. whitespace at the end of the file is followed by EndOfFileToken
                 scanner.setTextPos(token.pos);
                 let kind = scanner.scan();
@@ -410,7 +408,7 @@ export function forEachTokenWithTrivia(node: ts.Node, cb: ForEachTokenCallback, 
                     pos = scanner.getTokenPos();
                 }
             }
-            return cb(fullText, token.kind, {end, pos: tokenStart}, token.parent!);
+            return cb(fullText, token.kind, {end: token.end, pos: tokenStart}, token.parent!);
         },
         sourceFile);
 }
@@ -429,7 +427,7 @@ export function forEachComment(node: ts.Node, cb: ForEachCommentCallback, source
     return forEachToken(
         node,
         (token) => {
-            if (notJsx || canHaveLeadingTrivia(token))
+            if (token.kind !== ts.SyntaxKind.JsxText)
                 ts.forEachLeadingCommentRange(fullText, token.pos, commentCallback);
             if (notJsx || canHaveTrailingTrivia(token))
                 return ts.forEachTrailingCommentRange(fullText, token.end, commentCallback);
@@ -438,33 +436,6 @@ export function forEachComment(node: ts.Node, cb: ForEachCommentCallback, source
     function commentCallback(pos: number, end: number, kind: ts.CommentKind) {
         cb(fullText, {pos, end, kind});
     }
-}
-
-/** Exclude leading positions that would lead to scanning for trivia inside JsxText */
-function canHaveLeadingTrivia({kind, parent}: ts.Node): boolean {
-    if (kind === ts.SyntaxKind.OpenBraceToken)
-        // before a JsxExpression inside a JsxElement's body can only be other JsxChild, but no trivia
-        return parent!.kind !== ts.SyntaxKind.JsxExpression ||
-            parent!.parent!.kind !== ts.SyntaxKind.JsxElement && parent!.parent!.kind !== ts.SyntaxKind.JsxFragment;
-    if (kind === ts.SyntaxKind.LessThanToken) {
-        switch (parent!.kind) {
-            case ts.SyntaxKind.JsxClosingElement:
-            case ts.SyntaxKind.JsxClosingFragment:
-                return false; // would be inside the element body
-            case ts.SyntaxKind.JsxOpeningElement:
-            case ts.SyntaxKind.JsxSelfClosingElement:
-            case ts.SyntaxKind.JsxOpeningFragment:
-                // there can only be leading trivia if we are at the beginning of the top level element
-                switch (parent!.parent!.parent!.kind) {
-                    case ts.SyntaxKind.JsxElement:
-                    case ts.SyntaxKind.JsxFragment:
-                        return false;
-                    default:
-                        return true;
-                }
-        }
-    }
-    return kind !== ts.SyntaxKind.JsxText; // there is no trivia before JsxText
 }
 
 /** Exclude trailing positions that would lead to scanning for trivia inside JsxText */
