@@ -367,7 +367,7 @@ export function isFunctionWithBody(node: ts.Node): node is ts.FunctionLikeDeclar
  * @param cb Is called for every token contained in `node`
  */
 export function forEachToken(node: ts.Node, cb: (node: ts.Node) => void, sourceFile: ts.SourceFile = node.getSourceFile()) {
-    return (function iterate(child: ts.Node): void {
+    return (function iterate(child): void {
         if (isTokenKind(child.kind))
             return cb(child); // tokens have no children -> no need to recurse deeper
         /* Exclude everything contained in JsDoc, it will be handled with the other trivia anyway.
