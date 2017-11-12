@@ -36,7 +36,7 @@
     "mocha": "^3.4.1",
     "nyc": "^11.0.3",
     "tslint": "^5.8.0",
-    "tslint-consistent-codestyle": "^1.9.0",
+    "tslint-consistent-codestyle": "^1.10.0",
     "typescript": "^2.6.1"
   },
   "peerDependencies": {

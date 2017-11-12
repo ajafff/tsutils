@@ -165,6 +165,7 @@
       {"type": "enumMember", "format": "PascalCase"}
     ],
     "no-as-type-assertion": true,
+    "no-accessor-recursion": true,
     "no-collapsible-if": true,
     "no-return-undefined": [
       true,
