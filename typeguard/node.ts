@@ -196,8 +196,10 @@ export function isExpression(node: ts.Node): node is ts.Expression {
         case ts.SyntaxKind.FunctionExpression:
         case ts.SyntaxKind.Identifier:
         case ts.SyntaxKind.JsxElement:
+        case ts.SyntaxKind.JsxFragment:
         case ts.SyntaxKind.JsxExpression:
         case ts.SyntaxKind.JsxOpeningElement:
+        case ts.SyntaxKind.JsxOpeningFragment:
         case ts.SyntaxKind.JsxSelfClosingElement:
         case ts.SyntaxKind.MetaProperty:
         case ts.SyntaxKind.NewExpression:
@@ -343,6 +345,10 @@ export function isJsxClosingElement(node: ts.Node): node is ts.JsxClosingElement
     return node.kind === ts.SyntaxKind.JsxClosingElement;
 }
 
+export function isJsxClosingFragment(node: ts.Node): node is ts.JsxClosingFragment {
+    return node.kind === ts.SyntaxKind.JsxClosingFragment;
+}
+
 export function isJsxElement(node: ts.Node): node is ts.JsxElement {
     return node.kind === ts.SyntaxKind.JsxElement;
 }
@@ -351,8 +357,16 @@ export function isJsxExpression(node: ts.Node): node is ts.JsxExpression {
     return node.kind === ts.SyntaxKind.JsxExpression;
 }
 
+export function isJsxFramgment(node: ts.Node): node is ts.JsxFragment {
+    return node.kind === ts.SyntaxKind.JsxFragment;
+}
+
 export function isJsxOpeningElement(node: ts.Node): node is ts.JsxOpeningElement {
     return node.kind === ts.SyntaxKind.JsxOpeningElement;
+}
+
+export function isJsxOpeningFragment(node: ts.Node): node is ts.JsxOpeningFragment {
+    return node.kind === ts.SyntaxKind.JsxOpeningFragment;
 }
 
 export function isJsxOpeningLikeElement(node: ts.Node): node is ts.JsxOpeningLikeElement {
