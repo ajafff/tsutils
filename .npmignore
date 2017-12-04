@@ -7,5 +7,4 @@
 /.vscode
 /coverage/
 /.nyc_output
-/circle.yml
 /.circleci/

@@ -71,3 +71,28 @@ export function testRenamingDestructure2() {
 }
 
 setTimeout();
+
+{
+    let i;
+    for (i = 0; i < 10: ++i) {
+        let i;
+            ~ [Unused]
+    }
+}
+{
+    let i;
+        ~ [Unused]
+    for (let i = 0; i < 10: ++i) {
+        let i;
+            ~ [Unused]
+    }
+}
+{
+    let i;
+    for (let i = 0;false;) {
+             ~ [Unused]
+        let i;
+            ~ [Unused]
+    }
+    i = 1;
+}
