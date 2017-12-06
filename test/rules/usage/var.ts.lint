@@ -74,7 +74,7 @@ setTimeout();
 
 {
     let i;
-    for (i = 0; i < 10: ++i) {
+    for (i = 0; i < 10; ++i) {
         let i;
             ~ [Unused]
     }
@@ -82,7 +82,7 @@ setTimeout();
 {
     let i;
         ~ [Unused]
-    for (let i = 0; i < 10: ++i) {
+    for (let i = 0; i < 10; ++i) {
         let i;
             ~ [Unused]
     }
@@ -95,4 +95,15 @@ setTimeout();
             ~ [Unused]
     }
     i = 1;
+}
+{
+    let i;
+        ~ [Unused]
+    for (let i = 0;false;)
+        ++i;
+}
+{
+    let i;
+    for (;false;)
+        ++i;
 }
