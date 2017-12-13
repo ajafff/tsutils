@@ -357,7 +357,7 @@ export function isJsxExpression(node: ts.Node): node is ts.JsxExpression {
     return node.kind === ts.SyntaxKind.JsxExpression;
 }
 
-export function isJsxFramgment(node: ts.Node): node is ts.JsxFragment {
+export function isJsxFragment(node: ts.Node): node is ts.JsxFragment {
     return node.kind === ts.SyntaxKind.JsxFragment;
 }
 
