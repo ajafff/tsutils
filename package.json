@@ -1,6 +1,6 @@
 {
   "name": "tsutils",
-  "version": "2.13.0",
+  "version": "2.13.1",
   "description": "utilities for working with typescript's AST",
   "scripts": {
     "compile": "rm -rf {,util,typeguard,test/**}/*.js; tsc -p .",
@@ -11,7 +11,8 @@
     "prepublishOnly": "npm run verify",
     "coverage": "rm -rf coverage .nyc_output && nyc npm test",
     "report-coverage": "cat ./coverage/lcov.info | coveralls",
-    "github-release": "GITHUB_TOKEN=$(cat ~/github_token.txt) github-release-from-changelog"
+    "github-release": "GITHUB_TOKEN=$(cat ~/github_token.txt) github-release-from-changelog",
+    "postpublish": "git push origin master --tags; npm run github-release"
   },
   "repository": {
     "type": "git",
