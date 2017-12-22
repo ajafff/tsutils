@@ -496,6 +496,14 @@ export function getLineRanges(sourceFile: ts.SourceFile): LineRange[] {
     return result;
 }
 
+/** Get the line break style used in sourceFile. This function only looks at the first line break. If there is none, \n is assumed. */
+export function getLineBreakStyle(sourceFile: ts.SourceFile) {
+    const lineStarts = sourceFile.getLineStarts();
+    return lineStarts.length === 1 || lineStarts[1] < 2 || sourceFile.text[lineStarts[1] - 2] !== '\r'
+        ? '\n'
+        : '\r\n';
+}
+
 let cachedScanner: ts.Scanner | undefined;
 function scanToken(text: string) {
     if (cachedScanner === undefined) // cache scanner
