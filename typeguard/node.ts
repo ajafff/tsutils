@@ -138,6 +138,10 @@ export function isDefaultClause(node: ts.Node): node is ts.DefaultClause {
     return node.kind === ts.SyntaxKind.DefaultClause;
 }
 
+export function isDeleteExpression(node: ts.Node): node is ts.DeleteExpression {
+    return node.kind === ts.SyntaxKind.DeleteExpression;
+}
+
 export function isDoStatement(node: ts.Node): node is ts.DoStatement {
     return node.kind === ts.SyntaxKind.DoStatement;
 }
