@@ -21,7 +21,10 @@ export interface ConvertedAst {
     flat: ReadonlyArray<ts.Node>;
 }
 
-/** Takes a `ts.SourceFile` and creates data structures that are easier (or more performant) to traverse. */
+/**
+ * Takes a `ts.SourceFile` and creates data structures that are easier (or more performant) to traverse.
+ * Note that there is only a performance gain if you can reuse these structures. It's not recommended for one-time AST walks.
+ */
 export function convertAst(sourceFile: ts.SourceFile): ConvertedAst {
     const wrapped: NodeWrap = {
         node: sourceFile,
