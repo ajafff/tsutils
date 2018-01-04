@@ -134,6 +134,10 @@ export function isDebuggerStatement(node: ts.Node): node is ts.DebuggerStatement
     return node.kind === ts.SyntaxKind.DebuggerStatement;
 }
 
+export function isDecorator(node: ts.Node): node is ts.Decorator {
+    return node.kind === ts.SyntaxKind.Decorator;
+}
+
 export function isDefaultClause(node: ts.Node): node is ts.DefaultClause {
     return node.kind === ts.SyntaxKind.DefaultClause;
 }
