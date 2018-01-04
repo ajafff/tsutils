@@ -695,7 +695,7 @@ class UsageWalker {
         if (node.kind === ts.SyntaxKind.FunctionDeclaration)
             this._handleDeclaration(node, false, DeclarationDomain.Value);
         const scope = this._scope = node.kind === ts.SyntaxKind.FunctionExpression && node.name !== undefined
-            ? new FunctionExpressionScope(<ts.Identifier>node.name, savedScope)
+            ? new FunctionExpressionScope(node.name, savedScope)
             : new FunctionScope(savedScope);
         if (node.name !== undefined)
             cb(node.name);

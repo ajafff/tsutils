@@ -908,7 +908,7 @@ export function isReassignmentTarget(node: ts.Expression): boolean {
  * @param node The identifier to get the text of
  */
 export function getIdentifierText(node: ts.Identifier) {
-    return ts.unescapeIdentifier(<string>node.text);
+    return ts.unescapeIdentifier(node.text);
 }
 
 export function canHaveJsDoc(node: ts.Node): node is ts.HasJSDoc {
