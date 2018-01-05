@@ -68,6 +68,20 @@ export function isCallExpression(node: ts.Node): node is ts.CallExpression {
     return node.kind === ts.SyntaxKind.CallExpression;
 }
 
+export function isCallLikeExpression(node: ts.Node): node is ts.CallLikeExpression {
+    switch (node.kind) {
+        case ts.SyntaxKind.CallExpression:
+        case ts.SyntaxKind.Decorator:
+        case ts.SyntaxKind.JsxOpeningElement:
+        case ts.SyntaxKind.JsxSelfClosingElement:
+        case ts.SyntaxKind.NewExpression:
+        case ts.SyntaxKind.TaggedTemplateExpression:
+            return true;
+        default:
+            return false;
+    }
+}
+
 export function isCallSignatureDeclaration(node: ts.Node): node is ts.CallSignatureDeclaration {
     return node.kind === ts.SyntaxKind.CallSignature;
 }
