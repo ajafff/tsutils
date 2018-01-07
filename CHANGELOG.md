@@ -1,3 +1,9 @@
+# 2.16.0
+
+**Features:**
+
+* added `isDecorator` and `isCallLikeExpression` typeguards
+
 # 2.15.0
 
 **Features:**
