@@ -4,6 +4,8 @@ import * as ts from 'typescript';
 export interface NodeWrap {
     /** The real AST node. */
     node: ts.Node;
+    /** The SyntaxKind of `node`. */
+    kind: ts.SyntaxKind;
     /** All immediate children of `node` that would be visited by `ts.forEachChild(node, cb)`. */
     children: NodeWrap[];
     /** Link to the next NodeWrap, depth-first. */
@@ -29,6 +31,7 @@ export function convertAst(sourceFile: ts.SourceFile): ConvertedAst {
     const wrapped: NodeWrap = {
         node: sourceFile,
         parent: undefined,
+        kind: ts.SyntaxKind.SourceFile,
         children: [],
         next: undefined,
         skip: undefined,
@@ -42,6 +45,7 @@ export function convertAst(sourceFile: ts.SourceFile): ConvertedAst {
         previous.next = current = {
             node,
             parent,
+            kind: node.kind,
             children: [],
             next: undefined,
             skip: undefined,
