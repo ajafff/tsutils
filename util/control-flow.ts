@@ -17,21 +17,26 @@ export function endsControlFlow(statement: ts.Statement | ts.BlockLike): boolean
     return getControlFlowEnd(statement).end;
 }
 
-type JumpStatement = ts.BreakStatement | ts.ContinueStatement | ts.ReturnStatement | ts.ThrowStatement;
-interface ControlFlowEnd {
-    statements: JumpStatement[];
+export type ControlFlowStatement = ts.BreakStatement | ts.ContinueStatement | ts.ReturnStatement | ts.ThrowStatement;
+export interface ControlFlowEnd {
+    /**
+     * Statements that may end control flow at this statement.
+     * Does not contain control flow statements that jump only inside the statement, for example a `continue` inside a nested for loop.
+     */
+    statements: ControlFlowStatement[];
+    /** `true` if control flow definitely ends. */
     end: boolean;
 }
 
 const defaultControlFlowEnd: ControlFlowEnd = {statements: [], end: false};
 
-function getControlFlowEnd(statement: ts.Statement, label?: ts.Identifier): ControlFlowEnd {
+export function getControlFlowEnd(statement: ts.Statement, label?: ts.Identifier): ControlFlowEnd {
     switch (statement.kind) {
         case ts.SyntaxKind.ReturnStatement:
         case ts.SyntaxKind.ThrowStatement:
         case ts.SyntaxKind.ContinueStatement:
         case ts.SyntaxKind.BreakStatement:
-            return {statements: [<JumpStatement>statement], end: true};
+            return {statements: [<ControlFlowStatement>statement], end: true};
         case ts.SyntaxKind.Block:
             return handleBlock(<ts.Block>statement);
         case ts.SyntaxKind.ForStatement:
@@ -49,7 +54,7 @@ function getControlFlowEnd(statement: ts.Statement, label?: ts.Identifier): Cont
         case ts.SyntaxKind.LabeledStatement:
             return getControlFlowEnd((<ts.LabeledStatement>statement).statement, (<ts.LabeledStatement>statement).label);
         case ts.SyntaxKind.WithStatement:
-            return getControlFlowEnd((<ts.LabeledStatement | ts.WithStatement>statement).statement);
+            return getControlFlowEnd((<ts.WithStatement>statement).statement);
         default:
             return defaultControlFlowEnd;
     }
