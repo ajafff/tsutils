@@ -1,3 +1,10 @@
+# 2.17.0
+
+**Features:**
+
+* added `kind` property to `NodeWrap`
+* added `getControlFlowEnd` to public API
+
 # 2.16.0
 
 **Features:**
