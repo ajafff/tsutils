@@ -2,18 +2,6 @@ import * as ts from 'typescript';
 import { isBlockLike, isBreakOrContinueStatement, isBreakStatement } from '../typeguard/node';
 
 export function endsControlFlow(statement: ts.Statement | ts.BlockLike): boolean {
-    if (isBlockLike(statement))
-        return handleBlock(statement).end;
-    switch (statement.kind) {
-        case ts.SyntaxKind.ForStatement:
-        case ts.SyntaxKind.ForOfStatement:
-        case ts.SyntaxKind.ForInStatement:
-        case ts.SyntaxKind.WhileStatement:
-        case ts.SyntaxKind.DoStatement:
-        case ts.SyntaxKind.SwitchStatement:
-            if (statement.parent!.kind === ts.SyntaxKind.LabeledStatement)
-                statement = <ts.LabeledStatement>statement.parent;
-    }
     return getControlFlowEnd(statement).end;
 }
 
@@ -30,7 +18,14 @@ export interface ControlFlowEnd {
 
 const defaultControlFlowEnd: ControlFlowEnd = {statements: [], end: false};
 
-export function getControlFlowEnd(statement: ts.Statement, label?: ts.Identifier): ControlFlowEnd {
+export function getControlFlowEnd(statement: ts.Statement | ts.BlockLike): ControlFlowEnd;
+/** @deprecated passing label no longer has any effect. */
+export function getControlFlowEnd(statement: ts.Statement | ts.BlockLike, label?: ts.Identifier): ControlFlowEnd; // tslint:disable-line
+export function getControlFlowEnd(statement: ts.Statement | ts.BlockLike): ControlFlowEnd {
+    return isBlockLike(statement) ? handleBlock(statement) : getControlFlowEndWorker(statement);
+}
+
+function getControlFlowEndWorker(statement: ts.Statement): ControlFlowEnd {
     switch (statement.kind) {
         case ts.SyntaxKind.ReturnStatement:
         case ts.SyntaxKind.ThrowStatement:
@@ -44,17 +39,17 @@ export function getControlFlowEnd(statement: ts.Statement, label?: ts.Identifier
         case ts.SyntaxKind.ForInStatement:
         case ts.SyntaxKind.DoStatement:
         case ts.SyntaxKind.WhileStatement:
-            return matchBreakOrContinue(getControlFlowEnd((<ts.IterationStatement>statement).statement), isBreakOrContinueStatement, label);
+            return matchBreakOrContinue(getControlFlowEndWorker((<ts.IterationStatement>statement).statement), isBreakOrContinueStatement);
         case ts.SyntaxKind.IfStatement:
             return handleIfStatement(<ts.IfStatement>statement);
         case ts.SyntaxKind.SwitchStatement:
-            return matchBreakOrContinue(handleSwitchStatement(<ts.SwitchStatement>statement), isBreakStatement, label);
+            return matchBreakOrContinue(handleSwitchStatement(<ts.SwitchStatement>statement), isBreakStatement);
         case ts.SyntaxKind.TryStatement:
             return handleTryStatement(<ts.TryStatement>statement);
         case ts.SyntaxKind.LabeledStatement:
-            return getControlFlowEnd((<ts.LabeledStatement>statement).statement, (<ts.LabeledStatement>statement).label);
+            return matchLabel(getControlFlowEndWorker((<ts.LabeledStatement>statement).statement), (<ts.LabeledStatement>statement).label);
         case ts.SyntaxKind.WithStatement:
-            return getControlFlowEnd((<ts.WithStatement>statement).statement);
+            return getControlFlowEndWorker((<ts.WithStatement>statement).statement);
         default:
             return defaultControlFlowEnd;
     }
@@ -63,7 +58,7 @@ export function getControlFlowEnd(statement: ts.Statement, label?: ts.Identifier
 function handleBlock(statement: ts.BlockLike): ControlFlowEnd {
     const result: ControlFlowEnd = {statements: [], end: false};
     for (const s of statement.statements) {
-        const current = getControlFlowEnd(s);
+        const current = getControlFlowEndWorker(s);
         result.statements.push(...current.statements);
         if (current.end) {
             result.end = true;
@@ -74,12 +69,12 @@ function handleBlock(statement: ts.BlockLike): ControlFlowEnd {
 }
 
 function handleIfStatement(node: ts.IfStatement): ControlFlowEnd {
-    const then = getControlFlowEnd(node.thenStatement);
+    const then = getControlFlowEndWorker(node.thenStatement);
     if (node.elseStatement === undefined) {
         then.end = false;
         return then;
     }
-    const elze = getControlFlowEnd(node.elseStatement);
+    const elze = getControlFlowEndWorker(node.elseStatement);
     return {
         statements: then.statements.concat(elze.statements),
         end: then.end && elze.end,
@@ -128,15 +123,35 @@ function handleTryStatement(node: ts.TryStatement): ControlFlowEnd {
     };
 }
 
-function matchBreakOrContinue(current: ControlFlowEnd, pred: typeof isBreakOrContinueStatement, label?: ts.Identifier): ControlFlowEnd {
+function matchBreakOrContinue(current: ControlFlowEnd, pred: typeof isBreakOrContinueStatement): ControlFlowEnd {
     const result: ControlFlowEnd = {
-        end: current.end,
         statements: [],
+        end: current.end,
     };
     for (const statement of current.statements) {
-        if (pred(statement) && (statement.label === undefined || label !== undefined && statement.label.text === label.text)) {
+        if (pred(statement) && statement.label === undefined) {
             result.end = false;
             continue;
+        }
+        result.statements.push(statement);
+    }
+    return result;
+}
+
+function matchLabel(current: ControlFlowEnd, label: ts.Identifier) {
+    const result: ControlFlowEnd = {
+        statements: [],
+        end: current.end,
+    };
+    const labelText = label.text;
+    for (const statement of current.statements) {
+        switch (statement.kind) {
+            case ts.SyntaxKind.BreakStatement:
+            case ts.SyntaxKind.ContinueStatement:
+                if (statement.label !== undefined && statement.label.text === labelText) {
+                    result.end = false;
+                    continue;
+                }
         }
         result.statements.push(statement);
     }
