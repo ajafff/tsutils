@@ -105,25 +105,27 @@ function handleSwitchStatement(node: ts.SwitchStatement): ControlFlowEnd {
 }
 
 function handleTryStatement(node: ts.TryStatement): ControlFlowEnd {
-    let result: ControlFlowEnd | undefined;
+    let finallyResult: ControlFlowEnd | undefined;
     if (node.finallyBlock !== undefined) {
-        result = handleBlock(node.finallyBlock);
+        finallyResult = handleBlock(node.finallyBlock);
         // if 'finally' always ends control flow, we are not interested in any jump statements from 'try' or 'catch'
-        if (result.end)
-            return result;
+        if (finallyResult.end)
+            return finallyResult;
     }
     const tryResult = handleBlock(node.tryBlock);
-    result = result === undefined
-        ? tryResult
-        : {statements: result.statements.concat(tryResult.statements), end: tryResult.end};
-    if (node.catchClause !== undefined) {
-        const current = handleBlock(node.catchClause.block);
-        result = {
-            statements: result.statements.concat(current.statements),
-            end: current.end,
-        };
-    }
-    return result;
+    if (node.catchClause === undefined)
+        return finallyResult === undefined
+            ? tryResult
+            : {statements: finallyResult.statements.concat(tryResult.statements), end: tryResult.end};
+
+    const catchResult = handleBlock(node.catchClause.block);
+    return {
+        statements: tryResult.statements
+            // remove all throw statements from the list of control flow statements inside tryBlock
+            .filter((s) => s.kind !== ts.SyntaxKind.ThrowStatement)
+            .concat(catchResult.statements, finallyResult === undefined ? [] : finallyResult.statements),
+        end: tryResult.end && catchResult.end, // only ends control flow if try AND catch definitely end control flow
+    };
 }
 
 function matchBreakOrContinue(current: ControlFlowEnd, pred: typeof isBreakOrContinueStatement, label?: ts.Identifier): ControlFlowEnd {
