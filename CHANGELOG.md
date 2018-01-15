@@ -1,3 +1,11 @@
+# 2.17.1
+
+**Bugfixes:**
+
+* `getControlFlowEnd` and `endsControlFlow` (#22)
+  * ThrowStatements inside `try` are filtered out if there is a `catch` clause
+  * TryStatements with `catch` only end control flow if `try` AND `catch` definitely end control flow
+
 # 2.17.0
 
 **Features:**
