@@ -1,3 +1,20 @@
+# 2.18.0
+
+**Features:**
+
+* `getControlFlowEnd` accepts BlockLike as argument
+
+**Bugfixes:**
+
+* `getControlFlowEnd` and `endsControlFlow`: correctly handle nested LabeledStatements
+* `endsControlFlow` removed erroneous special case when an IterationStatement is passed as argument whose parent is a LabeledStatement.
+  * if you want labels of an IterationStatement (or SwitchStatement) to be handled, you need to pass the LabeledStatement as argument.
+  * :warning: this fix may change the returned value if you relied on the buggy behavior
+
+**Deprecations:**
+
+* deprecated overload of `getControlFlowEnd` that contains the `label` parameter. This parameter is no longer used and should no longer be passed to the function.
+
 # 2.17.1
 
 **Bugfixes:**
