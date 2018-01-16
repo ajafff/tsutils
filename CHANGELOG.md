@@ -1,3 +1,10 @@
+# 2.19.0
+
+**Features:**
+
+* added `WrappedAst` interface that models the type of a wrapped SourceFile more accurate
+* added `getWrappedNodeAtPosition` utiltiy that takes a `NodeWrap` and returns the most deeply nested NodeWrap that contains the given position
+
 # 2.18.0
 
 **Features:**
