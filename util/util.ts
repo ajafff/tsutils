@@ -1,4 +1,5 @@
 import * as ts from 'typescript';
+import { NodeWrap } from './convert-ast';
 import {
     isBlockLike, isLiteralExpression, isPropertyDeclaration, isJsDoc, isImportDeclaration,
     isTextualLiteral, isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration,
@@ -194,6 +195,26 @@ export function getCommentAtPosition(sourceFile: ts.SourceFile, pos: number, par
  */
 export function isPositionInComment(sourceFile: ts.SourceFile, pos: number, parent?: ts.Node): boolean {
     return getCommentAtPosition(sourceFile, pos, parent) !== undefined;
+}
+
+/**
+ * Returns the NodeWrap of deepest AST node that contains `pos` between its `pos` and `end`.
+ * Only returns undefined if pos is outside of `wrap`
+ */
+export function getWrappedNodeAtPosition(wrap: NodeWrap, pos: number): NodeWrap | undefined {
+    if (wrap.node.pos > pos || wrap.node.end <= pos)
+        return;
+    outer: while (true) {
+        for (const child of wrap.children) {
+            if (child.node.pos > pos)
+                return wrap;
+            if (child.node.end > pos) {
+                wrap = child;
+                continue outer;
+            }
+        }
+        return wrap;
+    }
 }
 
 export function getPropertyName(propertyName: ts.PropertyName): string | undefined {
