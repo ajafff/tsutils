@@ -16,9 +16,15 @@ export interface NodeWrap {
     parent?: NodeWrap;
 }
 
+export interface WrappedAst extends NodeWrap {
+    next: NodeWrap;
+    skip: undefined;
+    parent: undefined;
+}
+
 export interface ConvertedAst {
     /** nodes wrapped in a data structure with useful links */
-    wrapped: NodeWrap;
+    wrapped: WrappedAst;
     /** depth-first array of all nodes */
     flat: ReadonlyArray<ts.Node>;
 }
@@ -28,16 +34,16 @@ export interface ConvertedAst {
  * Note that there is only a performance gain if you can reuse these structures. It's not recommended for one-time AST walks.
  */
 export function convertAst(sourceFile: ts.SourceFile): ConvertedAst {
-    const wrapped: NodeWrap = {
+    const wrapped: WrappedAst = {
         node: sourceFile,
         parent: undefined,
         kind: ts.SyntaxKind.SourceFile,
         children: [],
-        next: undefined,
+        next: <any>undefined,
         skip: undefined,
     };
     const flat: ts.Node[] = [];
-    let current = wrapped;
+    let current: NodeWrap = wrapped;
     let previous = current;
     ts.forEachChild(sourceFile, function wrap(node) {
         flat.push(node);
