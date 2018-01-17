@@ -1,3 +1,4 @@
+#! bang your head
 /*1*/ //2
 function foo(/*3*/) {
     //4

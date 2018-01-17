@@ -182,8 +182,11 @@ export function getCommentAtPosition(sourceFile: ts.SourceFile, pos: number, par
     const token = getTokenAtPosition(parent, pos, sourceFile);
     if (token === undefined || token.kind === ts.SyntaxKind.JsxText || pos >= token.end - (ts.tokenToString(token.kind) || '').length)
         return;
-    return  token.pos !== 0 && ts.forEachTrailingCommentRange(sourceFile.text, token.pos, commentAtPositionCallback, pos) ||
-        ts.forEachLeadingCommentRange(sourceFile.text, token.pos, commentAtPositionCallback, pos);
+    const startPos = token.pos === 0
+        ? (ts.getShebang(sourceFile.text) || '').length
+        : token.pos ;
+    return  startPos !== 0 && ts.forEachTrailingCommentRange(sourceFile.text, startPos, commentAtPositionCallback, pos) ||
+        ts.forEachLeadingCommentRange(sourceFile.text, startPos, commentAtPositionCallback, pos);
 }
 
 function commentAtPositionCallback(pos: number, end: number, kind: ts.CommentKind, _nl: boolean, at: number): ts.CommentRange | undefined {
@@ -451,11 +454,17 @@ export function forEachComment(node: ts.Node, cb: ForEachCommentCallback, source
         node,
         (token) => {
             if (token.kind !== ts.SyntaxKind.JsxText)
-                ts.forEachLeadingCommentRange(fullText, token.pos, commentCallback);
+                ts.forEachLeadingCommentRange(
+                    fullText,
+                    // skip shebang at position 0
+                    token.pos === 0 ? (ts.getShebang(fullText) || '').length : token.pos,
+                    commentCallback,
+                );
             if (notJsx || canHaveTrailingTrivia(token))
                 return ts.forEachTrailingCommentRange(fullText, token.end, commentCallback);
         },
-        sourceFile);
+        sourceFile,
+    );
     function commentCallback(pos: number, end: number, kind: ts.CommentKind) {
         cb(fullText, {pos, end, kind});
     }
