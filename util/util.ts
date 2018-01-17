@@ -182,10 +182,12 @@ export function getCommentAtPosition(sourceFile: ts.SourceFile, pos: number, par
     const token = getTokenAtPosition(parent, pos, sourceFile);
     if (token === undefined || token.kind === ts.SyntaxKind.JsxText || pos >= token.end - (ts.tokenToString(token.kind) || '').length)
         return;
-    const cb = (start: number, end: number, kind: ts.CommentKind): ts.CommentRange | undefined =>
-        pos >= start && pos < end ? {end, kind, pos: start} : undefined;
-    return  token.pos !== 0 && ts.forEachTrailingCommentRange(sourceFile.text, token.pos, cb) ||
-        ts.forEachLeadingCommentRange(sourceFile.text, token.pos, cb);
+    return  token.pos !== 0 && ts.forEachTrailingCommentRange(sourceFile.text, token.pos, commentAtPositionCallback, pos) ||
+        ts.forEachLeadingCommentRange(sourceFile.text, token.pos, commentAtPositionCallback, pos);
+}
+
+function commentAtPositionCallback(pos: number, end: number, kind: ts.CommentKind, _nl: boolean, at: number): ts.CommentRange | undefined {
+    return at >= pos && at < end ? {pos, end, kind} : undefined;
 }
 
 /**
