@@ -1,3 +1,9 @@
+# 2.19.1
+
+**Bugfixes:**
+
+* `forEachComment`, `getCommentAtPosition` and `isPositionInComment`: skip shebang (`#! something`) to not miss following comments at the start of the file
+
 # 2.19.0
 
 **Features:**
