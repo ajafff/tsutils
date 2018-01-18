@@ -41,6 +41,7 @@ describe('isValidPropertyName', () => {
             ['false', true],
             ['catch', true],
             ['try', true],
+            ['1_2_3', false],
         ];
         for (const test of tests)
             assert.equal(isValidPropertyName(test[0]), test[1], test[0]);
@@ -78,6 +79,7 @@ describe('isValidPropertyAccess', () => {
             ['false', true],
             ['catch', true],
             ['try', true],
+            ['1_2_3', false],
         ];
         for (const test of tests)
             assert.equal(isValidPropertyAccess(test[0]), test[1], test[0]);
@@ -115,6 +117,7 @@ describe('isValidIdentifier', () => {
             ['false', false],
             ['catch', false],
             ['try', false],
+            ['1_2_3', false],
         ];
         for (const test of tests)
             assert.equal(isValidIdentifier(test[0]), test[1], test[0]);
@@ -152,6 +155,11 @@ describe('isValidNumericLiteral', () => {
             ['false', false],
             ['catch', false],
             ['try', false],
+            ['1_2_3', true],
+            ['_1', false],
+            ['1_2_', true],
+            ['1__2', true],
+            ['1_2.3', true],
         ];
         for (const test of tests)
             assert.equal(isValidNumericLiteral(test[0]), test[1], test[0]);

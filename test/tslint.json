@@ -3,6 +3,7 @@
   "rules": {
     "no-implicit-dependencies": {
       "options": "dev"
-    }
+    },
+    "no-unnecessary-type-annotation": false
   }
 }
