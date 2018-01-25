@@ -1,0 +1,8 @@
+{
+    "rulesDirectory": [
+        "."
+    ],
+    "rules":{
+        "test-promise-use": true
+    }
+}

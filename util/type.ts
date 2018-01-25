@@ -67,6 +67,25 @@ function isTypeAssignableTo(checker: ts.TypeChecker, type: ts.Type, flags: ts.Ty
     })(type);
 }
 
+/**
+ * Returns true if the given type is a union type that includes Promise or a type that extends
+ * Promise.
+ */
+export function isPromiseType(type: ts.Type): boolean {
+    const isPromise = (t: ts.Type) => {
+        const sym = t.getSymbol();
+        if (sym !== undefined) return sym.name === 'Promise';
+        return false;
+    };
+
+    const baseTypes = type.getBaseTypes();
+    if (baseTypes && baseTypes.some(isPromise)) return true;
+
+    if (isUnionType(type) || isIntersectionType(type)) return type.types.some(isPromise);
+
+    return isPromise(type);
+}
+
 export function getCallSignaturesOfType(type: ts.Type): ts.Signature[] {
     if (isUnionType(type)) {
         const signatures = [];
