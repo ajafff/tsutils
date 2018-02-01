@@ -1,3 +1,10 @@
+# 2.20.0
+
+**Features:**
+
+* added `isThenableType` utility
+* added `unionTypeParts` utility
+
 # 2.19.1
 
 **Bugfixes:**
