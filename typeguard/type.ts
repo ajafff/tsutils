@@ -55,3 +55,7 @@ export function isUnionOrIntersectionType(type: ts.Type): type is ts.UnionOrInte
 export function isUnionType(type: ts.Type): type is ts.UnionType {
     return (type.flags & ts.TypeFlags.Union) !== 0;
 }
+
+export function isUniqueESSymbolType(type: ts.Type): type is ts.UniqueESSymbolType {
+    return (type.flags & ts.TypeFlags.UniqueESSymbol) !== 0;
+}
