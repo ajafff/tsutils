@@ -88,3 +88,37 @@ export function getCallSignaturesOfType(type: ts.Type): ts.Signature[] {
     }
     return type.getCallSignatures();
 }
+
+/** Returns all types of a union type or an array containing `type` itself if it's no union type. */
+export function unionTypeParts(type: ts.Type): ts.Type[] {
+    return type.flags & ts.TypeFlags.Union ? (<ts.UnionType>type).types : [type];
+}
+
+/** Determines if a type thenable and can be used with `await`. */
+export function isThenableType(checker: ts.TypeChecker, node: ts.Expression, type = checker.getTypeAtLocation(node)): boolean {
+    for (const ty of unionTypeParts(checker.getApparentType(type))) {
+        const then = ty.getProperty('then');
+        if (then === undefined)
+            continue;
+        const thenType = checker.getTypeOfSymbolAtLocation(then, node);
+        for (const t of unionTypeParts(thenType))
+            for (const signature of t.getCallSignatures())
+                if (signature.parameters.length !== 0 && isCallback(checker, signature.parameters[0], node))
+                    return true;
+    }
+    return false;
+}
+
+function isCallback(checker: ts.TypeChecker, param: ts.Symbol, node: ts.Expression): boolean {
+    let type: ts.Type | undefined = checker.getApparentType(checker.getTypeOfSymbolAtLocation(param, node));
+    if ((<ts.ParameterDeclaration>param.valueDeclaration).dotDotDotToken) {
+        // unwrap array type of rest parameter
+        type = type.getNumberIndexType();
+        if (type === undefined)
+            return false;
+    }
+    for (const t of unionTypeParts(type))
+        if (t.getCallSignatures().length !== 0)
+            return true;
+    return false;
+}
