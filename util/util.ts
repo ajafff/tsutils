@@ -802,7 +802,7 @@ export function isExpressionValueUsed(node: ts.Expression): boolean {
             case ts.SyntaxKind.VariableDeclaration:
             case ts.SyntaxKind.Parameter:
             case ts.SyntaxKind.EnumMember:
-                return (<ts.VariableLikeDeclaration>parent).initializer === node;
+                return (<ts.HasExpressionInitializer>parent).initializer === node;
             case ts.SyntaxKind.ImportEqualsDeclaration:
                 return (<ts.ImportEqualsDeclaration>parent).moduleReference === node;
             case ts.SyntaxKind.CommaListExpression:
