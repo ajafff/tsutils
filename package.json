@@ -40,7 +40,7 @@
     "nyc": "^11.4.1",
     "tslint": "^5.8.0",
     "tslint-consistent-codestyle": "^1.11.0",
-    "typescript": "^2.7.0-rc"
+    "typescript": "~2.7.1"
   },
   "peerDependencies": {
     "typescript": ">=2.1.0 || >=2.1.0-dev || >=2.2.0-dev || >=2.3.0-dev || >=2.4.0-dev || >=2.5.0-dev || >=2.6.0-dev || >=2.7.0-dev || >=2.8.0-dev || >=2.9.0-dev"
