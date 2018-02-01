@@ -1,0 +1,42 @@
+function returnsPromise() {
+    return Promise.resolve(true);
+}
+
+type Future = Promise<number>;
+function aliasedPromise(): Future {
+    return Promise.resolve(1);
+}
+
+class Extended extends Promise<number> {}
+function extendedPromise(): Extended {
+    return Promise.resolve(1);
+}
+
+class DoubleExtended extends Extended {}
+function doubleExtendedPromise(): Extended {
+    return Promise.resolve(1);
+}
+
+function maybePromise(): Promise<number>|number {
+    return 3;
+}
+
+async function returnLaterPromise() {
+    return () => Promise.resolve(1);
+}
+
+function unusedPromises() {
+    returnsPromise();
+    ~~~~~~~~~~~~~~~~  [Promise]
+    maybePromise();
+    ~~~~~~~~~~~~~~  [Promise]
+    aliasedPromise();
+    ~~~~~~~~~~~~~~~~  [Promise]
+    extendedPromise();
+    ~~~~~~~~~~~~~~~~~  [Promise]
+    doubleExtendedPromise();
+    ~~~~~~~~~~~~~~~~~~~~~~~  [Promise]
+    const later = await returnLaterPromise();
+    later();
+    ~~~~~~~  [Promise]
+}

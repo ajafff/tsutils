@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "module": "commonjs",
+        "removeComments": true,
+        "inlineSourceMap": true,
+        "preserveConstEnums": true,
+        "noImplicitAny": true,
+        "noImplicitThis": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "strictFunctionTypes": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "strictNullChecks": true,
+        "stripInternal": true,
+        "lib": ["es2016"],
+        "skipLibCheck": true,
+        "declaration": true,
+        "importHelpers": true
+    },
+    "exclude": [
+    ],
+    "files": [
+        "../../type/promise.ts"
+    ]
+}
