@@ -251,7 +251,7 @@ export function forEachDestructuringIdentifier<T>(
 
 export function forEachDeclaredVariable<T>(
     declarationList: ts.VariableDeclarationList,
-    cb: (element: ts.VariableLikeDeclaration & { name: ts.Identifier }) => T,
+    cb: (element: (ts.VariableDeclaration | ts.BindingElement) & { name: ts.Identifier }) => T,
 ) {
     for (const declaration of declarationList.declarations) {
         let result: T | undefined;
