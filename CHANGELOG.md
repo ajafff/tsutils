@@ -1,3 +1,13 @@
+# 2.21.0
+
+**Bugfixes:**
+
+* `forEachDeclaredVariable` uses a more precise type for the callback parameter to make it useable again with typescript@2.7.1
+
+**Features:**
+
+* added `isUniqueESSymbolType` typeguard
+
 # 2.20.0
 
 **Features:**
