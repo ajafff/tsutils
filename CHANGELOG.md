@@ -1,3 +1,9 @@
+# 2.21.1
+
+**Bugfixes:**
+
+* `isReassignmentTarget`: handle type assertions and non-null assertion
+
 # 2.21.0
 
 **Bugfixes:**
