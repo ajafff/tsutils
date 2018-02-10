@@ -1,0 +1,75 @@
+let foo: number | undefined = 1;
+let bar = foo = 1;
+          ~~~ [0]
++bar;
+~~bar;
+!!bar;
+foo++;
+~~~ [0]
+++foo;
+  ~~~ [0]
+(foo as number)++;
+ ~~~ [0]
+ ~~~~~~~~~~~~~ [0]
+~~~~~~~~~~~~~~~ [0]
+++foo!;
+  ~~~ [0]
+  ~~~~ [0]
+++(<number>foo);
+  ~~~~~~~~~~~~~ [0]
+   ~~~~~~~~~~~ [0]
+           ~~~ [0]
+
+({foo, bar: 1, baz: bar = 1});
+                    ~~~ [0]
+({foo, bar = foo, baz: bar, bas: baz = foo, ...rest} = {...rest});
+  ~~~ [0]
+       ~~~ [0]
+                       ~~~ [0]
+                                 ~~~ [0]
+                                 ~~~~~~~~~ [0]
+                                               ~~~~ [0]
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ [0]
+let {foo, bar = foo, baz: bas, foobar: foobaz = foo, ...rest} = {};
+
+[foo, (bar), baz = foo, ...rest] = [];
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ [0]
+ ~~~ [0]
+      ~~~~~ [0]
+       ~~~ [0]
+             ~~~ [0]
+             ~~~~~~~~~ [0]
+                        ~~~~~~~ [0]
+                           ~~~~ [0]
+let [foo, bar = baz, ...rest] = [...rest];
+
+for (const element of []);
+for (element of []);
+     ~~~~~~~ [0]
+for (const key in obj);
+for (key in obj);
+     ~~~ [0]
+for (let i = 0; i < len; i += 1);
+                         ~ [0]
+for (i = len - 1; i >= 0; --i);
+     ~ [0]
+                            ~ [0]
+delete foo.bar;
+       ~~~~~~~ [0]
+delete foo;
+       ~~~ [0]
+
+(async () => await foo);
+(function*() { yield foo; });
+
+function fn(arg = 1, ...args: string[]) {
+    return arg;
+}
+fn(foo, ...bar);
+
+class Foo {
+    prop = 1;
+}
+new Foo();
+
+[0]: Reassignment target
