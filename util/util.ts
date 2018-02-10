@@ -919,15 +919,16 @@ export function isReassignmentTarget(node: ts.Expression): boolean {
         case ts.SyntaxKind.PropertyAssignment:
             return (<ts.PropertyAssignment>parent).initializer === node &&
                 isInDestructuringAssignment(<ts.PropertyAssignment>parent);
-        case ts.SyntaxKind.ObjectLiteralExpression:
         case ts.SyntaxKind.ArrayLiteralExpression:
         case ts.SyntaxKind.SpreadElement:
         case ts.SyntaxKind.SpreadAssignment:
-            return isInDestructuringAssignment(
-                <ts.SpreadElement | ts.SpreadAssignment | ts.ObjectLiteralExpression | ts.ArrayLiteralExpression>parent,
-            );
+            return isInDestructuringAssignment(<ts.SpreadElement | ts.SpreadAssignment | ts.ArrayLiteralExpression>parent);
         case ts.SyntaxKind.ParenthesizedExpression:
-            return isReassignmentTarget(<ts.Expression>parent);
+        case ts.SyntaxKind.NonNullExpression:
+        case ts.SyntaxKind.TypeAssertionExpression:
+        case ts.SyntaxKind.AsExpression:
+            // (<number>foo! as {})++
+            return isReassignmentTarget(<ts.Expression>parent); // this assertion is not correct, but necessary to keep the API sane
         case ts.SyntaxKind.ForOfStatement:
         case ts.SyntaxKind.ForInStatement:
             return (<ts.ForOfStatement | ts.ForInStatement>parent).initializer === node;
