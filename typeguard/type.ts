@@ -44,7 +44,7 @@ export function isTypeReference(type: ts.Type): type is ts.TypeReference {
         ((<ts.ObjectType>type).objectFlags & ts.ObjectFlags.Reference) !== 0;
 }
 
-export function isTypeVariable(type: ts.Type): type is ts.TypeVariable {
+export function isTypeVariable(type: ts.Type): type is ts.TypeParameter | ts.IndexedAccessType  {
     return (type.flags & ts.TypeFlags.TypeVariable) !== 0;
 }
 
