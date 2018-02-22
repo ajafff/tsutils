@@ -1,3 +1,9 @@
+# 2.21.2
+
+**Bugfixes:**
+
+* fixed compile error with `typescript@2.8.0-dev`
+
 # 2.21.1
 
 **Bugfixes:**
