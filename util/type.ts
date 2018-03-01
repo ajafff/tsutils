@@ -122,3 +122,14 @@ function isCallback(checker: ts.TypeChecker, param: ts.Symbol, node: ts.Expressi
             return true;
     return false;
 }
+
+/** Determine if a type is definitely falsy. This function doesn't unwrap union types. */
+export function isFalsyType(type: ts.Type): boolean {
+    if (type.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null | ts.TypeFlags.Void))
+        return true;
+    if (type.flags & ts.TypeFlags.StringOrNumberLiteral)
+        return !(<ts.LiteralType>type).value;
+    if (type.flags & ts.TypeFlags.BooleanLiteral)
+        return (<{intrinsicName: string}><{}>type).intrinsicName === 'false';
+    return false;
+}
