@@ -1,3 +1,9 @@
+# 2.22.0
+
+**Features:**
+
+* added `isFalsyType` utility
+
 # 2.21.2
 
 **Bugfixes:**
