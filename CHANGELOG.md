@@ -1,3 +1,11 @@
+# 2.22.1
+
+**Bugfixes:**
+
+* `endsControlFlow`:
+  * handle loops that might not even run a single iteration
+  * handle constant boolean conditions in loops and if
+
 # 2.22.0
 
 **Features:**
