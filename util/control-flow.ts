@@ -11,8 +11,12 @@ export interface ControlFlowEnd {
      * Statements that may end control flow at this statement.
      * Does not contain control flow statements that jump only inside the statement, for example a `continue` inside a nested for loop.
      */
-    statements: ControlFlowStatement[];
+    readonly statements: ReadonlyArray<ControlFlowStatement>;
     /** `true` if control flow definitely ends. */
+    readonly end: boolean;
+}
+interface MutableControlFlowEnd {
+    statements: ControlFlowStatement[];
     end: boolean;
 }
 
@@ -35,11 +39,13 @@ function getControlFlowEndWorker(statement: ts.Statement): ControlFlowEnd {
         case ts.SyntaxKind.Block:
             return handleBlock(<ts.Block>statement);
         case ts.SyntaxKind.ForStatement:
+        case ts.SyntaxKind.WhileStatement:
+            return handleForAndWhileStatement(<ts.ForStatement | ts.WhileStatement>statement);
         case ts.SyntaxKind.ForOfStatement:
         case ts.SyntaxKind.ForInStatement:
+            return handleForInOrOfStatement(<ts.ForInOrOfStatement>statement);
         case ts.SyntaxKind.DoStatement:
-        case ts.SyntaxKind.WhileStatement:
-            return matchBreakOrContinue(getControlFlowEndWorker((<ts.IterationStatement>statement).statement), isBreakOrContinueStatement);
+            return matchBreakOrContinue(getControlFlowEndWorker((<ts.DoStatement>statement).statement), isBreakOrContinueStatement);
         case ts.SyntaxKind.IfStatement:
             return handleIfStatement(<ts.IfStatement>statement);
         case ts.SyntaxKind.SwitchStatement:
@@ -56,7 +62,7 @@ function getControlFlowEndWorker(statement: ts.Statement): ControlFlowEnd {
 }
 
 function handleBlock(statement: ts.BlockLike): ControlFlowEnd {
-    const result: ControlFlowEnd = {statements: [], end: false};
+    const result: MutableControlFlowEnd = {statements: [], end: false};
     for (const s of statement.statements) {
         const current = getControlFlowEndWorker(s);
         result.statements.push(...current.statements);
@@ -68,22 +74,63 @@ function handleBlock(statement: ts.BlockLike): ControlFlowEnd {
     return result;
 }
 
-function handleIfStatement(node: ts.IfStatement): ControlFlowEnd {
-    const then = getControlFlowEndWorker(node.thenStatement);
-    if (node.elseStatement === undefined) {
-        then.end = false;
-        return then;
+function handleForInOrOfStatement(statement: ts.ForInOrOfStatement) {
+    const end = matchBreakOrContinue(getControlFlowEndWorker(statement.statement), isBreakOrContinueStatement);
+    end.end = false; // loop body is guaranteed to be executed
+    return end;
+}
+
+function handleForAndWhileStatement(statement: ts.ForStatement | ts.WhileStatement) {
+    const constantCondition = statement.kind === ts.SyntaxKind.WhileStatement
+        ? getConstantCondition(statement.expression)
+        : statement.condition === undefined || getConstantCondition(statement.condition);
+    if (constantCondition === false)
+        return defaultControlFlowEnd; // loop body is never executed
+    const end = matchBreakOrContinue(getControlFlowEndWorker(statement.statement), isBreakOrContinueStatement);
+    if (constantCondition === undefined)
+        end.end = false; // can't be sure that loop body is executed at all
+    return end;
+}
+
+/** Simply detects `true` and `false` in conditions. That matches TypeScript's behavior. */
+function getConstantCondition(node: ts.Expression): boolean | undefined {
+    switch (node.kind) {
+        case ts.SyntaxKind.TrueKeyword:
+            return true;
+        case ts.SyntaxKind.FalseKeyword:
+            return false;
+        default:
+            return;
     }
+}
+
+function handleIfStatement(node: ts.IfStatement): ControlFlowEnd {
+    switch (getConstantCondition(node.expression)) {
+        case true:
+            // else branch is never executed
+            return getControlFlowEndWorker(node.thenStatement);
+        case false:
+            // then branch is never executed
+            return node.elseStatement === undefined
+                ? defaultControlFlowEnd
+                : getControlFlowEndWorker(node.elseStatement);
+    }
+    const then = getControlFlowEndWorker(node.thenStatement);
+    if (node.elseStatement === undefined)
+        return {
+            statements: then.statements,
+            end: false,
+        };
     const elze = getControlFlowEndWorker(node.elseStatement);
     return {
-        statements: then.statements.concat(elze.statements),
+        statements: [...then.statements, ...elze.statements],
         end: then.end && elze.end,
     };
 }
 
-function handleSwitchStatement(node: ts.SwitchStatement): ControlFlowEnd {
+function handleSwitchStatement(node: ts.SwitchStatement) {
     let hasDefault = false;
-    const result: ControlFlowEnd = {
+    const result: MutableControlFlowEnd = {
         statements: [],
         end: false,
     };
@@ -123,8 +170,8 @@ function handleTryStatement(node: ts.TryStatement): ControlFlowEnd {
     };
 }
 
-function matchBreakOrContinue(current: ControlFlowEnd, pred: typeof isBreakOrContinueStatement): ControlFlowEnd {
-    const result: ControlFlowEnd = {
+function matchBreakOrContinue(current: ControlFlowEnd, pred: typeof isBreakOrContinueStatement) {
+    const result: MutableControlFlowEnd = {
         statements: [],
         end: current.end,
     };
@@ -139,7 +186,7 @@ function matchBreakOrContinue(current: ControlFlowEnd, pred: typeof isBreakOrCon
 }
 
 function matchLabel(current: ControlFlowEnd, label: ts.Identifier) {
-    const result: ControlFlowEnd = {
+    const result: MutableControlFlowEnd = {
         statements: [],
         end: current.end,
     };
