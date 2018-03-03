@@ -1,0 +1,17 @@
+function (test) {
+                ~ [0]
+    with ({bar: 0}) {
+        console.log(bar)
+        (function() {
+                    ~ [0]
+            return bar;
+            ~~~~~~ [0]
+        })();
+    }
+    with ({foo: 1})
+    ~~~~ [0]
+        throw foo;
+        ~~~~~ [0]
+}
+
+[0]: control flow end
