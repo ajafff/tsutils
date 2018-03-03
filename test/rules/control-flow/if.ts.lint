@@ -1,0 +1,96 @@
+export function test() {
+                       ~ [0]
+    const condition = true;
+
+    if (condition)
+        return 'foo';
+        ~~~~~~ [0]
+
+    if (condition) {
+                   ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    }
+
+    if (condition) {
+                   ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    } else {
+        console.log('foo');
+    }
+
+    if (!condition) {
+                    ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    } else {
+        console.log('foo');
+    }
+
+    if (!condition) {
+        console.log('foo');
+    } else {
+           ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    }
+
+    if (!condition) {
+                    ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    }
+
+    if (condition) {
+    ~~ [0]
+                   ~[0]
+        throw 'foo'
+        ~~~~~ [0]
+    } else {
+           ~ [0]
+        return 'bar';
+        ~~~~~~ [0]
+    }
+
+    if (true) {
+    ~~ [0]
+              ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    }
+
+    if (true) {
+    ~~ [0]
+              ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    } else {
+        console.log('foo');
+    }
+
+    if (false) {
+               ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    } else {
+        console.log('foo');
+    }
+
+    if (false) {
+    ~~ [0]
+        console.log('foo');
+    } else {
+           ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    }
+
+    if (false) {
+               ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    }
+}
+
+[0]: control flow end

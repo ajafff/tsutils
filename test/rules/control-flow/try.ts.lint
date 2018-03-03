@@ -1,0 +1,106 @@
+function test() {
+                ~ [0]
+    try {
+        ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    } catch {
+    }
+
+    try {
+    ~~~ [0]
+        ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    } finally {
+    }
+
+    try {
+    ~~~ [0]
+        ~ [0]
+        return;
+        ~~~~~~ [0]
+    } catch {
+            ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    }
+
+    try {
+        if (Boolean())
+            throw 'foo';
+            ~~~~~ [0]
+    } catch {
+            ~ [0]
+        return;
+        ~~~~~~ [0]
+    }
+
+    while (true) {
+                 ~ [0]
+        try {
+        ~~~ [0]
+            ~ [0]
+            return;
+            ~~~~~~ [0]
+        } catch {
+                ~ [0]
+            break;
+            ~~~~~ [0]
+        }
+    }
+
+    while (true) {
+                 ~ [0]
+        try {
+        ~~~ [0]
+            ~ [0]
+            throw 'foo';
+            ~~~~~ [0]
+        } catch {
+                ~ [0]
+            throw 'bar';
+            ~~~~~ [0]
+        } finally {
+                  ~ [0]
+            break;
+            ~~~~~ [0]
+        }
+    }
+
+    while (true) {
+    ~~~~~ [0]
+                 ~ [0]
+        try {
+        ~~~ [0]
+            ~ [0]
+            throw 'foo';
+            ~~~~~ [0]
+        } catch {
+                ~ [0]
+            throw 'bar';
+            ~~~~~ [0]
+        }
+    }
+
+    try {
+    ~~~ [0]
+        ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    } catch {
+            ~ [0]
+        return;
+        ~~~~~~ [0]
+    } finally {
+    }
+
+    try {
+    ~~~ [0]
+        ~ [0]
+        throw 'foo';
+        ~~~~~ [0]
+    }
+}
+
+[0]: control flow end

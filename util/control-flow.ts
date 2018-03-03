@@ -156,9 +156,7 @@ function handleTryStatement(node: ts.TryStatement): ControlFlowEnd {
     }
     const tryResult = handleBlock(node.tryBlock);
     if (node.catchClause === undefined)
-        return finallyResult === undefined
-            ? tryResult
-            : {statements: finallyResult.statements.concat(tryResult.statements), end: tryResult.end};
+        return {statements: finallyResult!.statements.concat(tryResult.statements), end: tryResult.end};
 
     const catchResult = handleBlock(node.catchClause.block);
     return {

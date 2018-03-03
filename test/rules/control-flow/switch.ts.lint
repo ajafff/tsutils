@@ -1,0 +1,108 @@
+function test() {
+                ~ [0]
+    switch (Boolean()) {
+    ~~~~~~ [0]
+        case true:
+        ~~~~ [0]
+            return true;
+            ~~~~~~ [0]
+        case false:
+        ~~~~ [0]
+            return false;
+            ~~~~~~ [0]
+        default:
+        ~~~~~~~ [0]
+            return;
+            ~~~~~~ [0]
+    }
+
+    switch (Boolean()) {
+    ~~~~~~ [0]
+        case true:
+        ~~~~ [0]
+            return true;
+            ~~~~~~ [0]
+        case false:
+            console.log('foo');
+        default:
+        ~~~~~~~ [0]
+            return false;
+            ~~~~~~ [0]
+    }
+
+    switch (Boolean()) {
+        case true:
+        ~~~~ [0]
+            return true;
+            ~~~~~~ [0]
+        case false:
+        ~~~~ [0]
+            return false;
+            ~~~~~~ [0]
+    }
+
+    switch (Boolean()) {
+        default:
+        ~~~~~~~ [0]
+            break;
+            ~~~~~ [0]
+    }
+
+    for (;;) {
+             ~ [0]
+        switch (Boolean()) {
+        ~~~~~~ [0]
+            default:
+            ~~~~~~~ [0]
+                continue;
+                ~~~~~~~~ [0]
+        }
+    }
+
+    switch (Boolean()) {
+        case true:
+        ~~~~ [0]
+            return true;
+            ~~~~~~ [0]
+    }
+
+    switch (Boolean()) {
+        case true:
+        ~~~~ [0]
+            return true;
+            ~~~~~~ [0]
+        case false:
+            console.log('foo');
+    }
+    switch (Boolean()) {
+        case true:
+        ~~~~ [0]
+            return true;
+            ~~~~~~ [0]
+        default:
+            console.log('foo');
+    }
+
+    switch (Boolean()) {
+    ~~~~~~ [0]
+        case true:
+            console.log('foo');
+        default:
+        ~~~~~~~ [0]
+            return;
+            ~~~~~~ [0]
+    }
+
+    switch (Boolean()) {
+        case true:
+        ~~~~ [0]
+            break;
+            ~~~~~ [0]
+        default:
+        ~~~~~~~ [0]
+            return;
+            ~~~~~~ [0]
+    }
+}
+
+[0]: control flow end
