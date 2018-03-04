@@ -1,10 +1,10 @@
 import * as ts from 'typescript';
-import { isTypeParameter, isUnionType, isIntersectionType } from '../typeguard/type';
+import { isTypeParameter, isUnionType, isIntersectionType, isLiteralType, isObjectType } from '../typeguard/type';
 import { isTypeFlagSet } from './util';
 
 export function isEmptyObjectType(type: ts.Type): type is ts.ObjectType {
-    if (type.flags & ts.TypeFlags.Object &&
-        (<ts.ObjectType>type).objectFlags & ts.ObjectFlags.Anonymous &&
+    if (isObjectType(type) &&
+        type.objectFlags & ts.ObjectFlags.Anonymous &&
         type.getProperties().length === 0 &&
         type.getCallSignatures().length === 0 &&
         type.getConstructSignatures().length === 0 &&
@@ -25,9 +25,7 @@ export function removeOptionalityFromType(checker: ts.TypeChecker, type: ts.Type
 }
 
 function containsTypeWithFlag(type: ts.Type, flag: ts.TypeFlags): boolean {
-    if (!isUnionType(type))
-        return isTypeFlagSet(type, flag);
-    for (const t of type.types)
+    for (const t of unionTypeParts(type))
         if (isTypeFlagSet(t, flag))
             return true;
     return false;
@@ -91,7 +89,7 @@ export function getCallSignaturesOfType(type: ts.Type): ts.Signature[] {
 
 /** Returns all types of a union type or an array containing `type` itself if it's no union type. */
 export function unionTypeParts(type: ts.Type): ts.Type[] {
-    return type.flags & ts.TypeFlags.Union ? (<ts.UnionType>type).types : [type];
+    return isUnionType(type) ? type.types : [type];
 }
 
 /** Determines if a type thenable and can be used with `await`. */
@@ -127,8 +125,8 @@ function isCallback(checker: ts.TypeChecker, param: ts.Symbol, node: ts.Expressi
 export function isFalsyType(type: ts.Type): boolean {
     if (type.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null | ts.TypeFlags.Void))
         return true;
-    if (type.flags & ts.TypeFlags.StringOrNumberLiteral)
-        return !(<ts.LiteralType>type).value;
+    if (isLiteralType(type))
+        return !type.value;
     if (type.flags & ts.TypeFlags.BooleanLiteral)
         return (<{intrinsicName: string}><{}>type).intrinsicName === 'false';
     return false;
