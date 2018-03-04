@@ -1,0 +1,29 @@
+type T = any;
+     ~ [Unused]
+type U<T, U, V, W> = Map<T, U> | ReadonlyMap<V, W>;
+type V = any;
+     ~ [Unused]
+type W = any;
+type X = any;
+
+type C<T> = T extends U<infer V, infer W, infer X, infer W> & W ? V : X;
+     ~ [Unused]
+                                       ~ [Unused]
+                                                ~ [Unused]
+                                                         ~ [Unused]
+
+type A<T> = T;
+type C2<T> = T extends A<infer A> ? A ? never;
+     ~~ [Unused]
+
+type C3<T, V> = T extends Array<infer V> ? V : never;
+     ~~ [Unused]
+           ~ [Unused]
+
+type C4<T> = T extends Array<infer T> ? any : never;
+     ~~ [Unused]
+                                   ~ [Unused]
+
+type C5<T, U> = T extends (U extends Array<infer T> ? U : T) ? T : never;
+     ~~ [Unused]
+                                                 ~ [Unused]

@@ -352,6 +352,27 @@ class EnumScope extends NonRootScope {
     }
 }
 
+const enum ConditionalTypeScopeState {
+    Initial,
+    Extends,
+    TrueType,
+    FalseType,
+}
+
+class ConditionalTypeScope extends NonRootScope {
+    private _state = ConditionalTypeScopeState.Initial;
+
+    public updateState(newState: ConditionalTypeScopeState) {
+        this._state = newState;
+    }
+
+    public addUse(use: VariableUse) {
+        if (this._state === ConditionalTypeScopeState.TrueType)
+            return void this._uses.push(use);
+        return this._parent.addUse(use, this);
+    }
+}
+
 const enum FunctionScopeState {
     Initial,
     Parameter,
@@ -619,6 +640,8 @@ class UsageWalker {
                 case ts.SyntaxKind.ConstructorType:
                 case ts.SyntaxKind.FunctionType:
                     return this._handleFunctionLikeDeclaration(<ts.FunctionLikeDeclaration>node, cb, variableCallback);
+                case ts.SyntaxKind.ConditionalType:
+                    return this._handleConditionalType(<ts.ConditionalTypeNode>node, cb, variableCallback);
                 // End of Scope specific handling
                 case ts.SyntaxKind.VariableDeclarationList:
                     this._handleVariableDeclaration(<ts.VariableDeclarationList>node);
@@ -686,6 +709,20 @@ class UsageWalker {
         function forEachChild(node: ts.Node) {
             return ts.forEachChild(node, cb);
         }
+    }
+
+    private _handleConditionalType(node: ts.ConditionalTypeNode, cb: (node: ts.Node) => void, varCb: VariableCallback) {
+        const savedScope = this._scope;
+        const scope = this._scope = new ConditionalTypeScope(savedScope);
+        cb(node.checkType);
+        scope.updateState(ConditionalTypeScopeState.Extends);
+        cb(node.extendsType);
+        scope.updateState(ConditionalTypeScopeState.TrueType);
+        cb(node.trueType);
+        scope.updateState(ConditionalTypeScopeState.FalseType);
+        cb(node.falseType);
+        scope.end(varCb);
+        this._scope = savedScope;
     }
 
     private _handleFunctionLikeDeclaration(node: ts.FunctionLikeDeclaration, cb: (node: ts.Node) => void, varCb: VariableCallback) {
