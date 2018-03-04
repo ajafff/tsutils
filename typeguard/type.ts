@@ -1,5 +1,9 @@
 import * as ts from 'typescript';
 
+export function isConditionalType(type: ts.Type): type is ts.ConditionalType {
+    return (type.flags & ts.TypeFlags.Conditional) !== 0;
+}
+
 export function isEnumType(type: ts.Type): type is ts.EnumType {
     return (type.flags & ts.TypeFlags.Enum) !== 0;
 }
@@ -18,6 +22,10 @@ export function isIndexedAccessype(type: ts.Type): type is ts.IndexType {
     return (type.flags & ts.TypeFlags.Index) !== 0;
 }
 
+export function isInstantiableType(type: ts.Type): type is ts.InstantiableType {
+    return (type.flags & ts.TypeFlags.Instantiable) !== 0;
+}
+
 export function isInterfaceType(type: ts.Type): type is ts.InterfaceType {
     return (type.flags & ts.TypeFlags.Object) !== 0 &&
         ((<ts.ObjectType>type).objectFlags & ts.ObjectFlags.ClassOrInterface) !== 0;
@@ -33,6 +41,10 @@ export function isLiteralType(type: ts.Type): type is ts.LiteralType {
 
 export function isObjectType(type: ts.Type): type is ts.ObjectType {
     return (type.flags & ts.TypeFlags.Object) !== 0;
+}
+
+export function isSubstitutionType(type: ts.Type): type is ts.SubstitutionType {
+    return (type.flags & ts.TypeFlags.Substitution) !== 0;
 }
 
 export function isTypeParameter(type: ts.Type): type is ts.TypeParameter {
