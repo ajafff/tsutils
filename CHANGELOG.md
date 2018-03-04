@@ -1,3 +1,10 @@
+# 2.22.2
+
+**Bugfixes:**
+
+* `collectVariableUsage`: handle ConditionalTypes and `infer T`, which will be introduced in TypeScript@2.8.0 and are already available in nightly builds
+* `isLiteralType` no longer returns true for `ts.TypeFlags.BooleanLiteral` as this is not a `ts.LiteralType`
+
 # 2.22.1
 
 **Bugfixes:**
