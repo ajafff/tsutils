@@ -323,6 +323,7 @@ export function isFunctionScopeBoundary(node: ts.Node): boolean {
         case ts.SyntaxKind.ConstructorType:
         case ts.SyntaxKind.FunctionType:
         case ts.SyntaxKind.MappedType:
+        case ts.SyntaxKind.ConditionalType:
             return true;
         case ts.SyntaxKind.SourceFile:
             // if SourceFile is no module, it contributes to the global scope and is therefore no scope boundary
