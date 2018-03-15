@@ -269,6 +269,10 @@ export function isForInStatement(node: ts.Node): node is ts.ForInStatement {
     return node.kind === ts.SyntaxKind.ForInStatement;
 }
 
+export function isForInOrOfStatement(node: ts.Node): node is ts.ForInOrOfStatement {
+    return node.kind === ts.SyntaxKind.ForOfStatement || node.kind === ts.SyntaxKind.ForInStatement;
+}
+
 export function isForOfStatement(node: ts.Node): node is ts.ForOfStatement {
     return node.kind === ts.SyntaxKind.ForOfStatement;
 }
