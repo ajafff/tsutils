@@ -942,7 +942,7 @@ export function isReassignmentTarget(node: ts.Expression): boolean {
  * @param node The identifier to get the text of
  */
 export function getIdentifierText(node: ts.Identifier) {
-    return ts.unescapeIdentifier(node.text);
+    return ts.unescapeIdentifier(node.text); // wotan-disable-line no-unstable-api-use
 }
 
 export function canHaveJsDoc(node: ts.Node): node is ts.HasJSDoc {
@@ -1086,7 +1086,8 @@ export const enum ImportOptions {
 
 export function findImports(sourceFile: ts.SourceFile, kinds: ImportKind): ts.LiteralExpression[];
 /** @deprecated use `ImportKind` instead. */
-export function findImports(sourceFile: ts.SourceFile, options: ImportOptions): ts.LiteralExpression[]; // tslint:disable-line
+/* tslint:disable-next-line */ /* wotan-disable-next-line */
+export function findImports(sourceFile: ts.SourceFile, options: ImportOptions): ts.LiteralExpression[];
 export function findImports(sourceFile: ts.SourceFile, options: any) {
     return new ImportFinder(sourceFile, options).find();
 }
