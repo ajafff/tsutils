@@ -1,3 +1,9 @@
+# 2.24.0
+
+**Features:**
+
+* added typeguards for typescript@2.8: `isConditionalTypeNode`, `isInferTypeNode`, `isConditionalType`, `isInstantiableType`, `isSubstitutionType`
+
 # 2.23.0
 
 **Features:**
