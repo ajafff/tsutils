@@ -30,3 +30,5 @@ declare function MyComponent<T>(param: Record<string, T>): string;
 
 someVar = <div>/*o*/<MyComponent/*p*/</*q*/string/*r*/>/*s*/>/*t*/</MyComponent>/*u*/</div>;
 someVar = <div>/*v*/<MyComponent/*w*/</*x*/string/*y*/>/*z*//>/*-*/</div>;
+
+someVar = <div>/*A*>{/*B*/<span>/*C*/</span>/*D*/}/*E*/{/*F*/<br/>/*G*/}/*H*/</div>;
