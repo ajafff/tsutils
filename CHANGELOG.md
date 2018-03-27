@@ -1,3 +1,14 @@
+# 2.23.0
+
+**Features:**
+
+* added typeguard `isForInOrOfStatement`
+
+**Bugfixes:**
+
+* correctly handle comments in generic JSX elements: `<MyComponent<string>/*comment*/></MyComponent>`
+* fixed a bug with false positive trailing comments at the end of JSX self closing element: `<div><br/>/*no comment*/</div>`
+
 # 2.22.2
 
 **Bugfixes:**
