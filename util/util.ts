@@ -472,7 +472,7 @@ export function forEachComment(node: ts.Node, cb: ForEachCommentCallback, source
 }
 
 /** Exclude trailing positions that would lead to scanning for trivia inside JsxText */
-function canHaveTrailingTrivia({kind, parent}: ts.Node): boolean {
+function canHaveTrailingTrivia({kind, parent, end}: ts.Node): boolean {
     if (kind === ts.SyntaxKind.CloseBraceToken)
         // after a JsxExpression inside a JsxElement's body can only be other JsxChild, but no trivia
         return parent!.kind !== ts.SyntaxKind.JsxExpression ||
@@ -480,10 +480,21 @@ function canHaveTrailingTrivia({kind, parent}: ts.Node): boolean {
     if (kind === ts.SyntaxKind.GreaterThanToken) {
         switch (parent!.kind) {
             case ts.SyntaxKind.JsxOpeningElement:
+                return end !== parent!.end; // if end is not equal, this is part of the type arguments list
             case ts.SyntaxKind.JsxOpeningFragment:
                 return false; // would be inside the element
-            case ts.SyntaxKind.JsxClosingElement:
             case ts.SyntaxKind.JsxSelfClosingElement:
+                if (end !== parent!.end)
+                    return true; // if end is not equal, this is part of the type arguments list
+                // there can only be trailing trivia if we are at the end of the top level element
+                switch (parent!.parent!.kind) {
+                    case ts.SyntaxKind.JsxElement:
+                    case ts.SyntaxKind.JsxFragment:
+                        return false;
+                    default:
+                        return true;
+                }
+            case ts.SyntaxKind.JsxClosingElement:
             case ts.SyntaxKind.JsxClosingFragment:
                 // there can only be trailing trivia if we are at the end of the top level element
                 switch (parent!.parent!.parent!.kind) {
