@@ -2,7 +2,8 @@ import { assert } from 'chai';
 import { forEachComment, getCommentAtPosition, getTokenAtPosition, isPositionInComment } from '../util/util';
 import { getSourceFile } from './utils';
 
-const comments = ['1', '2', '3', '4', 'i', 'j', '7', 'b', 'e', 'f', 'g', 'h', 'l', 'p', 'q', 'r', 's', 'w', 'x', 'y', 'z'];
+const comments =
+    ['1', '2', '3', '4', 'i', 'j', '7', 'b', 'e', 'f', 'g', 'h', 'l', 'p', 'q', 'r', 's', 'w', 'x', 'y', 'z', 'B', 'D', 'F', 'G'];
 
 describe('getCommentAtPosition', () => {
     it('handles JSX', () => {
