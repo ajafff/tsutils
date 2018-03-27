@@ -124,6 +124,10 @@ export function isConditionalExpression(node: ts.Node): node is ts.ConditionalEx
     return node.kind === ts.SyntaxKind.ConditionalExpression;
 }
 
+export function isConditionalTypeNode(node: ts.Node): node is ts.ConditionalTypeNode {
+    return node.kind === ts.SyntaxKind.ConditionalType;
+}
+
 export function isConstructorDeclaration(node: ts.Node): node is ts.ConstructorDeclaration {
     return node.kind === ts.SyntaxKind.Constructor;
 }
@@ -327,6 +331,10 @@ export function isIndexedAccessTypeNode(node: ts.Node): node is ts.IndexedAccess
 
 export function isIndexSignatureDeclaration(node: ts.Node): node is ts.IndexSignatureDeclaration {
     return node.kind === ts.SyntaxKind.IndexSignature;
+}
+
+export function isInferTypeNode(node: ts.Node): node is ts.InferTypeNode {
+    return node.kind === ts.SyntaxKind.InferType;
 }
 
 export function isInterfaceDeclaration(node: ts.Node): node is ts.InterfaceDeclaration {
