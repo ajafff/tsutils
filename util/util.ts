@@ -323,6 +323,7 @@ export function isFunctionScopeBoundary(node: ts.Node): boolean {
         case ts.SyntaxKind.ConstructorType:
         case ts.SyntaxKind.FunctionType:
         case ts.SyntaxKind.MappedType:
+        case ts.SyntaxKind.ConditionalType:
             return true;
         case ts.SyntaxKind.SourceFile:
             // if SourceFile is no module, it contributes to the global scope and is therefore no scope boundary
@@ -471,30 +472,32 @@ export function forEachComment(node: ts.Node, cb: ForEachCommentCallback, source
 }
 
 /** Exclude trailing positions that would lead to scanning for trivia inside JsxText */
-function canHaveTrailingTrivia({kind, parent}: ts.Node): boolean {
-    if (kind === ts.SyntaxKind.CloseBraceToken)
-        // after a JsxExpression inside a JsxElement's body can only be other JsxChild, but no trivia
-        return parent!.kind !== ts.SyntaxKind.JsxExpression ||
-            parent!.parent!.kind !== ts.SyntaxKind.JsxElement && parent!.parent!.kind !== ts.SyntaxKind.JsxFragment;
-    if (kind === ts.SyntaxKind.GreaterThanToken) {
-        switch (parent!.kind) {
-            case ts.SyntaxKind.JsxOpeningElement:
-            case ts.SyntaxKind.JsxOpeningFragment:
-                return false; // would be inside the element
-            case ts.SyntaxKind.JsxClosingElement:
-            case ts.SyntaxKind.JsxSelfClosingElement:
-            case ts.SyntaxKind.JsxClosingFragment:
-                // there can only be trailing trivia if we are at the end of the top level element
-                switch (parent!.parent!.parent!.kind) {
-                    case ts.SyntaxKind.JsxElement:
-                    case ts.SyntaxKind.JsxFragment:
-                        return false;
-                    default:
-                        return true;
-                }
-        }
+function canHaveTrailingTrivia(token: ts.Node): boolean {
+    switch (token.kind) {
+        case ts.SyntaxKind.CloseBraceToken:
+            // after a JsxExpression inside a JsxElement's body can only be other JsxChild, but no trivia
+            return token.parent!.kind !== ts.SyntaxKind.JsxExpression || !isJsxElementOrFragment(token.parent!.parent!);
+        case ts.SyntaxKind.GreaterThanToken:
+            switch (token.parent!.kind) {
+                case ts.SyntaxKind.JsxOpeningElement:
+                    // if end is not equal, this is part of the type arguments list. in all other cases it would be inside the element body
+                    return token.end !== token.parent!.end;
+                case ts.SyntaxKind.JsxOpeningFragment:
+                    return false; // would be inside the fragment
+                case ts.SyntaxKind.JsxSelfClosingElement:
+                    return token.end !== token.parent!.end || // if end is not equal, this is part of the type arguments list
+                        !isJsxElementOrFragment(token.parent!.parent!); // there's only trailing trivia if it's the end of the top element
+                case ts.SyntaxKind.JsxClosingElement:
+                case ts.SyntaxKind.JsxClosingFragment:
+                    // there's only trailing trivia if it's the end of the top element
+                    return !isJsxElementOrFragment(token.parent!.parent!.parent!);
+            }
     }
-    return kind !== ts.SyntaxKind.JsxText; // there is no trivia after JsxText
+    return true;
+}
+
+function isJsxElementOrFragment(node: ts.Node): node is ts.JsxElement | ts.JsxFragment {
+    return node.kind === ts.SyntaxKind.JsxElement || node.kind === ts.SyntaxKind.JsxFragment;
 }
 
 export interface LineRange extends ts.TextRange {
@@ -941,7 +944,7 @@ export function isReassignmentTarget(node: ts.Expression): boolean {
  * @param node The identifier to get the text of
  */
 export function getIdentifierText(node: ts.Identifier) {
-    return ts.unescapeIdentifier(node.text);
+    return ts.unescapeIdentifier(node.text); // wotan-disable-line no-unstable-api-use
 }
 
 export function canHaveJsDoc(node: ts.Node): node is ts.HasJSDoc {
@@ -1085,7 +1088,8 @@ export const enum ImportOptions {
 
 export function findImports(sourceFile: ts.SourceFile, kinds: ImportKind): ts.LiteralExpression[];
 /** @deprecated use `ImportKind` instead. */
-export function findImports(sourceFile: ts.SourceFile, options: ImportOptions): ts.LiteralExpression[]; // tslint:disable-line
+/* tslint:disable-next-line */ /* wotan-disable-next-line */
+export function findImports(sourceFile: ts.SourceFile, options: ImportOptions): ts.LiteralExpression[];
 export function findImports(sourceFile: ts.SourceFile, options: any) {
     return new ImportFinder(sourceFile, options).find();
 }

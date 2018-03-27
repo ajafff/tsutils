@@ -1,3 +1,21 @@
+# 2.23.0
+
+**Features:**
+
+* added typeguard `isForInOrOfStatement`
+
+**Bugfixes:**
+
+* correctly handle comments in generic JSX elements: `<MyComponent<string>/*comment*/></MyComponent>`
+* fixed a bug with false positive trailing comments at the end of JSX self closing element: `<div><br/>/*no comment*/</div>`
+
+# 2.22.2
+
+**Bugfixes:**
+
+* `collectVariableUsage`: handle ConditionalTypes and `infer T`, which will be introduced in TypeScript@2.8.0 and are already available in nightly builds
+* `isLiteralType` no longer returns true for `ts.TypeFlags.BooleanLiteral` as this is not a `ts.LiteralType`
+
 # 2.22.1
 
 **Bugfixes:**
