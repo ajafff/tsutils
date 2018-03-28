@@ -1,3 +1,9 @@
+# 2.25.0
+
+**Features:**
+
+* added utilities: `isStatementInAmbientContext` and `isAmbientModuleBlock`
+
 # 2.24.0
 
 **Features:**
