@@ -77,12 +77,12 @@ declare global {                       /* 6 */
         );
         assert.isTrue(isStatementInAmbientContext(sourceFile.statements[5]));
         assert.isTrue(
-            isStatementInAmbientContext((<ts.ModuleBlock>(<ts.NamespaceDeclaration>sourceFile.statements[4]).body).statements[1]),
+            isStatementInAmbientContext((<ts.ModuleBlock>(<ts.NamespaceDeclaration>sourceFile.statements[5]).body).statements[0]),
         );
         assert.isTrue(
             isStatementInAmbientContext(
                 (<ts.ModuleBlock>(<ts.NamespaceDeclaration>(<ts.ModuleBlock>(<ts.NamespaceDeclaration>
-                    sourceFile.statements[5]).body).statements[1]).body).statements[0],
+                    sourceFile.statements[5]).body).statements[0]).body).statements[0],
             ),
         );
         assert.isTrue(isStatementInAmbientContext(sourceFile.statements[6]));
