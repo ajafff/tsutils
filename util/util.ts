@@ -1144,3 +1144,26 @@ class ImportFinder {
             this._result.push(expression);
     }
 }
+
+/**
+ * Ambient context means the statement itself has the `declare` keyword
+ * or is inside a `declare namespace`,  `delcare module` or `declare global`.
+ *
+ * It doesn't include declaration files.
+ */
+export function isStatementInAmbientContext(node: ts.Statement): boolean {
+    return hasModifier(node.modifiers, ts.SyntaxKind.DeclareKeyword) || isAmbientModuleBlock(node.parent!);
+}
+
+/** Includes `declare namespace`, `declare module` and `declare global` and namespace nested in one of the aforementioned. */
+export function isAmbientModuleBlock(node: ts.Node): node is ts.ModuleBlock {
+    while (node.kind === ts.SyntaxKind.ModuleBlock) {
+        do
+            node = node.parent!;
+        while (node.flags & ts.NodeFlags.NestedNamespace);
+        if (hasModifier(node.modifiers, ts.SyntaxKind.DeclareKeyword))
+            return true;
+        node = node.parent!;
+    }
+    return false;
+}
