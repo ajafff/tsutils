@@ -152,3 +152,11 @@ declare global {
 declare global {
     let foo: Foo;
 }
+
+namespace imported {}
+          ~~~~~~~~ [Unused]
+namespace importing {
+          ~~~~~~~~~ [Unused]
+    var imported = {};
+    export import localAlias = imported;
+}
