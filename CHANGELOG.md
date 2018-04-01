@@ -1,3 +1,9 @@
+# 2.25.1
+
+**Bugfixes:**
+
+* `collectVariableUsage`: fixed name lookup in function signatures to match runtime behavior. Note that this is not completely fixed in TypeScript, yet. See: [Microsoft/TypeScript#22825](https://github.com/Microsoft/TypeScript/issues/22825) and [Microsoft/TypeScript#22769](https://github.com/Microsoft/TypeScript/issues/22769)
+
 # 2.25.0
 
 **Features:**
