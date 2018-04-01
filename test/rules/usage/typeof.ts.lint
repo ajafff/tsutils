@@ -1,23 +1,37 @@
 let bar, baz, bas, p1, p2, p3;
-    ~~~ [Unused]
          ~~~ [Unused]
                    ~~ [Unused]
+                       ~~ [Unused]
                            ~~ [Unused]
 function fn(foo: typeof bar, bar: typeof baz, baz: typeof bas, p1 = p2, p2 = 2, p3 = 3, p4 = p3, p5: typeof quux) {
             ~~~ [Unused]
                                                                ~~ [Unused]
-                                                                        ~~ [Unused]
                                                                                         ~~ [Unused]
                                                                                                  ~~ [Unused]
     let bas: boolean;
         ~~~ [Unused]
     var quux: string;
+        ~~~~ [Unused]
 }
 
-function fn2(foo: typeof bar) {
+function fn2(foo: typeof bar): typeof bar {
              ~~~ [Unused]
     let bas: number;
     var bar: typeof bas;
+        ~~~  [Unused]
 }
 
-export {fn, fn2};
+let foo: number;
+    ~~~ [Unused]
+function fn3({foo}: {foo: string}): typeof foo {
+}
+
+type T = string;
+
+function fn4(param: T) {
+    type T = number;
+         ~ [Unused]
+    return param;
+}
+
+export {fn, fn2, fn3, fn4};

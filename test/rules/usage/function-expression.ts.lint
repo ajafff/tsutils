@@ -1,8 +1,8 @@
 export {};
 
 (function foo(bar: typeof foo){
-          ~~~ [Unused]
     var foo: number;
+        ~~~ [Unused]
     return bar;
 })(1);
 
@@ -49,3 +49,30 @@ let bar = 2;
           ~~~ [Unused]
     return bar;
 })();
+
+{
+    let bas = 1;
+    (function({foo = bas}) {
+        var bas = 2;
+            ~~~ [Unused]
+        return foo;
+    })({});
+}
+
+{
+    let bas = 1;
+    (foo = bas) => {
+        var bas = 1;
+            ~~~ [Unused]
+        return foo;
+    }
+}
+
+{
+    let bas = 1;
+    (foo = () => bas) => {
+        var bas = 1;
+            ~~~ [Unused]
+        return foo;
+    }
+}

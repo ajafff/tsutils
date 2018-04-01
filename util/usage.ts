@@ -274,6 +274,7 @@ abstract class AbstractScope implements Scope {
         for (const use of this._uses)
             if (!this._applyUse(use))
                 this._addUseToParent(use);
+        this._uses = [];
     }
 
     protected _applyUse(use: VariableUse, variables = this._variables): boolean {
@@ -348,7 +349,6 @@ class NonRootScope extends AbstractScope {
 class EnumScope extends NonRootScope {
     public end() {
         this._applyUses();
-        this._uses = [];
     }
 }
 
@@ -373,51 +373,9 @@ class ConditionalTypeScope extends NonRootScope {
     }
 }
 
-const enum FunctionScopeState {
-    Initial,
-    Parameter,
-    ReturnType,
-    Body,
-}
-
 class FunctionScope extends NonRootScope {
-    private _innerScope = new NonRootScope(this);
-    private _state = FunctionScopeState.Initial;
-
-    public end(cb: VariableCallback) {
-        this._innerScope.end(cb);
-        super.end(cb);
-    }
-
-    public updateState(newState: FunctionScopeState) {
-        this._state = newState;
-    }
-
-    public addUse(use: VariableUse, source?: Scope) {
-        if (source === this._innerScope)
-            return void this._uses.push(use);
-        switch (this._state) {
-            case FunctionScopeState.Parameter:
-                if ((use.domain & UsageDomain.Value) === 0 || use.domain & UsageDomain.TypeQuery)
-                    return void this._uses.push(use);
-                if (this._applyUse(use) || this._applyUse(use, this._innerScope.getVariables()))
-                    return;
-                break;
-            case FunctionScopeState.ReturnType:
-                if (this._applyUse(use))
-                    return;
-                break;
-            case FunctionScopeState.Body:
-                return this._innerScope.addUse(use);
-            case FunctionScopeState.Initial:
-                return void this._uses.push(use);
-
-        }
-        return this._parent.addUse(use, this);
-    }
-
-    protected _getDestinationScope(blockScoped: boolean): Scope {
-        return blockScoped ? this._innerScope : this;
+    public beginBody() {
+        this._applyUses();
     }
 }
 
@@ -469,8 +427,8 @@ class FunctionExpressionScope extends AbstractNamedExpressionScope<FunctionScope
         super(name, DeclarationDomain.Value, parent);
     }
 
-    public updateState(newState: FunctionScopeState) {
-        return this._innerScope.updateState(newState);
+    public beginBody() {
+        return this._innerScope.beginBody();
     }
 }
 
@@ -545,7 +503,6 @@ class NamespaceScope extends NonRootScope {
         });
         this._applyUses();
         this._innerScope = new NonRootScope(this);
-        this._uses = [];
     }
 
     public createOrReuseNamespaceScope(name: string, exported: boolean, ambient: boolean, hasExportStatement: boolean): NamespaceScope {
@@ -650,7 +607,7 @@ class UsageWalker {
                     if (node.parent!.kind !== ts.SyntaxKind.IndexSignature &&
                         ((<ts.ParameterDeclaration>node).name.kind !== ts.SyntaxKind.Identifier ||
                          (<ts.Identifier>(<ts.NamedDeclaration>node).name).originalKeywordKind !== ts.SyntaxKind.ThisKeyword))
-                        this._handleBindingName(<ts.Identifier>(<ts.NamedDeclaration>node).name, false, false, true);
+                        this._handleBindingName(<ts.Identifier>(<ts.NamedDeclaration>node).name, false, false);
                     break;
                 case ts.SyntaxKind.EnumMember:
                     this._scope.addVariable(
@@ -666,7 +623,7 @@ class UsageWalker {
                 case ts.SyntaxKind.TypeParameter:
                     this._scope.addVariable(
                         getIdentifierText((<ts.TypeParameterDeclaration>node).name),
-                        (<ts.TypeParameterDeclaration>node).name, false,
+                        (<ts.TypeParameterDeclaration>node).name, true,
                         false,
                         DeclarationDomain.Type,
                     );
@@ -738,14 +695,11 @@ class UsageWalker {
             cb(node.name);
         if (node.typeParameters !== undefined)
             node.typeParameters.forEach(cb);
-        scope.updateState(FunctionScopeState.Parameter);
         node.parameters.forEach(cb);
-        if (node.type !== undefined) {
-            scope.updateState(FunctionScopeState.ReturnType);
+        if (node.type !== undefined)
             cb(node.type);
-        }
         if (node.body !== undefined) {
-            scope.updateState(FunctionScopeState.Body);
+            scope.beginBody();
             cb(node.body);
         }
         scope.end(varCb);
@@ -796,12 +750,12 @@ class UsageWalker {
                                     hasModifier(node.modifiers, ts.SyntaxKind.ExportKeyword), domain);
     }
 
-    private _handleBindingName(name: ts.BindingName, blockScoped: boolean, exported: boolean, isParameter?: boolean) {
+    private _handleBindingName(name: ts.BindingName, blockScoped: boolean, exported: boolean) {
         if (name.kind === ts.SyntaxKind.Identifier)
             return this._scope.addVariable(getIdentifierText(name), name, blockScoped, exported, DeclarationDomain.Value);
         forEachDestructuringIdentifier(name, (declaration) => {
             this._scope.addVariable(
-                getIdentifierText(declaration.name), declaration.name, isParameter || blockScoped, exported, DeclarationDomain.Value,
+                getIdentifierText(declaration.name), declaration.name, blockScoped, exported, DeclarationDomain.Value,
             );
         });
     }
