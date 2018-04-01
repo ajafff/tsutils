@@ -280,19 +280,43 @@ export function isBlockScopedVariableDeclaration(declaration: ts.VariableDeclara
 }
 
 export const enum ScopeBoundary {
-    None,
-    Function,
-    Block,
+    None = 0,
+    Function = 1,
+    Block = 2,
+    Type = 4,
 }
+export const enum ScopeBoundarySelector {
+    Function = ScopeBoundary.Function,
+    Block = ScopeBoundarySelector.Function | ScopeBoundary.Block,
+    Type = ScopeBoundarySelector.Block | ScopeBoundary.Type,
+}
+
 export function isScopeBoundary(node: ts.Node): ScopeBoundary {
     if (isFunctionScopeBoundary(node))
         return ScopeBoundary.Function;
     if (isBlockScopeBoundary(node))
         return ScopeBoundary.Block;
+    if (isTypeScopeBoundary(node))
+        return ScopeBoundary.Type;
     return ScopeBoundary.None;
 }
 
-export function isFunctionScopeBoundary(node: ts.Node): boolean {
+export function isTypeScopeBoundary(node: ts.Node): boolean {
+    switch (node.kind) {
+        case ts.SyntaxKind.InterfaceDeclaration:
+        case ts.SyntaxKind.TypeAliasDeclaration:
+        case ts.SyntaxKind.MappedType:
+        case ts.SyntaxKind.ConditionalType:
+            return true;
+        default:
+            return false;
+    }
+}
+
+/**
+ * @param forceSourceFile if true this function will return `true` for SourceFiles no matter if it's an external module or global script.
+ */
+export function isFunctionScopeBoundary(node: ts.Node, forceSourceFile?: boolean): boolean {
     switch (node.kind) {
         case ts.SyntaxKind.FunctionExpression:
         case ts.SyntaxKind.ArrowFunction:
@@ -305,19 +329,15 @@ export function isFunctionScopeBoundary(node: ts.Node): boolean {
         case ts.SyntaxKind.FunctionDeclaration:
         case ts.SyntaxKind.GetAccessor:
         case ts.SyntaxKind.SetAccessor:
-        case ts.SyntaxKind.InterfaceDeclaration:
-        case ts.SyntaxKind.TypeAliasDeclaration:
         case ts.SyntaxKind.MethodSignature:
         case ts.SyntaxKind.CallSignature:
         case ts.SyntaxKind.ConstructSignature:
         case ts.SyntaxKind.ConstructorType:
         case ts.SyntaxKind.FunctionType:
-        case ts.SyntaxKind.MappedType:
-        case ts.SyntaxKind.ConditionalType:
             return true;
         case ts.SyntaxKind.SourceFile:
             // if SourceFile is no module, it contributes to the global scope and is therefore no scope boundary
-            return ts.isExternalModule(<ts.SourceFile>node);
+            return forceSourceFile || ts.isExternalModule(<ts.SourceFile>node);
         default:
             return false;
     }
@@ -343,6 +363,7 @@ export function isBlockScopeBoundary(node: ts.Node): boolean {
             return false;
     }
 }
+
 /** Returns true for scope boundaries that have their own `this` reference instead of inheriting it from the containing scope */
 export function hasOwnThisReference(node: ts.Node): boolean {
     switch (node.kind) {
@@ -361,7 +382,7 @@ export function hasOwnThisReference(node: ts.Node): boolean {
     }
 }
 
-export function isFunctionWithBody(node: ts.Node): node is ts.FunctionLikeDeclaration {
+export function isFunctionWithBody(node: ts.Node): node is ts.FunctionLikeDeclaration & {body: {}} {
     switch (node.kind) {
         case ts.SyntaxKind.GetAccessor:
         case ts.SyntaxKind.SetAccessor:
