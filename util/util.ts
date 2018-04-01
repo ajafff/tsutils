@@ -5,9 +5,6 @@ import {
     isTextualLiteral, isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration,
 } from '../typeguard/node';
 
-// TODO remove on v3.0.0
-export * from './control-flow';
-
 export function getChildOfKind<T extends ts.SyntaxKind>(node: ts.Node, kind: T, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))
         if (child.kind === kind)
@@ -83,13 +80,6 @@ export function isObjectFlagSet(objectType: ts.ObjectType, flag: ts.ObjectFlags)
 
 export function isModifierFlagSet(node: ts.Node, flag: ts.ModifierFlags) {
     return (ts.getCombinedModifierFlags(node) & flag) !== 0;
-}
-
-/**
- * @deprecated Use isModifierFlagSet.
- */
-export function isModfierFlagSet(node: ts.Node, flag: ts.ModifierFlags) {
-    return isModifierFlagSet(node, flag);
 }
 
 export function getPreviousStatement(statement: ts.Statement): ts.Statement | undefined {
@@ -684,7 +674,7 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
         case ts.SyntaxKind.JsxOpeningElement:
             if (options! & SideEffectOptions.JsxElement)
                 return true;
-            for (const child of getJsxAttributes(<ts.JsxOpeningLikeElement>node)) {
+            for (const child of (<ts.JsxOpeningLikeElement>node).attributes.properties) {
                 if (child.kind === ts.SyntaxKind.JsxSpreadAttribute) {
                     if (hasSideEffects(child.expression, options))
                         return true;
@@ -701,12 +691,6 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
         default:
             return false;
     }
-}
-
-function getJsxAttributes(openElement: ts.JsxOpeningLikeElement): ts.NodeArray<ts.JsxAttributeLike> {
-    // for back-compat with typescript@<2.3
-    const attributes: ts.NodeArray<ts.JsxAttributeLike> | ts.JsxAttributes = openElement.attributes;
-    return Array.isArray(attributes) ? attributes : attributes.properties;
 }
 
 function classExpressionHasSideEffects(node: ts.ClassExpression, options?: SideEffectOptions): boolean {
@@ -1072,26 +1056,8 @@ export const enum ImportKind {
     AllRequireLike = ImportEquals | Require,
 }
 
-/** @deprecated use `ImportKind` instead. */
-export const enum ImportOptions {
-    ImportDeclaration = 1,
-    ImportEquals = 2,
-    ExportFrom = 4,
-    DynamicImport = 8,
-    Require = 16,
-    All = ImportDeclaration | ImportEquals | ExportFrom | DynamicImport | Require,
-    AllImports = ImportDeclaration | ImportEquals | DynamicImport | Require,
-    AllStaticImports = ImportDeclaration | ImportEquals,
-    AllDynamic = DynamicImport | Require,
-    AllRequireLike = ImportEquals | Require,
-}
-
-export function findImports(sourceFile: ts.SourceFile, kinds: ImportKind): ts.LiteralExpression[];
-/** @deprecated use `ImportKind` instead. */
-/* tslint:disable-next-line */ /* wotan-disable-next-line */
-export function findImports(sourceFile: ts.SourceFile, options: ImportOptions): ts.LiteralExpression[];
-export function findImports(sourceFile: ts.SourceFile, options: any) {
-    return new ImportFinder(sourceFile, options).find();
+export function findImports(sourceFile: ts.SourceFile, kinds: ImportKind): ts.LiteralExpression[] {
+    return new ImportFinder(sourceFile, kinds).find();
 }
 
 class ImportFinder {

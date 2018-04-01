@@ -22,9 +22,6 @@ interface MutableControlFlowEnd {
 
 const defaultControlFlowEnd: ControlFlowEnd = {statements: [], end: false};
 
-export function getControlFlowEnd(statement: ts.Statement | ts.BlockLike): ControlFlowEnd;
-/** @deprecated passing label no longer has any effect. */
-export function getControlFlowEnd(statement: ts.Statement | ts.BlockLike, label?: ts.Identifier): ControlFlowEnd; // tslint:disable-line
 export function getControlFlowEnd(statement: ts.Statement | ts.BlockLike): ControlFlowEnd {
     return isBlockLike(statement) ? handleBlock(statement) : getControlFlowEndWorker(statement);
 }

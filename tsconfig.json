@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2015",
     "module": "commonjs",
     "removeComments": true,
     "inlineSourceMap": true,
@@ -13,7 +13,7 @@
     "noUnusedParameters": true,
     "strictNullChecks": true,
     "stripInternal": true,
-    "lib": ["es2015"],
+    "lib": ["es2016"],
     "skipLibCheck": true,
     "declaration": true,
     "importHelpers": true
