@@ -9,12 +9,15 @@
 	"editor.wordWrap": "wordWrapColumn",
 	"editor.wordWrapColumn": 140,
 
-      "files.exclude": {
-         "**/*.js": { "when": "$(basename).ts"},
-         "**/*.d.ts": { "when": "$(basename).ts"},
-	 "**/*.js.map": true,
-         "**/.git": true
-      },
+  "files.exclude": {
+    "**/*.js": { "when": "$(basename).ts"},
+    "**/*.d.ts": { "when": "$(basename).ts"},
+    "**/*.js.map": true,
+    "**/.git": true,
+    ".nyc_output": true,
+    "coverage": true,
+    "node_modules": true
+  },
 	// The folders to exclude when doing a full text search in the workspace.
 	"search.exclude": {
 		".git": true,
