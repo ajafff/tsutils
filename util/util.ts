@@ -1,8 +1,8 @@
 import * as ts from 'typescript';
 import { NodeWrap } from './convert-ast';
 import {
-    isBlockLike, isLiteralExpression, isPropertyDeclaration, isJsDoc, isImportDeclaration,
-    isTextualLiteral, isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration,
+    isBlockLike, isLiteralExpression, isPropertyDeclaration, isJsDoc, isImportDeclaration, isTextualLiteral,
+    isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration, isImportTypeNode, isLiteralTypeNode,
 } from '../typeguard/node';
 
 // TODO remove on v3.0.0
@@ -1065,11 +1065,14 @@ export const enum ImportKind {
     ExportFrom = 4,
     DynamicImport = 8,
     Require = 16,
-    All = ImportDeclaration | ImportEquals | ExportFrom | DynamicImport | Require,
-    AllImports = ImportDeclaration | ImportEquals | DynamicImport | Require,
+    ImportType = 32,
+    All = ImportDeclaration | ImportEquals | ExportFrom | DynamicImport | Require | ImportType,
+    AllImports = ImportDeclaration | ImportEquals | DynamicImport | Require | ImportType,
     AllStaticImports = ImportDeclaration | ImportEquals,
     AllImportExpressions = DynamicImport | Require,
     AllRequireLike = ImportEquals | Require,
+    // @internal
+    AllNestedImports = AllImportExpressions | ImportType,
 }
 
 /** @deprecated use `ImportKind` instead. */
@@ -1124,19 +1127,23 @@ class ImportFinder {
                        statement.body !== undefined && statement.name.kind === ts.SyntaxKind.StringLiteral &&
                        ts.isExternalModule(this._sourceFile)) {
                 this._findImports((<ts.ModuleBlock>statement.body).statements);
-            } else if (this._options & ImportKind.AllImportExpressions) {
-                ts.forEachChild(statement, this._findDynamic);
+            } else if (this._options & ImportKind.AllNestedImports) {
+                ts.forEachChild(statement, this._findNested);
             }
         }
     }
 
-    private _findDynamic = (node: ts.Node): void => {
-        if (isCallExpression(node) && node.arguments.length === 1 &&
-            (node.expression.kind === ts.SyntaxKind.ImportKeyword && this._options & ImportKind.DynamicImport ||
-                this._options & ImportKind.Require && node.expression.kind === ts.SyntaxKind.Identifier &&
-                    (<ts.Identifier>node.expression).text === 'require'))
-            this._addImport(node.arguments[0]);
-        ts.forEachChild(node, this._findDynamic);
+    private _findNested = (node: ts.Node): void => {
+        if (isCallExpression(node)) {
+            if (node.arguments.length === 1 &&
+                (node.expression.kind === ts.SyntaxKind.ImportKeyword && this._options & ImportKind.DynamicImport ||
+                    this._options & ImportKind.Require && node.expression.kind === ts.SyntaxKind.Identifier &&
+                        (<ts.Identifier>node.expression).text === 'require'))
+                this._addImport(node.arguments[0]);
+        } else if (isImportTypeNode(node) && isLiteralTypeNode(node.argument) && this._options & ImportKind.ImportType) {
+            this._addImport(node.argument.literal);
+        }
+        ts.forEachChild(node, this._findNested);
     }
 
     private _addImport(expression: ts.Expression) {
