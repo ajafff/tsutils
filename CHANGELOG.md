@@ -1,3 +1,10 @@
+# 2.26.0
+
+**Features:**
+
+* added typeguard `isLiteralTypeNode`
+* added support for type imports (`type T = import('foo')`) to `findImports` via `ImportKind.ImportType`
+
 # 2.25.1
 
 **Bugfixes:**
