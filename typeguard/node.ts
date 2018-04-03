@@ -325,7 +325,6 @@ export function isImportSpecifier(node: ts.Node): node is ts.ImportSpecifier {
     return node.kind === ts.SyntaxKind.ImportSpecifier;
 }
 
-// @internal
 export function isImportTypeNode(node: ts.Node): node is ts.ImportTypeNode {
     return node.kind === ts.SyntaxKind.ImportTypeNode;
 }
