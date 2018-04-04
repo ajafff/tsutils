@@ -327,7 +327,7 @@ export function isImportSpecifier(node: ts.Node): node is ts.ImportSpecifier {
 
 // @internal
 export function isImportTypeNode(node: ts.Node): node is ts.ImportTypeNode {
-    return node.kind === ts.SyntaxKind.ImportTypeNode;
+    return node.kind === ts.SyntaxKind.ImportType;
 }
 
 export function isIndexedAccessTypeNode(node: ts.Node): node is ts.IndexedAccessTypeNode {
