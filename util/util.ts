@@ -639,6 +639,8 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
         case ts.SyntaxKind.TaggedTemplateExpression:
             if (options! & SideEffectOptions.TaggedTemplate || hasSideEffects((<ts.TaggedTemplateExpression>node).tag, options))
                 return true;
+            if ((<ts.TaggedTemplateExpression>node).template.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral)
+                return false;
             node = (<ts.TaggedTemplateExpression>node).template;
             // falls through
         case ts.SyntaxKind.TemplateExpression:
