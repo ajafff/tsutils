@@ -144,4 +144,14 @@ foo ? 1 : fn();
  ~~~~~~~~~~~~~~~~~~~ [0]
          ~~~~ [0]
 
+async () => await 1;
+            ~~~~~~~ [0]
+function* gen() {
+    yield;
+    ~~~~~ [0]
+}
+
+delete foo.length;
+~~~~~~~~~~~~~~~~~ [0]
+
 [0]: has side effect
