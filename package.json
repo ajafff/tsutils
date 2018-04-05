@@ -7,7 +7,7 @@
     "lint:tslint": "wotan -m @fimbul/valtyr",
     "lint:wotan": "wotan",
     "lint": "run-p lint:*",
-    "test": "mocha test/*Tests.js && tslint --test test/rules/*/tslint.json",
+    "test": "mocha test/*Tests.js && tslint --test 'test/rules/**/tslint.json'",
     "verify": "run-s compile lint coverage",
     "prepublishOnly": "npm run verify",
     "coverage": "nyc npm test",
