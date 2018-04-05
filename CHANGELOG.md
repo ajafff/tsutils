@@ -1,3 +1,9 @@
+# 2.26.1
+
+**Bugfixes:**
+
+* fixed crash in `hasSideEffects` with tagged template literal without substitution: ``tag`template` ``
+
 # 2.26.0
 
 **Features:**
