@@ -420,7 +420,7 @@ export function forEachTokenWithTrivia(node: ts.Node, cb: ForEachTokenCallback, 
     return forEachToken(
         node,
         (token) => {
-            const tokenStart = token.kind === ts.SyntaxKind.JsxText ? token.pos : token.getStart(sourceFile);
+            const tokenStart = token.kind === ts.SyntaxKind.JsxText || token.pos === token.end ? token.pos : token.getStart(sourceFile);
             if (tokenStart !== token.pos) {
                 // we only have to handle trivia before each token. whitespace at the end of the file is followed by EndOfFileToken
                 scanner.setTextPos(token.pos);
@@ -454,6 +454,8 @@ export function forEachComment(node: ts.Node, cb: ForEachCommentCallback, source
     return forEachToken(
         node,
         (token) => {
+            if (token.pos === token.end)
+                return;
             if (token.kind !== ts.SyntaxKind.JsxText)
                 ts.forEachLeadingCommentRange(
                     fullText,
