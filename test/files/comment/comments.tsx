@@ -32,3 +32,8 @@ someVar = <div>/*o*/<MyComponent/*p*/</*q*/string/*r*/>/*s*/>/*t*/</MyComponent>
 someVar = <div>/*v*/<MyComponent/*w*/</*x*/string/*y*/>/*z*//>/*-*/</div>;
 
 someVar = <div>/*A*>{/*B*/<span>/*C*/</span>/*D*/}/*E*/{/*F*/<br/>/*G*/}/*H*/</div>;
+
+/*I*/
+/** */
+//J
+function /*K*/ {}
