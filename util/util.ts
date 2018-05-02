@@ -624,8 +624,9 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
             }
         case ts.SyntaxKind.ElementAccessExpression:
             return hasSideEffects((<ts.ElementAccessExpression>node).expression, options) ||
-                (<ts.ElementAccessExpression>node).argumentExpression !== undefined &&
-                hasSideEffects((<ts.ElementAccessExpression>node).argumentExpression!, options);
+                // wotan-disable-next-line no-useless-predicate
+                (<ts.ElementAccessExpression>node).argumentExpression !== undefined && // for compatibility with typescript@<2.9.0
+                hasSideEffects((<ts.ElementAccessExpression>node).argumentExpression, options);
         case ts.SyntaxKind.ConditionalExpression:
             return hasSideEffects((<ts.ConditionalExpression>node).condition, options) ||
                 hasSideEffects((<ts.ConditionalExpression>node).whenTrue, options) ||
