@@ -1179,3 +1179,10 @@ export function isAmbientModuleBlock(node: ts.Node): node is ts.ModuleBlock {
     }
     return false;
 }
+
+export function getIIFE(func: ts.FunctionExpression | ts.ArrowFunction): ts.CallExpression | undefined {
+    let node = func.parent!;
+    while (node.kind === ts.SyntaxKind.ParenthesizedExpression)
+        node = node.parent!;
+    return isCallExpression(node) && func.end <= node.expression.end ? node : undefined;
+}
