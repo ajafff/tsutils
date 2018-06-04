@@ -1,6 +1,6 @@
 {
   "name": "tsutils",
-  "version": "2.26.2",
+  "version": "2.27.1",
   "description": "utilities for working with typescript's AST",
   "scripts": {
     "compile": "rm -rf {,util,typeguard,test/**}/*.js; tsc -p .",
@@ -44,10 +44,10 @@
     "nyc": "^11.4.1",
     "tslint": "^5.8.0",
     "tslint-consistent-codestyle": "^1.11.0",
-    "typescript": "^2.9.0-dev.20180502"
+    "typescript": "^2.9.1"
   },
   "peerDependencies": {
-    "typescript": ">=2.1.0 || >=2.1.0-dev || >=2.2.0-dev || >=2.3.0-dev || >=2.4.0-dev || >=2.5.0-dev || >=2.6.0-dev || >=2.7.0-dev || >=2.8.0-dev || >=2.9.0-dev || >= 2.10.0-dev"
+    "typescript": ">=2.1.0 || >=2.1.0-dev || >=2.2.0-dev || >=2.3.0-dev || >=2.4.0-dev || >=2.5.0-dev || >=2.6.0-dev || >=2.7.0-dev || >=2.8.0-dev || >=2.9.0-dev || >= 3.0.0-dev"
   },
   "dependencies": {
     "tslib": "^1.8.1"
