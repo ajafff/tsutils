@@ -949,7 +949,7 @@ export function isReassignmentTarget(node: ts.Expression): boolean {
  * @param node The identifier to get the text of
  */
 export function getIdentifierText(node: ts.Identifier) {
-    return ts.unescapeIdentifier ? ts.unescapeIdentifier(node.text) : node.text; // wotan-disable-line no-unstable-api-use no-useless-predicate
+    return ts.unescapeIdentifier ? ts.unescapeIdentifier(node.text) : node.text; // wotan-disable-line no-unstable-api-use, no-useless-predicate
 }
 
 export function canHaveJsDoc(node: ts.Node): node is ts.HasJSDoc {
