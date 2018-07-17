@@ -6,23 +6,23 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: dependency-cache-{{ checksum "package.json" }}
+          key: dependency-cache-{{ checksum "yarn.lock" }}
       - run:
           name: Install dependencies
-          command: npm install
+          command: yarn
       - save_cache:
-          key: dependency-cache-{{ checksum "package.json" }}
+          key: dependency-cache-{{ checksum "yarn.lock" }}
           paths:
             - node_modules
       - run:
           name: Compile
-          command: npm run compile
+          command: yarn compile
       - run:
           name: Lint
-          command: npm run lint
+          command: yarn lint
       - run:
           name: Test with Coverage
-          command: npm run coverage
+          command: yarn coverage
       - run:
           name: Report code coverage
-          command: 'npm run report-coverage'
+          command: yarn report-coverage
