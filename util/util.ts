@@ -1187,3 +1187,11 @@ export function getIIFE(func: ts.FunctionExpression | ts.ArrowFunction): ts.Call
         node = node.parent!;
     return isCallExpression(node) && func.end <= node.expression.end ? node : undefined;
 }
+
+export type StrictCompilerOption =
+    'noImplicitAny' | 'noImplicitThis' | 'strictNullChecks' | 'strictFunctionTypes' | 'strictPropertyInitialization' | 'alwaysStrict';
+
+export function isStrictCompilerOptionEnabled(options: ts.CompilerOptions, option: StrictCompilerOption): boolean {
+    return (options.strict ? options[option] !== false : options[option] === true) &&
+        (option !== 'strictPropertyInitialization' || isStrictCompilerOptionEnabled(options, 'strictNullChecks'));
+}

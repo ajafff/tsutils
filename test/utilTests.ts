@@ -1,6 +1,6 @@
 import * as ts from 'typescript';
 import { assert } from 'chai';
-import { isStatementInAmbientContext } from '..';
+import { isStatementInAmbientContext, isStrictCompilerOptionEnabled } from '..';
 
 describe('isStatementInAmbientContext', () => {
     it("doesn't handle declaration files special", () => {
@@ -89,5 +89,37 @@ declare global {                       /* 6 */
         assert.isTrue(
             isStatementInAmbientContext((<ts.ModuleBlock>(<ts.NamespaceDeclaration>sourceFile.statements[6]).body).statements[0]),
         );
+    });
+});
+
+describe('isStrictCompilerOptionEnabled', () => {
+    it('correctly detects strict flags', () => {
+        assert.isTrue(isStrictCompilerOptionEnabled({strict: true}, 'strictNullChecks'));
+        assert.isTrue(isStrictCompilerOptionEnabled({strictNullChecks: true}, 'strictNullChecks'));
+        assert.isTrue(isStrictCompilerOptionEnabled({strict: false, strictNullChecks: true}, 'strictNullChecks'));
+        assert.isFalse(isStrictCompilerOptionEnabled({strict: false}, 'strictNullChecks'));
+        assert.isFalse(isStrictCompilerOptionEnabled({strict: true, strictNullChecks: false}, 'strictNullChecks'));
+        assert.isFalse(isStrictCompilerOptionEnabled({strict: false, strictNullChecks: false}, 'strictNullChecks'));
+
+        assert.isTrue(isStrictCompilerOptionEnabled({strict: false, strictNullChecks: false, alwaysStrict: true}, 'alwaysStrict'));
+    });
+
+    it('knows about strictPropertyInitializations dependency on strictNullChecks', () => {
+        assert.isTrue(isStrictCompilerOptionEnabled({strict: true}, 'strictPropertyInitialization'));
+        assert.isTrue(
+            isStrictCompilerOptionEnabled(
+                {strict: false, strictNullChecks: true, strictPropertyInitialization: true},
+                'strictPropertyInitialization',
+            ),
+        );
+        assert.isTrue(isStrictCompilerOptionEnabled({strict: true, strictPropertyInitialization: true}, 'strictPropertyInitialization'));
+        assert.isFalse(isStrictCompilerOptionEnabled({strictPropertyInitialization: true}, 'strictPropertyInitialization'));
+        assert.isFalse(isStrictCompilerOptionEnabled({strictNullChecks: true}, 'strictPropertyInitialization'));
+        assert.isFalse(isStrictCompilerOptionEnabled({strict: false, strictPropertyInitialization: true}, 'strictPropertyInitialization'));
+        assert.isFalse(isStrictCompilerOptionEnabled({strict: false, strictNullChecks: true}, 'strictPropertyInitialization'));
+        assert.isFalse(isStrictCompilerOptionEnabled({strict: false}, 'strictPropertyInitialization'));
+        assert.isFalse(isStrictCompilerOptionEnabled({strict: true, strictPropertyInitialization: false}, 'strictPropertyInitialization'));
+        assert.isFalse(isStrictCompilerOptionEnabled({strict: false, strictPropertyInitialization: false}, 'strictPropertyInitialization'));
+        assert.isFalse(isStrictCompilerOptionEnabled({strict: true, strictNullChecks: false}, 'strictPropertyInitialization'));
     });
 });
