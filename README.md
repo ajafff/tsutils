@@ -47,6 +47,9 @@ import { isIdentifier } from "tsutils/typeguard/2.9";
 // always points to the latest stable version (2.9 as of writing this)
 import { isIdentifier } from "tsutils/typeguard";
 import { isIdentifier } from "tsutils";
+
+// always points to the typeguards for the next TypeScript version (3.0 as of writing this)
+import { isIdentifier } from "tsutils/typeguard/next";
 ```
 
 Note that if you are also using utility functions, you should prefer the relevant submodule:
