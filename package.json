@@ -1,6 +1,6 @@
 {
   "name": "tsutils",
-  "version": "2.27.2",
+  "version": "2.28.0",
   "description": "utilities for working with typescript's AST",
   "scripts": {
     "compile": "rm -rf {,util,typeguard,test/**}/*.js; tsc -p .",
