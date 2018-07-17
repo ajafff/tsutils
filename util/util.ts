@@ -81,15 +81,18 @@ export function isObjectFlagSet(objectType: ts.ObjectType, flag: ts.ObjectFlags)
     return (objectType.objectFlags & flag) !== 0;
 }
 
+export function isModifierFlagSet(node: ts.Declaration, flag: ts.ModifierFlags): boolean;
+/** @deprecated first argument should be a subtype of `ts.Declaration` */
+export function isModifierFlagSet(node: ts.Node, flag: ts.ModifierFlags): boolean; // tslint:disable-line:unified-signatures
 export function isModifierFlagSet(node: ts.Node, flag: ts.ModifierFlags) {
-    return (ts.getCombinedModifierFlags(node) & flag) !== 0;
+    return (ts.getCombinedModifierFlags(<ts.Declaration>node) & flag) !== 0;
 }
 
 /**
  * @deprecated Use isModifierFlagSet.
  */
 export function isModfierFlagSet(node: ts.Node, flag: ts.ModifierFlags) {
-    return isModifierFlagSet(node, flag);
+    return isModifierFlagSet(node, flag); // wotan-disable-line no-unstable-api-use
 }
 
 export function getPreviousStatement(statement: ts.Statement): ts.Statement | undefined {
@@ -944,13 +947,18 @@ export function isReassignmentTarget(node: ts.Expression): boolean {
     return false;
 }
 
+// @internal
+export function getIdentifierText(node: ts.Identifier): string;
 /**
  * Safely gets the text of an identifier across typescript versions
  * @param node The identifier to get the text of
+ *
+ * @deprecated just use `node.text`
  */
+export function getIdentifierText(node: ts.Identifier): string;
 export function getIdentifierText(node: ts.Identifier) {
     // wotan-disable-next-line no-unstable-api-use, no-useless-predicate
-    return ts.unescapeIdentifier ? ts.unescapeIdentifier(node.text) : node.text;
+    return (<any>ts).unescapeIdentifier ? (<any>ts).unescapeIdentifier(node.text) : node.text;
 }
 
 export function canHaveJsDoc(node: ts.Node): node is ts.HasJSDoc {

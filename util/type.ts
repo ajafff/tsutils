@@ -65,7 +65,7 @@ function isTypeAssignableTo(checker: ts.TypeChecker, type: ts.Type, flags: ts.Ty
     })(type);
 }
 
-export function getCallSignaturesOfType(type: ts.Type): ts.Signature[] {
+export function getCallSignaturesOfType(type: ts.Type): ReadonlyArray<ts.Signature> {
     if (isUnionType(type)) {
         const signatures = [];
         for (const t of type.types)
@@ -73,7 +73,7 @@ export function getCallSignaturesOfType(type: ts.Type): ts.Signature[] {
         return signatures;
     }
     if (isIntersectionType(type)) {
-        let signatures: ts.Signature[] | undefined;
+        let signatures: ReadonlyArray<ts.Signature> | undefined;
         for (const t of type.types) {
             const sig = getCallSignaturesOfType(t);
             if (sig.length !== 0) {
@@ -93,7 +93,7 @@ export function unionTypeParts(type: ts.Type): ts.Type[] {
 }
 
 /** Determines if a type thenable and can be used with `await`. */
-export function isThenableType(checker: ts.TypeChecker, node: ts.Expression, type = checker.getTypeAtLocation(node)): boolean {
+export function isThenableType(checker: ts.TypeChecker, node: ts.Expression, type = checker.getTypeAtLocation(node)!): boolean {
     for (const ty of unionTypeParts(checker.getApparentType(type))) {
         const then = ty.getProperty('then');
         if (then === undefined)
