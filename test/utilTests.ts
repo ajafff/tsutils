@@ -1,6 +1,7 @@
 import * as ts from 'typescript';
 import { assert } from 'chai';
 import { isStatementInAmbientContext, isStrictCompilerOptionEnabled } from '..';
+import { isCompilerOptionEnabled } from '../util';
 
 describe('isStatementInAmbientContext', () => {
     it("doesn't handle declaration files special", () => {
@@ -121,5 +122,47 @@ describe('isStrictCompilerOptionEnabled', () => {
         assert.isFalse(isStrictCompilerOptionEnabled({strict: true, strictPropertyInitialization: false}, 'strictPropertyInitialization'));
         assert.isFalse(isStrictCompilerOptionEnabled({strict: false, strictPropertyInitialization: false}, 'strictPropertyInitialization'));
         assert.isFalse(isStrictCompilerOptionEnabled({strict: true, strictNullChecks: false}, 'strictPropertyInitialization'));
+    });
+});
+
+describe('isCompilerOptionEnabled', () => {
+    it('checks if option is enabled', () => {
+        assert.isFalse(isCompilerOptionEnabled({}, 'allowJs'));
+        assert.isFalse(isCompilerOptionEnabled({allowJs: undefined}, 'allowJs'));
+        assert.isFalse(isCompilerOptionEnabled({allowJs: false}, 'allowJs'));
+        assert.isTrue(isCompilerOptionEnabled({allowJs: true}, 'allowJs'));
+    });
+
+    it('knows composite enables declaration', () => {
+        assert.isFalse(isCompilerOptionEnabled({}, 'declaration'));
+        assert.isFalse(isCompilerOptionEnabled({declaration: false}, 'declaration'));
+        assert.isFalse(isCompilerOptionEnabled({declaration: undefined}, 'declaration'));
+        assert.isTrue(isCompilerOptionEnabled({declaration: true}, 'declaration'));
+
+        assert.isFalse(isCompilerOptionEnabled({composite: false}, 'declaration'));
+        assert.isFalse(isCompilerOptionEnabled({composite: undefined}, 'declaration'));
+        assert.isTrue(isCompilerOptionEnabled({composite: true}, 'declaration'));
+        assert.isTrue(isCompilerOptionEnabled({composite: true, declaration: undefined}, 'declaration'));
+    });
+
+    it('knows stripInternal can only be used with declaration', () => {
+        assert.isFalse(isCompilerOptionEnabled({declaration: true}, 'stripInternal'));
+        assert.isFalse(isCompilerOptionEnabled({stripInternal: false}, 'stripInternal'));
+        assert.isFalse(isCompilerOptionEnabled({stripInternal: true}, 'stripInternal'));
+        assert.isFalse(isCompilerOptionEnabled({stripInternal: true, declaration: false}, 'stripInternal'));
+        assert.isTrue(isCompilerOptionEnabled({stripInternal: true, declaration: true}, 'stripInternal'));
+        assert.isTrue(isCompilerOptionEnabled({stripInternal: true, composite: true}, 'stripInternal'));
+        assert.isFalse(isCompilerOptionEnabled({stripInternal: undefined, composite: true}, 'stripInternal'));
+    });
+
+    it('delegates strict flags to isStrictCompilerOptionEnabled', () => {
+        assert.isTrue(isCompilerOptionEnabled({strict: true}, 'strictNullChecks'));
+        assert.isTrue(isCompilerOptionEnabled({strictNullChecks: true}, 'strictNullChecks'));
+        assert.isTrue(isCompilerOptionEnabled({strict: false, strictNullChecks: true}, 'strictNullChecks'));
+        assert.isFalse(isCompilerOptionEnabled({strict: false}, 'strictNullChecks'));
+        assert.isFalse(isCompilerOptionEnabled({strict: true, strictNullChecks: false}, 'strictNullChecks'));
+        assert.isFalse(isCompilerOptionEnabled({strict: false, strictNullChecks: false}, 'strictNullChecks'));
+
+        assert.isTrue(isCompilerOptionEnabled({strict: false, strictNullChecks: false, alwaysStrict: true}, 'alwaysStrict'));
     });
 });

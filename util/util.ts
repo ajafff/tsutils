@@ -1203,3 +1203,31 @@ export function isStrictCompilerOptionEnabled(options: ts.CompilerOptions, optio
     return (options.strict ? options[option] !== false : options[option] === true) &&
         (option !== 'strictPropertyInitialization' || isStrictCompilerOptionEnabled(options, 'strictNullChecks'));
 }
+
+export type BooleanCompilerOptions = {
+    [K in keyof ts.CompilerOptions]: NonNullable<ts.CompilerOptions[K]> extends boolean ? K : never
+} extends {[_ in keyof ts.CompilerOptions]: infer U} ? U : never; // tslint:disable-line no-unused
+// https://github.com/ajafff/tslint-consistent-codestyle/issues/85
+
+/**
+ * Checks if a given compiler option is enabled.
+ * It handles dependencies of options, e.g. `declaration` is implicitly enabled by `composite` or `strictNullChecks` is enabled by `strict`.
+ * However, it does not check dependencies that are already checked and reported as errors, e.g. `checkJs` without `allowJs`.
+ * This function only handles boolean flags.
+ */
+export function isCompilerOptionEnabled(options: ts.CompilerOptions, option: BooleanCompilerOptions | 'stripInternal'): boolean {
+    switch (option) {
+        case 'stripInternal':
+            return options.stripInternal === true && isCompilerOptionEnabled(options, 'declaration');
+        case 'declaration':
+            return options.declaration || isCompilerOptionEnabled(options, 'composite');
+        case 'noImplicitAny':
+        case 'noImplicitThis':
+        case 'strictNullChecks':
+        case 'strictFunctionTypes':
+        case 'strictPropertyInitialization':
+        case 'alwaysStrict':
+            return isStrictCompilerOptionEnabled(options, option);
+    }
+    return options[option] === true;
+}
