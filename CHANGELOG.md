@@ -1,3 +1,9 @@
+# 2.29.0
+
+**Features:**
+
+* added utility `isCompilerOptionEnabled`
+
 # 2.28.0
 
 Typeguards are now split into multiple submodules for each version of TypeScript (starting with 2.8.0).
