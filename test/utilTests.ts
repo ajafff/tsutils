@@ -155,6 +155,18 @@ describe('isCompilerOptionEnabled', () => {
         assert.isFalse(isCompilerOptionEnabled({stripInternal: undefined, composite: true}, 'stripInternal'));
     });
 
+    it('knows skipLibCheck enables skipDefaultLibCheck', () => {
+        assert.isFalse(isCompilerOptionEnabled({}, 'skipDefaultLibCheck'));
+        assert.isFalse(isCompilerOptionEnabled({skipDefaultLibCheck: false}, 'skipDefaultLibCheck'));
+        assert.isFalse(isCompilerOptionEnabled({skipDefaultLibCheck: undefined}, 'skipDefaultLibCheck'));
+        assert.isTrue(isCompilerOptionEnabled({skipDefaultLibCheck: true}, 'skipDefaultLibCheck'));
+
+        assert.isFalse(isCompilerOptionEnabled({skipLibCheck: false}, 'skipDefaultLibCheck'));
+        assert.isFalse(isCompilerOptionEnabled({skipLibCheck: undefined}, 'skipDefaultLibCheck'));
+        assert.isTrue(isCompilerOptionEnabled({skipLibCheck: true}, 'skipDefaultLibCheck'));
+        assert.isTrue(isCompilerOptionEnabled({skipLibCheck: true, skipDefaultLibCheck: undefined}, 'skipDefaultLibCheck'));
+    });
+
     it('delegates strict flags to isStrictCompilerOptionEnabled', () => {
         assert.isTrue(isCompilerOptionEnabled({strict: true}, 'strictNullChecks'));
         assert.isTrue(isCompilerOptionEnabled({strictNullChecks: true}, 'strictNullChecks'));
