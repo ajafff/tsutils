@@ -493,7 +493,7 @@ class NamespaceScope extends NonRootScope {
                 }
                 namespaceVar.domain |= variable.domain;
                 for (const use of variable.uses) {
-                    if (namespaceVar.uses.indexOf(use) !== - 1)
+                    if (namespaceVar.uses.includes(use))
                         continue;
                     namespaceVar.uses.push(use);
                 }

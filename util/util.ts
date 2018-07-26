@@ -46,7 +46,7 @@ export function hasModifier(modifiers: ts.ModifiersArray | undefined, ...kinds: 
     if (modifiers === undefined)
         return false;
     for (const modifier of modifiers)
-        if (kinds.indexOf(modifier.kind) !== -1)
+        if (kinds.includes(modifier.kind))
             return true;
     return false;
 }

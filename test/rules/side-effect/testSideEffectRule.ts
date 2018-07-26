@@ -6,11 +6,11 @@ import { hasSideEffects, SideEffectOptions } from '../../../util/util';
 export class Rule extends Lint.Rules.AbstractRule {
     public apply(sourceFile: ts.SourceFile): Lint.RuleFailure[] {
         let options = SideEffectOptions.None;
-        if (this.ruleArguments.indexOf('constructor') !== -1)
+        if (this.ruleArguments.includes('constructor'))
             options &= SideEffectOptions.Constructor;
-        if (this.ruleArguments.indexOf('jsx') !== -1)
+        if (this.ruleArguments.includes('jsx'))
             options &= SideEffectOptions.JsxElement;
-        if (this.ruleArguments.indexOf('tagged-template') !== -1)
+        if (this.ruleArguments.includes('tagged-template'))
             options &= SideEffectOptions.TaggedTemplate;
         return this.applyWithFunction(sourceFile, walk, options);
     }
