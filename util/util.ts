@@ -78,9 +78,6 @@ export function isObjectFlagSet(objectType: ts.ObjectType, flag: ts.ObjectFlags)
     return (objectType.objectFlags & flag) !== 0;
 }
 
-export function isModifierFlagSet(node: ts.Declaration, flag: ts.ModifierFlags): boolean;
-/** @deprecated first argument should be a subtype of `ts.Declaration` */
-export function isModifierFlagSet(node: ts.Node, flag: ts.ModifierFlags): boolean; // tslint:disable-line:unified-signatures
 export function isModifierFlagSet(node: ts.Node, flag: ts.ModifierFlags) {
     return (ts.getCombinedModifierFlags(<ts.Declaration>node) & flag) !== 0;
 }
@@ -221,7 +218,7 @@ export function getPropertyName(propertyName: ts.PropertyName): string | undefin
             return;
         return propertyName.expression.text;
     }
-    return propertyName.kind === ts.SyntaxKind.Identifier ? getIdentifierText(propertyName) : propertyName.text;
+    return propertyName.text;
 }
 
 export function forEachDestructuringIdentifier<T>(
@@ -946,20 +943,6 @@ export function isReassignmentTarget(node: ts.Expression): boolean {
             return (<ts.ForOfStatement | ts.ForInStatement>parent).initializer === node;
     }
     return false;
-}
-
-// @internal
-export function getIdentifierText(node: ts.Identifier): string;
-/**
- * Safely gets the text of an identifier across typescript versions
- * @param node The identifier to get the text of
- *
- * @deprecated just use `node.text`
- */
-export function getIdentifierText(node: ts.Identifier): string;
-export function getIdentifierText(node: ts.Identifier) {
-    // wotan-disable-next-line no-unstable-api-use, no-useless-predicate
-    return (<any>ts).unescapeIdentifier ? (<any>ts).unescapeIdentifier(node.text) : node.text;
 }
 
 export function canHaveJsDoc(node: ts.Node): node is ts.HasJSDoc {

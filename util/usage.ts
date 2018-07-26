@@ -4,7 +4,6 @@ import {
     isBlockScopedVariableDeclarationList,
     isBlockScopeBoundary,
     hasModifier,
-    getIdentifierText,
 } from './util';
 import * as ts from 'typescript';
 
@@ -278,7 +277,7 @@ abstract class AbstractScope implements Scope {
     }
 
     protected _applyUse(use: VariableUse, variables = this._variables): boolean {
-        const variable = variables.get(getIdentifierText(use.location));
+        const variable = variables.get(use.location.text);
         if (variable === undefined || (variable.domain & use.domain) === 0)
             return false;
         variable.uses.push(use);
@@ -313,24 +312,23 @@ class RootScope extends AbstractScope {
     }
 
     public markExported(id: ts.Identifier) {
-        const text = getIdentifierText(id);
         if (this._exports === undefined) {
-            this._exports = [text];
+            this._exports = [id.text];
         } else {
-            this._exports.push(text);
+            this._exports.push(id.text);
         }
     }
 
     public end(cb: VariableCallback) {
         this._innerScope.end((value, key) => {
             value.exported = value.exported || this._exportAll
-                || this._exports !== undefined && this._exports.indexOf(getIdentifierText(key)) !== -1;
+                || this._exports !== undefined && this._exports.includes(key.text);
             value.inGlobalScope = this._global;
             return cb(value, key, this);
         });
         return super.end((value, key, scope) =>  {
             value.exported = value.exported || scope === this
-                && this._exports !== undefined && this._exports.indexOf(getIdentifierText(key)) !== -1;
+                && this._exports !== undefined && this._exports.includes(key.text);
             return cb(value, key, scope);
         });
     }
@@ -404,7 +402,7 @@ abstract class AbstractNamedExpressionScope<T extends NonRootScope> extends NonR
     public addUse(use: VariableUse, source?: Scope) {
         if (source !== this._innerScope)
             return this._innerScope.addUse(use);
-        if (use.domain & this._domain && getIdentifierText(use.location) === getIdentifierText(this._name)) {
+        if (use.domain & this._domain && use.location.text === this._name.text) {
             this._uses.push(use);
         } else {
             return this._parent.addUse(use, this);
@@ -477,11 +475,11 @@ class NamespaceScope extends NonRootScope {
     public end(cb: VariableCallback) {
         this._innerScope.end((variable, key, scope) => {
             if (scope !== this._innerScope ||
-                !variable.exported && (!this._ambient || this._exports !== undefined && !this._exports.has(getIdentifierText(key))))
+                !variable.exported && (!this._ambient || this._exports !== undefined && !this._exports.has(key.text)))
                 return cb(variable, key, scope);
-            const namespaceVar = this._variables.get(getIdentifierText(key));
+            const namespaceVar = this._variables.get(key.text);
             if (namespaceVar === undefined) {
-                this._variables.set(getIdentifierText(key), {
+                this._variables.set(key.text, {
                     declarations: variable.declarations.map(mapDeclaration),
                     domain: variable.domain,
                     uses: [...variable.uses],
@@ -531,7 +529,7 @@ class NamespaceScope extends NonRootScope {
     public markExported(name: ts.Identifier, _as?: ts.Identifier) {
         if (this._exports === undefined)
             this._exports = new Set();
-        this._exports.add(getIdentifierText(name));
+        this._exports.add(name.text);
     }
 
     protected _getDestinationScope() {
@@ -577,7 +575,7 @@ class UsageWalker {
                     this._handleDeclaration(<ts.EnumDeclaration>node, true, DeclarationDomain.Any);
                     return continueWithScope(
                         node,
-                        this._scope.createOrReuseEnumScope(getIdentifierText((<ts.EnumDeclaration>node).name),
+                        this._scope.createOrReuseEnumScope((<ts.EnumDeclaration>node).name.text,
                                                            hasModifier(node.modifiers, ts.SyntaxKind.ExportKeyword)),
                     );
                 case ts.SyntaxKind.ModuleDeclaration:
@@ -622,7 +620,7 @@ class UsageWalker {
                     break;
                 case ts.SyntaxKind.TypeParameter:
                     this._scope.addVariable(
-                        getIdentifierText((<ts.TypeParameterDeclaration>node).name),
+                        (<ts.TypeParameterDeclaration>node).name.text,
                         (<ts.TypeParameterDeclaration>node).name, true,
                         false,
                         DeclarationDomain.Type,
@@ -720,13 +718,13 @@ class UsageWalker {
         if (node.name.kind === ts.SyntaxKind.Identifier) {
             const exported = isNamespaceExported(<ts.NamespaceDeclaration>node);
             this._scope.addVariable(
-                getIdentifierText(node.name), node.name, false, exported, DeclarationDomain.Namespace | DeclarationDomain.Value,
+                node.name.text, node.name, false, exported, DeclarationDomain.Namespace | DeclarationDomain.Value,
             );
             const ambient = hasModifier(node.modifiers, ts.SyntaxKind.DeclareKeyword);
             return next(
                 node,
                 this._scope.createOrReuseNamespaceScope(
-                    getIdentifierText(node.name),
+                    node.name.text,
                     exported,
                     ambient,
                     ambient && namespaceHasExportStatement(node),
@@ -746,17 +744,15 @@ class UsageWalker {
 
     private _handleDeclaration(node: ts.NamedDeclaration, blockScoped: boolean, domain: DeclarationDomain) {
         if (node.name !== undefined)
-            this._scope.addVariable(getIdentifierText(<ts.Identifier>node.name), <ts.Identifier>node.name, blockScoped,
+            this._scope.addVariable((<ts.Identifier>node.name).text, <ts.Identifier>node.name, blockScoped,
                                     hasModifier(node.modifiers, ts.SyntaxKind.ExportKeyword), domain);
     }
 
     private _handleBindingName(name: ts.BindingName, blockScoped: boolean, exported: boolean) {
         if (name.kind === ts.SyntaxKind.Identifier)
-            return this._scope.addVariable(getIdentifierText(name), name, blockScoped, exported, DeclarationDomain.Value);
+            return this._scope.addVariable(name.text, name, blockScoped, exported, DeclarationDomain.Value);
         forEachDestructuringIdentifier(name, (declaration) => {
-            this._scope.addVariable(
-                getIdentifierText(declaration.name), declaration.name, blockScoped, exported, DeclarationDomain.Value,
-            );
+            this._scope.addVariable(declaration.name.text, declaration.name, blockScoped, exported, DeclarationDomain.Value);
         });
     }
 
