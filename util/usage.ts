@@ -4,6 +4,8 @@ import {
     isBlockScopedVariableDeclarationList,
     isBlockScopeBoundary,
     hasModifier,
+    ScopeBoundarySelector,
+    ScopeBoundary,
 } from './util';
 import * as ts from 'typescript';
 
@@ -161,7 +163,13 @@ export function collectVariableUsage(sourceFile: ts.SourceFile) {
 type VariableCallback = (variable: VariableInfo, key: ts.Identifier, scope: Scope) => void;
 
 interface Scope {
-    addVariable(identifier: string, name: ts.PropertyName, blockScoped: boolean, exported: boolean, domain: DeclarationDomain): void;
+    addVariable(
+        identifier: string,
+        name: ts.PropertyName,
+        selector: ScopeBoundarySelector,
+        exported: boolean,
+        domain: DeclarationDomain,
+    ): void;
     addUse(use: VariableUse, scope?: Scope): void;
     getVariables(): Map<string, InternalVariableInfo>;
     getFunctionScope(): Scope;
@@ -169,6 +177,7 @@ interface Scope {
     markExported(name: ts.Identifier, as?: ts.Identifier): void;
     createOrReuseNamespaceScope(name: string, exported: boolean, ambient: boolean, hasExportStatement: boolean): NamespaceScope;
     createOrReuseEnumScope(name: string, exported: boolean): EnumScope;
+    getDestinationScope(selector: ScopeBoundarySelector): Scope;
 }
 
 abstract class AbstractScope implements Scope {
@@ -179,8 +188,14 @@ abstract class AbstractScope implements Scope {
 
     constructor(protected _global: boolean) {}
 
-    public addVariable(identifier: string, name: ts.PropertyName, blockScoped: boolean, exported: boolean, domain: DeclarationDomain) {
-        const variables = this._getDestinationScope(blockScoped).getVariables();
+    public addVariable(
+        identifier: string,
+        name: ts.PropertyName,
+        selector: ScopeBoundarySelector,
+        exported: boolean,
+        domain: DeclarationDomain,
+    ) {
+        const variables = this.getDestinationScope(selector).getVariables();
         const declaration: DeclarationInfo = {
             domain,
             exported,
@@ -284,25 +299,29 @@ abstract class AbstractScope implements Scope {
         return true;
     }
 
-    protected _getDestinationScope(_blockScoped: boolean): Scope {
-        return this;
-    }
+    public abstract getDestinationScope(selector: ScopeBoundarySelector): Scope;
 
     protected _addUseToParent(_use: VariableUse) {} // tslint:disable-line:prefer-function-over-method
 }
 
 class RootScope extends AbstractScope {
     private _exports: string[] | undefined = undefined;
-    private _innerScope = new NonRootScope(this);
+    private _innerScope = new NonRootScope(this, ScopeBoundary.Function);
 
     constructor(private _exportAll: boolean, global: boolean) {
         super(global);
     }
 
-    public addVariable(identifier: string, name: ts.PropertyName, blockScoped: boolean, exported: boolean, domain: DeclarationDomain) {
+    public addVariable(
+        identifier: string,
+        name: ts.PropertyName,
+        selector: ScopeBoundarySelector,
+        exported: boolean,
+        domain: DeclarationDomain,
+    ) {
         if (domain & DeclarationDomain.Import)
-            return super.addVariable(identifier, name, blockScoped, exported, domain);
-        return this._innerScope.addVariable(identifier, name, blockScoped, exported, domain);
+            return super.addVariable(identifier, name, selector, exported, domain);
+        return this._innerScope.addVariable(identifier, name, selector, exported, domain);
     }
 
     public addUse(use: VariableUse, origin?: Scope) {
@@ -332,19 +351,33 @@ class RootScope extends AbstractScope {
             return cb(value, key, scope);
         });
     }
+
+    public getDestinationScope() {
+        return this;
+    }
 }
 
 class NonRootScope extends AbstractScope {
-    constructor(protected _parent: Scope) {
+    constructor(protected _parent: Scope, protected _boundary: ScopeBoundary) {
         super(false);
     }
 
     protected _addUseToParent(use: VariableUse) {
         return this._parent.addUse(use, this);
     }
+
+    public getDestinationScope(selector: ScopeBoundarySelector): Scope {
+        return this._boundary & selector
+            ? this
+            : this._parent.getDestinationScope(selector);
+    }
 }
 
 class EnumScope extends NonRootScope {
+    constructor(parent: Scope) {
+        super(parent, ScopeBoundary.Function);
+    }
+
     public end() {
         this._applyUses();
     }
@@ -360,6 +393,10 @@ const enum ConditionalTypeScopeState {
 class ConditionalTypeScope extends NonRootScope {
     private _state = ConditionalTypeScopeState.Initial;
 
+    constructor(parent: Scope) {
+        super(parent, ScopeBoundary.ConditionalType);
+    }
+
     public updateState(newState: ConditionalTypeScopeState) {
         this._state = newState;
     }
@@ -372,6 +409,10 @@ class ConditionalTypeScope extends NonRootScope {
 }
 
 class FunctionScope extends NonRootScope {
+    constructor(parent: Scope) {
+        super(parent, ScopeBoundary.Function);
+    }
+
     public beginBody() {
         this._applyUses();
     }
@@ -381,7 +422,7 @@ abstract class AbstractNamedExpressionScope<T extends NonRootScope> extends NonR
     protected abstract get _innerScope(): T;
 
     constructor(private _name: ts.Identifier, private _domain: DeclarationDomain, parent: Scope) {
-        super(parent);
+        super(parent, ScopeBoundary.Function);
     }
 
     public end(cb: VariableCallback) {
@@ -413,7 +454,7 @@ abstract class AbstractNamedExpressionScope<T extends NonRootScope> extends NonR
         return this._innerScope;
     }
 
-    protected _getDestinationScope() {
+    public getDestinationScope() {
         return this._innerScope;
     }
 }
@@ -431,7 +472,7 @@ class FunctionExpressionScope extends AbstractNamedExpressionScope<FunctionScope
 }
 
 class ClassExpressionScope extends AbstractNamedExpressionScope<NonRootScope> {
-    protected _innerScope = new NonRootScope(this);
+    protected _innerScope = new NonRootScope(this, ScopeBoundary.Function);
 
     constructor(name: ts.Identifier, parent: Scope) {
         super(name, DeclarationDomain.Value | DeclarationDomain.Type, parent);
@@ -440,15 +481,11 @@ class ClassExpressionScope extends AbstractNamedExpressionScope<NonRootScope> {
 
 class BlockScope extends NonRootScope {
     constructor(private _functionScope: Scope, parent: Scope) {
-        super(parent);
+        super(parent, ScopeBoundary.Block);
     }
 
     public getFunctionScope() {
         return this._functionScope;
-    }
-
-    protected _getDestinationScope(blockScoped: boolean) {
-        return blockScoped ? this : this._functionScope;
     }
 }
 
@@ -461,11 +498,11 @@ function mapDeclaration(declaration: ts.Identifier): DeclarationInfo {
 }
 
 class NamespaceScope extends NonRootScope {
-    private _innerScope = new NonRootScope(this);
+    private _innerScope = new NonRootScope(this, ScopeBoundary.Function);
     private _exports: Set<string> | undefined = undefined;
 
     constructor(private _ambient: boolean, private _hasExport: boolean, parent: Scope) {
-        super(parent);
+        super(parent, ScopeBoundary.Function);
     }
 
     public finish(cb: VariableCallback) {
@@ -500,7 +537,7 @@ class NamespaceScope extends NonRootScope {
             }
         });
         this._applyUses();
-        this._innerScope = new NonRootScope(this);
+        this._innerScope = new NonRootScope(this, ScopeBoundary.Function);
     }
 
     public createOrReuseNamespaceScope(name: string, exported: boolean, ambient: boolean, hasExportStatement: boolean): NamespaceScope {
@@ -532,7 +569,7 @@ class NamespaceScope extends NonRootScope {
         this._exports.add(name.text);
     }
 
-    protected _getDestinationScope() {
+    public getDestinationScope(): Scope {
         return this._innerScope;
     }
 }
@@ -563,14 +600,14 @@ class UsageWalker {
                 case ts.SyntaxKind.ClassExpression:
                     return continueWithScope(node, (<ts.ClassExpression>node).name !== undefined
                         ? new ClassExpressionScope((<ts.ClassExpression>node).name!, this._scope)
-                        : new NonRootScope(this._scope));
+                        : new NonRootScope(this._scope, ScopeBoundary.Function));
                 case ts.SyntaxKind.ClassDeclaration:
                     this._handleDeclaration(<ts.ClassDeclaration>node, true, DeclarationDomain.Value | DeclarationDomain.Type);
-                    return continueWithScope(node, new NonRootScope(this._scope));
+                    return continueWithScope(node, new NonRootScope(this._scope, ScopeBoundary.Function));
                 case ts.SyntaxKind.InterfaceDeclaration:
                 case ts.SyntaxKind.TypeAliasDeclaration:
                     this._handleDeclaration(<ts.InterfaceDeclaration | ts.TypeAliasDeclaration>node, true, DeclarationDomain.Type);
-                    return continueWithScope(node, new NonRootScope(this._scope));
+                    return continueWithScope(node, new NonRootScope(this._scope, ScopeBoundary.Type));
                 case ts.SyntaxKind.EnumDeclaration:
                     this._handleDeclaration(<ts.EnumDeclaration>node, true, DeclarationDomain.Any);
                     return continueWithScope(
@@ -581,7 +618,7 @@ class UsageWalker {
                 case ts.SyntaxKind.ModuleDeclaration:
                     return this._handleModule(<ts.ModuleDeclaration>node, continueWithScope);
                 case ts.SyntaxKind.MappedType:
-                    return continueWithScope(node, new NonRootScope(this._scope));
+                    return continueWithScope(node, new NonRootScope(this._scope, ScopeBoundary.Type));
                 case ts.SyntaxKind.FunctionExpression:
                 case ts.SyntaxKind.ArrowFunction:
                 case ts.SyntaxKind.Constructor:
@@ -609,7 +646,11 @@ class UsageWalker {
                     break;
                 case ts.SyntaxKind.EnumMember:
                     this._scope.addVariable(
-                        getPropertyName((<ts.EnumMember>node).name)!, (<ts.EnumMember>node).name, false, true, DeclarationDomain.Value,
+                        getPropertyName((<ts.EnumMember>node).name)!,
+                        (<ts.EnumMember>node).name,
+                        ScopeBoundarySelector.Function,
+                        true,
+                        DeclarationDomain.Value,
                     );
                     break;
                 case ts.SyntaxKind.ImportClause:
@@ -621,7 +662,8 @@ class UsageWalker {
                 case ts.SyntaxKind.TypeParameter:
                     this._scope.addVariable(
                         (<ts.TypeParameterDeclaration>node).name.text,
-                        (<ts.TypeParameterDeclaration>node).name, true,
+                        (<ts.TypeParameterDeclaration>node).name,
+                        node.parent!.kind === ts.SyntaxKind.InferType ? ScopeBoundarySelector.InferType : ScopeBoundarySelector.Type,
                         false,
                         DeclarationDomain.Type,
                     );
@@ -718,7 +760,7 @@ class UsageWalker {
         if (node.name.kind === ts.SyntaxKind.Identifier) {
             const exported = isNamespaceExported(<ts.NamespaceDeclaration>node);
             this._scope.addVariable(
-                node.name.text, node.name, false, exported, DeclarationDomain.Namespace | DeclarationDomain.Value,
+                node.name.text, node.name, ScopeBoundarySelector.Function, exported, DeclarationDomain.Namespace | DeclarationDomain.Value,
             );
             const ambient = hasModifier(node.modifiers, ts.SyntaxKind.DeclareKeyword);
             return next(
@@ -744,15 +786,31 @@ class UsageWalker {
 
     private _handleDeclaration(node: ts.NamedDeclaration, blockScoped: boolean, domain: DeclarationDomain) {
         if (node.name !== undefined)
-            this._scope.addVariable((<ts.Identifier>node.name).text, <ts.Identifier>node.name, blockScoped,
-                                    hasModifier(node.modifiers, ts.SyntaxKind.ExportKeyword), domain);
+            this._scope.addVariable(
+                (<ts.Identifier>node.name).text,
+                <ts.Identifier>node.name,
+                blockScoped ? ScopeBoundarySelector.Block : ScopeBoundarySelector.Function,
+                hasModifier(node.modifiers, ts.SyntaxKind.ExportKeyword),
+                domain,
+            );
     }
 
     private _handleBindingName(name: ts.BindingName, blockScoped: boolean, exported: boolean) {
         if (name.kind === ts.SyntaxKind.Identifier)
-            return this._scope.addVariable(name.text, name, blockScoped, exported, DeclarationDomain.Value);
+            return this._scope.addVariable(
+                name.text,
+                name,
+                blockScoped ? ScopeBoundarySelector.Block : ScopeBoundarySelector.Function,
+                exported,
+                DeclarationDomain.Value,
+            );
         forEachDestructuringIdentifier(name, (declaration) => {
-            this._scope.addVariable(declaration.name.text, declaration.name, blockScoped, exported, DeclarationDomain.Value);
+            this._scope.addVariable(
+                declaration.name.text,
+                declaration.name, blockScoped ? ScopeBoundarySelector.Block : ScopeBoundarySelector.Function,
+                exported,
+                DeclarationDomain.Value,
+            );
         });
     }
 

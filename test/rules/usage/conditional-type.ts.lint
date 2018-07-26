@@ -27,3 +27,14 @@ type C4<T> = T extends Array<infer T> ? any : never;
 type C5<T, U> = T extends (U extends Array<infer T> ? U : T) ? T : never;
      ~~ [Unused]
                                                  ~ [Unused]
+
+type Values<T> = T extends {[Z in keyof T]: infer Z} ? Z : never;
+     ~~~~~~ [Unused]
+                             ~ [Unused]
+type Param<T> = T extends (param: infer Z) => void ? Z : never;
+     ~~~~~ [Unused]
+                           ~~~~~ [Unused]
+
+type DontCrash = infer Invalid;
+     ~~~~~~~~~ [Unused]
+                       ~~~~~~~ [Unused]
