@@ -64,7 +64,7 @@ describe('getPreviousToken', () => {
         const sourceFile = ts.createSourceFile('get-previous-token.ts', ';', ts.ScriptTarget.ESNext, true);
         assert.isUndefined(getPreviousToken(sourceFile), 'SourceFile');
         assert.isUndefined(getPreviousToken(sourceFile.statements[0]), 'Statement');
-        assert.isUndefined(getPreviousToken(sourceFile.getFirstToken()), 'Token');
+        assert.isUndefined(getPreviousToken(sourceFile.getFirstToken()!), 'Token');
         const token = getPreviousToken(sourceFile.endOfFileToken);
         assert.isDefined(token);
         assert.strictEqual(token!.kind, ts.SyntaxKind.SemicolonToken);

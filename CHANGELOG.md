@@ -1,3 +1,59 @@
+# 2.29.0
+
+**Features:**
+
+* added utility `isCompilerOptionEnabled`
+
+# 2.28.0
+
+Typeguards are now split into multiple submodules for each version of TypeScript (starting with 2.8.0).
+That means you can now import directly from `"tsutils/typeguard/2.8"` to get compatible declaraton files for TypeScript@2.8.
+For more information please read the relevant section in [README.md](README.md).
+
+**Features:**
+
+* added typeguards: `isTupleType`, `isOptionalTypeNode`, `isRestTypeNode`, `isSyntheticExpression` (currently available from `"tsutils/typeguard/3.0"`)
+* added utility `isStrictCompilerOptionEnabled`
+
+# 2.27.2
+
+Avoid crash caused by removed function in `typescript@3.0.0`.
+
+# 2.27.1
+
+Added support for TypeScript@3.0.0 nightly builds.
+
+# 2.27.0
+
+**Features:**
+
+* added `getIIFE` utility
+
+# 2.26.2
+
+**Bugfixes:**
+
+* `forEachComment` and `forEachTokenWithTrivia` no longer duplicate comments around missing nodes
+
+# 2.26.1
+
+**Bugfixes:**
+
+* fixed crash in `hasSideEffects` with tagged template literal without substitution: ``tag`template` ``
+
+# 2.26.0
+
+**Features:**
+
+* added typeguard `isLiteralTypeNode`
+* added support for type imports (`type T = import('foo')`) to `findImports` via `ImportKind.ImportType`
+
+# 2.25.1
+
+**Bugfixes:**
+
+* `collectVariableUsage`: fixed name lookup in function signatures to match runtime behavior. Note that this is not completely fixed in TypeScript, yet. See: [Microsoft/TypeScript#22825](https://github.com/Microsoft/TypeScript/issues/22825) and [Microsoft/TypeScript#22769](https://github.com/Microsoft/TypeScript/issues/22769)
+
 # 2.25.0
 
 **Features:**

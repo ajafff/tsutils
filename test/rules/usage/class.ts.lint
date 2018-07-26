@@ -39,3 +39,13 @@ type T = any;
 class Foo<T, U> {}
       ~~~ [Unused]
              ~ [Unused]
+
+class WithTypeParameter<T> {
+      ~~~~~~~~~~~~~~~~~ [Unused]
+    method<U = T>(one: U, two: T) {
+                  ~~~ [Unused]
+                          ~~~ [Unused]
+        type T = any;
+             ~ [Unused]
+    }
+}

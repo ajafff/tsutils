@@ -29,6 +29,6 @@ function walk(ctx: Lint.WalkContext<void>) {
             return;
         seen.add(node);
         if (endsControlFlow(node))
-            ctx.addFailureAtNode(node.getFirstToken(ctx.sourceFile), 'control flow end');
+            ctx.addFailureAtNode(node.getFirstToken(ctx.sourceFile)!, 'control flow end');
     }
 }

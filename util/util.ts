@@ -1,8 +1,8 @@
 import * as ts from 'typescript';
 import { NodeWrap } from './convert-ast';
 import {
-    isBlockLike, isLiteralExpression, isPropertyDeclaration, isJsDoc, isImportDeclaration,
-    isTextualLiteral, isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration,
+    isBlockLike, isLiteralExpression, isPropertyDeclaration, isJsDoc, isImportDeclaration, isTextualLiteral,
+    isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration, isImportTypeNode, isLiteralTypeNode,
 } from '../typeguard/node';
 
 export function getChildOfKind<T extends ts.SyntaxKind>(node: ts.Node, kind: T, sourceFile?: ts.SourceFile) {
@@ -78,8 +78,11 @@ export function isObjectFlagSet(objectType: ts.ObjectType, flag: ts.ObjectFlags)
     return (objectType.objectFlags & flag) !== 0;
 }
 
+export function isModifierFlagSet(node: ts.Declaration, flag: ts.ModifierFlags): boolean;
+/** @deprecated first argument should be a subtype of `ts.Declaration` */
+export function isModifierFlagSet(node: ts.Node, flag: ts.ModifierFlags): boolean; // tslint:disable-line:unified-signatures
 export function isModifierFlagSet(node: ts.Node, flag: ts.ModifierFlags) {
-    return (ts.getCombinedModifierFlags(node) & flag) !== 0;
+    return (ts.getCombinedModifierFlags(<ts.Declaration>node) & flag) !== 0;
 }
 
 export function getPreviousStatement(statement: ts.Statement): ts.Statement | undefined {
@@ -427,7 +430,7 @@ export function forEachTokenWithTrivia(node: ts.Node, cb: ForEachTokenCallback, 
     return forEachToken(
         node,
         (token) => {
-            const tokenStart = token.kind === ts.SyntaxKind.JsxText ? token.pos : token.getStart(sourceFile);
+            const tokenStart = token.kind === ts.SyntaxKind.JsxText || token.pos === token.end ? token.pos : token.getStart(sourceFile);
             if (tokenStart !== token.pos) {
                 // we only have to handle trivia before each token. whitespace at the end of the file is followed by EndOfFileToken
                 scanner.setTextPos(token.pos);
@@ -461,6 +464,8 @@ export function forEachComment(node: ts.Node, cb: ForEachCommentCallback, source
     return forEachToken(
         node,
         (token) => {
+            if (token.pos === token.end)
+                return;
             if (token.kind !== ts.SyntaxKind.JsxText)
                 ts.forEachLeadingCommentRange(
                     fullText,
@@ -629,8 +634,9 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
             }
         case ts.SyntaxKind.ElementAccessExpression:
             return hasSideEffects((<ts.ElementAccessExpression>node).expression, options) ||
-                (<ts.ElementAccessExpression>node).argumentExpression !== undefined &&
-                hasSideEffects((<ts.ElementAccessExpression>node).argumentExpression!, options);
+                // wotan-disable-next-line no-useless-predicate
+                (<ts.ElementAccessExpression>node).argumentExpression !== undefined && // for compatibility with typescript@<2.9.0
+                hasSideEffects((<ts.ElementAccessExpression>node).argumentExpression, options);
         case ts.SyntaxKind.ConditionalExpression:
             return hasSideEffects((<ts.ConditionalExpression>node).condition, options) ||
                 hasSideEffects((<ts.ConditionalExpression>node).whenTrue, options) ||
@@ -646,6 +652,8 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
         case ts.SyntaxKind.TaggedTemplateExpression:
             if (options! & SideEffectOptions.TaggedTemplate || hasSideEffects((<ts.TaggedTemplateExpression>node).tag, options))
                 return true;
+            if ((<ts.TaggedTemplateExpression>node).template.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral)
+                return false;
             node = (<ts.TaggedTemplateExpression>node).template;
             // falls through
         case ts.SyntaxKind.TemplateExpression:
@@ -940,12 +948,18 @@ export function isReassignmentTarget(node: ts.Expression): boolean {
     return false;
 }
 
+// @internal
+export function getIdentifierText(node: ts.Identifier): string;
 /**
  * Safely gets the text of an identifier across typescript versions
  * @param node The identifier to get the text of
+ *
+ * @deprecated just use `node.text`
  */
+export function getIdentifierText(node: ts.Identifier): string;
 export function getIdentifierText(node: ts.Identifier) {
-    return ts.unescapeIdentifier(node.text); // wotan-disable-line no-unstable-api-use
+    // wotan-disable-next-line no-unstable-api-use, no-useless-predicate
+    return (<any>ts).unescapeIdentifier ? (<any>ts).unescapeIdentifier(node.text) : node.text;
 }
 
 export function canHaveJsDoc(node: ts.Node): node is ts.HasJSDoc {
@@ -1066,11 +1080,14 @@ export const enum ImportKind {
     ExportFrom = 4,
     DynamicImport = 8,
     Require = 16,
-    All = ImportDeclaration | ImportEquals | ExportFrom | DynamicImport | Require,
-    AllImports = ImportDeclaration | ImportEquals | DynamicImport | Require,
+    ImportType = 32,
+    All = ImportDeclaration | ImportEquals | ExportFrom | DynamicImport | Require | ImportType,
+    AllImports = ImportDeclaration | ImportEquals | DynamicImport | Require | ImportType,
     AllStaticImports = ImportDeclaration | ImportEquals,
     AllImportExpressions = DynamicImport | Require,
     AllRequireLike = ImportEquals | Require,
+    // @internal
+    AllNestedImports = AllImportExpressions | ImportType,
 }
 
 export function findImports(sourceFile: ts.SourceFile, kinds: ImportKind): ts.LiteralExpression[] {
@@ -1107,19 +1124,23 @@ class ImportFinder {
                        statement.body !== undefined && statement.name.kind === ts.SyntaxKind.StringLiteral &&
                        ts.isExternalModule(this._sourceFile)) {
                 this._findImports((<ts.ModuleBlock>statement.body).statements);
-            } else if (this._options & ImportKind.AllImportExpressions) {
-                ts.forEachChild(statement, this._findDynamic);
+            } else if (this._options & ImportKind.AllNestedImports) {
+                ts.forEachChild(statement, this._findNested);
             }
         }
     }
 
-    private _findDynamic = (node: ts.Node): void => {
-        if (isCallExpression(node) && node.arguments.length === 1 &&
-            (node.expression.kind === ts.SyntaxKind.ImportKeyword && this._options & ImportKind.DynamicImport ||
-                this._options & ImportKind.Require && node.expression.kind === ts.SyntaxKind.Identifier &&
-                    (<ts.Identifier>node.expression).text === 'require'))
-            this._addImport(node.arguments[0]);
-        ts.forEachChild(node, this._findDynamic);
+    private _findNested = (node: ts.Node): void => {
+        if (isCallExpression(node)) {
+            if (node.arguments.length === 1 &&
+                (node.expression.kind === ts.SyntaxKind.ImportKeyword && this._options & ImportKind.DynamicImport ||
+                    this._options & ImportKind.Require && node.expression.kind === ts.SyntaxKind.Identifier &&
+                        (<ts.Identifier>node.expression).text === 'require'))
+                this._addImport(node.arguments[0]);
+        } else if (isImportTypeNode(node) && isLiteralTypeNode(node.argument) && this._options & ImportKind.ImportType) {
+            this._addImport(node.argument.literal);
+        }
+        ts.forEachChild(node, this._findNested);
     }
 
     private _addImport(expression: ts.Expression) {
@@ -1149,4 +1170,49 @@ export function isAmbientModuleBlock(node: ts.Node): node is ts.ModuleBlock {
         node = node.parent!;
     }
     return false;
+}
+
+export function getIIFE(func: ts.FunctionExpression | ts.ArrowFunction): ts.CallExpression | undefined {
+    let node = func.parent!;
+    while (node.kind === ts.SyntaxKind.ParenthesizedExpression)
+        node = node.parent!;
+    return isCallExpression(node) && func.end <= node.expression.end ? node : undefined;
+}
+
+export type StrictCompilerOption =
+    'noImplicitAny' | 'noImplicitThis' | 'strictNullChecks' | 'strictFunctionTypes' | 'strictPropertyInitialization' | 'alwaysStrict';
+
+export function isStrictCompilerOptionEnabled(options: ts.CompilerOptions, option: StrictCompilerOption): boolean {
+    return (options.strict ? options[option] !== false : options[option] === true) &&
+        (option !== 'strictPropertyInitialization' || isStrictCompilerOptionEnabled(options, 'strictNullChecks'));
+}
+
+export type BooleanCompilerOptions = {
+    [K in keyof ts.CompilerOptions]: NonNullable<ts.CompilerOptions[K]> extends boolean ? K : never
+} extends {[_ in keyof ts.CompilerOptions]: infer U} ? U : never; // tslint:disable-line no-unused
+// https://github.com/ajafff/tslint-consistent-codestyle/issues/85
+
+/**
+ * Checks if a given compiler option is enabled.
+ * It handles dependencies of options, e.g. `declaration` is implicitly enabled by `composite` or `strictNullChecks` is enabled by `strict`.
+ * However, it does not check dependencies that are already checked and reported as errors, e.g. `checkJs` without `allowJs`.
+ * This function only handles boolean flags.
+ */
+export function isCompilerOptionEnabled(options: ts.CompilerOptions, option: BooleanCompilerOptions | 'stripInternal'): boolean {
+    switch (option) {
+        case 'stripInternal':
+            return options.stripInternal === true && isCompilerOptionEnabled(options, 'declaration');
+        case 'declaration':
+            return options.declaration || isCompilerOptionEnabled(options, 'composite');
+        case 'skipDefaultLibCheck':
+            return options.skipDefaultLibCheck || isCompilerOptionEnabled(options, 'skipLibCheck');
+        case 'noImplicitAny':
+        case 'noImplicitThis':
+        case 'strictNullChecks':
+        case 'strictFunctionTypes':
+        case 'strictPropertyInitialization':
+        case 'alwaysStrict':
+            return isStrictCompilerOptionEnabled(options, option);
+    }
+    return options[option] === true;
 }

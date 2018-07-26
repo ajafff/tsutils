@@ -1,1 +1,1 @@
-var a; /** @param b */ var b;
+var a; /**@param b*/ var b;

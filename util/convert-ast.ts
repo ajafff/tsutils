@@ -1,4 +1,5 @@
 import * as ts from 'typescript';
+import { isNodeKind } from './util';
 
 /** Wraps an AST node. Can be used as a tree using `children` or a linked list using `next` and `skip`. */
 export interface NodeWrap {
@@ -62,7 +63,8 @@ export function convertAst(sourceFile: ts.SourceFile): ConvertedAst {
         previous = current;
         parent.children.push(current);
 
-        ts.forEachChild(node, wrap);
+        if (isNodeKind(node.kind))
+            ts.forEachChild(node, wrap);
 
         current = parent;
     });
