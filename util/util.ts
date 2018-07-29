@@ -1189,6 +1189,8 @@ export function isCompilerOptionEnabled(options: ts.CompilerOptions, option: Boo
             return options.declaration || isCompilerOptionEnabled(options, 'composite');
         case 'skipDefaultLibCheck':
             return options.skipDefaultLibCheck || isCompilerOptionEnabled(options, 'skipLibCheck');
+        case 'suppressImplicitAnyIndexErrors':
+            return options.suppressImplicitAnyIndexErrors === true && isCompilerOptionEnabled(options, 'noImplicitAny');
         case 'noImplicitAny':
         case 'noImplicitThis':
         case 'strictNullChecks':

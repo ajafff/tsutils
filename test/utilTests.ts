@@ -155,6 +155,22 @@ describe('isCompilerOptionEnabled', () => {
         assert.isFalse(isCompilerOptionEnabled({stripInternal: undefined, composite: true}, 'stripInternal'));
     });
 
+    it('knows suppressImplicitAnyIndexErrors can only be used with noImplicitAny', () => {
+        assert.isFalse(isCompilerOptionEnabled({noImplicitAny: true}, 'suppressImplicitAnyIndexErrors'));
+        assert.isFalse(isCompilerOptionEnabled({suppressImplicitAnyIndexErrors: false}, 'suppressImplicitAnyIndexErrors'));
+        assert.isFalse(isCompilerOptionEnabled({suppressImplicitAnyIndexErrors: true}, 'suppressImplicitAnyIndexErrors'));
+        assert.isFalse(
+            isCompilerOptionEnabled({suppressImplicitAnyIndexErrors: true, noImplicitAny: false}, 'suppressImplicitAnyIndexErrors'),
+        );
+        assert.isTrue(
+            isCompilerOptionEnabled({suppressImplicitAnyIndexErrors: true, noImplicitAny: true}, 'suppressImplicitAnyIndexErrors'),
+        );
+        assert.isTrue(isCompilerOptionEnabled({suppressImplicitAnyIndexErrors: true, strict: true}, 'suppressImplicitAnyIndexErrors'));
+        assert.isFalse(
+            isCompilerOptionEnabled({suppressImplicitAnyIndexErrors: undefined, strict: true}, 'suppressImplicitAnyIndexErrors'),
+        );
+    });
+
     it('knows skipLibCheck enables skipDefaultLibCheck', () => {
         assert.isFalse(isCompilerOptionEnabled({}, 'skipDefaultLibCheck'));
         assert.isFalse(isCompilerOptionEnabled({skipDefaultLibCheck: false}, 'skipDefaultLibCheck'));
