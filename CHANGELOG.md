@@ -1,3 +1,26 @@
+# 3.0.0
+
+:warning: **Breaking Changes:**
+
+* Dropped support for `typescript@<2.8.0`
+* Dropped support for Node.js 4
+* Removed deprecated APIs:
+  * `getIdentifierText`, `isJsxFramgment`, `ImportOptions`
+  * deprected overloads of `isModifierFlagSet`, `findImports` and `getControlFlowEnd`
+* control flow related symbols can no longer be imported from `'tsutils/util/util'`, import directly from `'tsutils/util/control-flow'` or `'tsutils/util'`
+* `isFunctionScopeBoundary` and `isBlockScopeBoundary` now return a enum member of `ScopeBoundary` instead of a boolean
+* `isFunctionScopeBoundary` no longer returns a truthy value for `InterfaceDeclaration`, `TypeAliasDeclaration`
+
+**Features:**
+
+* added utility `isTypeScopeBoundary` returning `ScopeBoundary.Type` or `ScopeBoundary.ConditionalType`
+* added enum `ScopeBoundarySelector` whose members can be used to determine if a declaration belongs to a given `ScopeBoundary` by using bitwise AND
+
+**Bugfixes:**
+
+* `collectVariableUsage` now correctly handles `infer T` nested inside function signatures or mapped types
+* `isCompilerOptionEnabled` correctly handles `skipDefaultLibCHeck` and `suppressImplicitAnyIndexErrors`
+
 # 2.29.0
 
 **Features:**
