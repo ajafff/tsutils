@@ -51,5 +51,8 @@
   },
   "dependencies": {
     "tslib": "^1.8.1"
+  },
+  "engines": {
+    "node": ">= 6"
   }
 }
