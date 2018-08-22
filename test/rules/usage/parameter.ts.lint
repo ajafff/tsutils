@@ -114,7 +114,7 @@ let initializer2: string;
 export function defaultValue(param = initializer2) {
                              ~~~~~ [Unused]
     var initializer2;
-        ~~~~~~~~~~~ [Unused]
+        ~~~~~~~~~~~~ [Unused]
 }
 
 let propKey: string;
