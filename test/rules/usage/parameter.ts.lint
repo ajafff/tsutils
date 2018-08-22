@@ -103,3 +103,21 @@ let key;
 export function funxion(param: {[key: string]: string}) {
     return param[key];
 }
+
+let initializer: string;
+    ~~~~~~~~~~~ [Unused]
+export function defaultValue(initializer, param = initializer) {}
+                                          ~~~~~ [Unused]
+
+
+let initializer2: string;
+export function defaultValue(param = initializer2) {
+                             ~~~~~ [Unused]
+    var initializer2;
+        ~~~~~~~~~~~ [Unused]
+}
+
+let propKey: string;
+    ~~~~~~~ [Unused]
+export function destructured(propKey, {[propKey]: prop}) {}
+                                                  ~~~~ [Unused]
