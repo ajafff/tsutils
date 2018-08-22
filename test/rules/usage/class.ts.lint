@@ -49,3 +49,8 @@ class WithTypeParameter<T> {
              ~ [Unused]
     }
 }
+
+class A {}
+      ~ [Unused]
+const B = class A extends A {}
+      ~ [Unused]
