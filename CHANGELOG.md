@@ -1,3 +1,10 @@
+# 3.1.0
+
+**Features:**
+
+* added utilities: `isKeywordKind` and `isValidJsxIdentifier`
+* exposes typeguards for typescript@3.0 by default
+
 # 3.0.0
 
 :warning: **Breaking Changes:**
