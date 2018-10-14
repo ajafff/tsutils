@@ -31,6 +31,10 @@ export function isJsDocKind(kind: ts.SyntaxKind) {
     return kind >= ts.SyntaxKind.FirstJSDocNode && kind <= ts.SyntaxKind.LastJSDocNode;
 }
 
+export function isKeywordKind(kind: ts.SyntaxKind) {
+    return kind >= ts.SyntaxKind.FirstKeyword && kind <= ts.SyntaxKind.LastKeyword;
+}
+
 export function isThisParameter(parameter: ts.ParameterDeclaration): boolean {
     return parameter.name.kind === ts.SyntaxKind.Identifier && parameter.name.originalKeywordKind === ts.SyntaxKind.ThisKeyword;
 }
