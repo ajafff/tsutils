@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { isValidPropertyName, isValidIdentifier, isValidPropertyAccess, isValidNumericLiteral } from '../util/util';
+import { isValidPropertyName, isValidIdentifier, isValidPropertyAccess, isValidNumericLiteral, isValidJsxIdentifier } from '../util/util';
 
 const irregular = [
     '\uFEFFtest',
@@ -163,5 +163,51 @@ describe('isValidNumericLiteral', () => {
         ];
         for (const test of tests)
             assert.equal(isValidNumericLiteral(test[0]), test[1], test[0]);
+    });
+});
+
+describe('isValidJsxIdentifier', () => {
+    it('handles irregular whitespace', () => {
+        for (const name of irregular)
+            assert.equal(isValidJsxIdentifier(name), false, name);
+    });
+
+    it('handles empty string', () => {
+        assert.equal(isValidJsxIdentifier(''), false);
+    });
+
+    it('works as expected', () => {
+        const tests: Array<[string, boolean]> = [
+            ['-', false],
+            ['a', true],
+            ['_a', true],
+            ['a-b', true],
+            ['a--b', true],
+            ['a-b-', true],
+            ['a-b-c', true],
+            ['new-b', true],
+            ['-a-b', false],
+            ['a-1', true],
+            ['1-a', false],
+            ['-1', false],
+            ['1foo', false],
+            ['foo1', true],
+            ['\n', false],
+            [' ', false],
+            ['a b', false],
+            ['a,b', false],
+            ['a + b', false],
+            ['1', false],
+            ['1.0', false],
+            ['1.1', false],
+            ['+1', false],
+            ['true', true],
+            ['false', true],
+            ['catch', true],
+            ['try', true],
+            ['1_2_3', false],
+        ];
+        for (const test of tests)
+            assert.equal(isValidJsxIdentifier(test[0]), test[1], test[0]);
     });
 });

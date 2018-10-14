@@ -567,7 +567,7 @@ export function isValidIdentifier(text: string): boolean {
 }
 
 export function isValidPropertyAccess(text: string): boolean {
-    if (!ts.isIdentifierStart(text.charCodeAt(0), ts.ScriptTarget.Latest))
+    if (text.length === 0 || !ts.isIdentifierStart(text.charCodeAt(0), ts.ScriptTarget.Latest))
         return false;
     for (let i = 1; i < text.length; ++i)
         if (!ts.isIdentifierPart(text.charCodeAt(i), ts.ScriptTarget.Latest))
@@ -586,6 +586,15 @@ export function isValidPropertyName(text: string) {
 export function isValidNumericLiteral(text: string): boolean {
     const scan = scanToken(text);
     return scan.getToken() === ts.SyntaxKind.NumericLiteral && scan.getTextPos() === text.length && scan.getTokenPos() === 0;
+}
+
+export function isValidJsxIdentifier(text: string): boolean {
+    if (text.length === 0 || !ts.isIdentifierStart(text.charCodeAt(0), ts.ScriptTarget.Latest))
+        return false;
+    for (let i = 1; i < text.length; ++i)
+        if (!ts.isIdentifierPart(text.charCodeAt(i), ts.ScriptTarget.Latest) && text[i] !== '-')
+            return false;
+    return true;
 }
 
 export function isSameLine(sourceFile: ts.SourceFile, pos1: number, pos2: number) {
