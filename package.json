@@ -44,10 +44,10 @@
     "nyc": "^12.0.1",
     "tslint": "^5.8.0",
     "tslint-consistent-codestyle": "^1.11.0",
-    "typescript": "^3.0.0-rc"
+    "typescript": "3.1.3"
   },
   "peerDependencies": {
-    "typescript": ">=2.8.0 || >= 3.1.0-dev"
+    "typescript": ">=2.8.0 || >= 3.2.0-dev"
   },
   "dependencies": {
     "tslib": "^1.8.1"

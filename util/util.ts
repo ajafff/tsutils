@@ -994,6 +994,7 @@ export function canHaveJsDoc(node: ts.Node): node is ts.HasJSDoc {
         case ts.SyntaxKind.ConstructorType:
         case ts.SyntaxKind.JSDocFunctionType:
         case ts.SyntaxKind.EndOfFileToken:
+        case ts.SyntaxKind.ExportDeclaration:
             return true;
         default:
             return <AssertNever<typeof kind>>false;

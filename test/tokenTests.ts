@@ -26,7 +26,10 @@ describe('forEachTokenWithTrivia', () => {
             forEachTokenWithTrivia(sourceFile, (text, _kind, range) => {
                 result += text.substring(range.pos, range.end);
             });
-            assert.strictEqual(result, sourceFile.text.charCodeAt(0) === 0xFEFF ? sourceFile.text.slice(1) : sourceFile.text, file);
+            assert.strictEqual(stripBom(result), stripBom(sourceFile.text), file);
+        }
+        function stripBom(text: string) {
+            return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
         }
     });
 });
