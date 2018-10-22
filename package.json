@@ -31,8 +31,8 @@
   "author": "Klaus Meinhardt",
   "license": "MIT",
   "devDependencies": {
-    "@fimbul/valtyr": "^0.12.0",
-    "@fimbul/wotan": "^0.12.0",
+    "@fimbul/valtyr": "^0.15.0",
+    "@fimbul/wotan": "^0.15.0",
     "@types/chai": "^4.0.10",
     "@types/mocha": "^5.0.0",
     "@types/node": "^10.0.3",
@@ -47,7 +47,7 @@
     "typescript": "3.1.3"
   },
   "peerDependencies": {
-    "typescript": ">=2.8.0 || >= 3.2.0-dev"
+    "typescript": ">=2.8.0 || >= 3.2.0-dev || >= 3.3.0-dev"
   },
   "dependencies": {
     "tslib": "^1.8.1"
