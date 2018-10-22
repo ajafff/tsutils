@@ -1,0 +1,4 @@
+export {};
+declare namespace Foo {}
+                  ~~~ [Unused]
+export as namespace Foo;
