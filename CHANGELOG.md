@@ -1,3 +1,9 @@
+# 3.2.0
+
+**Features:**
+
+* added utility `findImportLikeNodes` that works similar to `findImports` but returns the import statement or expression instead of the module specifier and doesn't filter non-string module specifiers
+
 # 3.1.0
 
 **Features:**
