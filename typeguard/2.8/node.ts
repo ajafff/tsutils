@@ -606,7 +606,7 @@ export function isTemplateLiteral(node: ts.Node): node is ts.TemplateLiteral {
         node.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral;
 }
 
-export function isTextualLiteral(node: ts.Node): node is ts.LiteralExpression {
+export function isTextualLiteral(node: ts.Node): node is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral {
     return node.kind === ts.SyntaxKind.StringLiteral ||
         node.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral;
 }

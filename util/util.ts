@@ -1087,14 +1087,53 @@ export const enum ImportKind {
     AllNestedImports = AllImportExpressions | ImportType,
 }
 
-export function findImports(sourceFile: ts.SourceFile, kinds: ImportKind): ts.LiteralExpression[] {
+export function findImports(sourceFile: ts.SourceFile, kinds: ImportKind) {
+    const result: Array<ts.StringLiteral | ts.NoSubstitutionTemplateLiteral> = [];
+    for (const node of findImportLikeNodes(sourceFile, kinds)) {
+        switch (node.kind) {
+            case ts.SyntaxKind.ImportDeclaration:
+                addIfTextualLiteral(node.moduleSpecifier);
+                break;
+            case ts.SyntaxKind.ImportEqualsDeclaration:
+                addIfTextualLiteral(node.moduleReference);
+                break;
+            case ts.SyntaxKind.ExportDeclaration:
+                addIfTextualLiteral(node.moduleSpecifier);
+                break;
+            case ts.SyntaxKind.CallExpression:
+                addIfTextualLiteral(node.arguments[0]);
+                break;
+            case ts.SyntaxKind.ImportType:
+                if (isLiteralTypeNode(node.argument))
+                    addIfTextualLiteral(node.argument.literal);
+                break;
+            default:
+                throw <AssertNever<typeof node>>new Error('unexpected node');
+        }
+    }
+    return result;
+
+    function addIfTextualLiteral(node: ts.Node) {
+        if (isTextualLiteral(node))
+            result.push(node);
+    }
+}
+
+export type ImportLike =
+    | ts.ImportDeclaration
+    | ts.ImportEqualsDeclaration & {moduleReference: ts.ExternalModuleReference}
+    | ts.ExportDeclaration & {moduleSpecifier: {}}
+    | ts.CallExpression
+        & {expression: ts.Token<ts.SyntaxKind.ImportKeyword> | ts.Identifier & {text: 'require'}, arguments: [ts.Expression]}
+    | ts.ImportTypeNode;
+export function findImportLikeNodes(sourceFile: ts.SourceFile, kinds: ImportKind): ImportLike[] {
     return new ImportFinder(sourceFile, kinds).find();
 }
 
 class ImportFinder {
     constructor(private _sourceFile: ts.SourceFile, private _options: ImportKind) {}
 
-    private _result: ts.LiteralExpression[] = [];
+    private _result: ImportLike[] = [];
 
     public find() {
         if (this._sourceFile.isDeclarationFile)
@@ -1107,15 +1146,14 @@ class ImportFinder {
         for (const statement of statements) {
             if (isImportDeclaration(statement)) {
                 if (this._options & ImportKind.ImportDeclaration)
-                    this._addImport(statement.moduleSpecifier);
+                    this._result.push(statement);
             } else if (isImportEqualsDeclaration(statement)) {
                 if (this._options & ImportKind.ImportEquals &&
-                    statement.moduleReference.kind === ts.SyntaxKind.ExternalModuleReference &&
-                    statement.moduleReference.expression !== undefined)
-                    this._addImport(statement.moduleReference.expression);
+                    statement.moduleReference.kind === ts.SyntaxKind.ExternalModuleReference)
+                    this._result.push(<any>statement);
             } else if (isExportDeclaration(statement)) {
                 if (statement.moduleSpecifier !== undefined && this._options & ImportKind.ExportFrom)
-                    this._addImport(statement.moduleSpecifier);
+                    this._result.push(<any>statement);
             } else if (isModuleDeclaration(statement) &&
                        this._options & (ImportKind.AllStaticImports | ImportKind.ExportFrom) &&
                        statement.body !== undefined && statement.name.kind === ts.SyntaxKind.StringLiteral &&
@@ -1133,16 +1171,11 @@ class ImportFinder {
                 (node.expression.kind === ts.SyntaxKind.ImportKeyword && this._options & ImportKind.DynamicImport ||
                     this._options & ImportKind.Require && node.expression.kind === ts.SyntaxKind.Identifier &&
                         (<ts.Identifier>node.expression).text === 'require'))
-                this._addImport(node.arguments[0]);
-        } else if (isImportTypeNode(node) && isLiteralTypeNode(node.argument) && this._options & ImportKind.ImportType) {
-            this._addImport(node.argument.literal);
+                this._result.push(<any>node);
+        } else if (isImportTypeNode(node) && this._options & ImportKind.ImportType) {
+            this._result.push(node);
         }
         ts.forEachChild(node, this._findNested);
-    }
-
-    private _addImport(expression: ts.Expression) {
-        if (isTextualLiteral(expression))
-            this._result.push(expression);
     }
 }
 
