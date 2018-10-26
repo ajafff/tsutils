@@ -1159,11 +1159,7 @@ class ImportFinder {
             } else if (isExportDeclaration(statement)) {
                 if (statement.moduleSpecifier !== undefined && this._options & ImportKind.ExportFrom)
                     this._result.push(<any>statement);
-            } else if (
-                isModuleDeclaration(statement) &&
-                this._options & (ImportKind.AllStaticImports | ImportKind.ExportFrom) &&
-                statement.body !== undefined
-            ) {
+            } else if (isModuleDeclaration(statement) && statement.body !== undefined) {
                 this._findImports((<ts.ModuleBlock>statement.body).statements);
             }
         }
