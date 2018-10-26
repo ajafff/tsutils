@@ -2,7 +2,7 @@ import * as ts from 'typescript';
 import { NodeWrap } from './convert-ast';
 import {
     isBlockLike, isLiteralExpression, isPropertyDeclaration, isJsDoc, isImportDeclaration, isTextualLiteral,
-    isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration, isImportTypeNode, isLiteralTypeNode,
+    isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration, isLiteralTypeNode,
 } from '../typeguard/node';
 
 export function getChildOfKind<T extends ts.SyntaxKind>(node: ts.Node, kind: T, sourceFile?: ts.SourceFile) {
@@ -1085,6 +1085,8 @@ export const enum ImportKind {
     AllRequireLike = ImportEquals | Require,
     // @internal
     AllNestedImports = AllImportExpressions | ImportType,
+    // @internal
+    AllTopLevelImports = AllStaticImports | ExportFrom,
 }
 
 export function findImports(sourceFile: ts.SourceFile, kinds: ImportKind) {
@@ -1138,7 +1140,10 @@ class ImportFinder {
     public find() {
         if (this._sourceFile.isDeclarationFile)
             this._options &= ~ImportKind.AllImportExpressions;
-        this._findImports(this._sourceFile.statements);
+        if (this._options & ImportKind.AllTopLevelImports)
+            this._findImports(this._sourceFile.statements);
+        if (this._options & ImportKind.AllNestedImports)
+            this._findNestedImports();
         return this._result;
     }
 
@@ -1154,28 +1159,55 @@ class ImportFinder {
             } else if (isExportDeclaration(statement)) {
                 if (statement.moduleSpecifier !== undefined && this._options & ImportKind.ExportFrom)
                     this._result.push(<any>statement);
-            } else if (isModuleDeclaration(statement) &&
-                       this._options & (ImportKind.AllStaticImports | ImportKind.ExportFrom) &&
-                       statement.body !== undefined && statement.name.kind === ts.SyntaxKind.StringLiteral &&
-                       ts.isExternalModule(this._sourceFile)) {
+            } else if (
+                isModuleDeclaration(statement) &&
+                this._options & (ImportKind.AllStaticImports | ImportKind.ExportFrom) &&
+                statement.body !== undefined
+            ) {
                 this._findImports((<ts.ModuleBlock>statement.body).statements);
-            } else if (this._options & ImportKind.AllNestedImports) {
-                ts.forEachChild(statement, this._findNested);
             }
         }
     }
 
-    private _findNested = (node: ts.Node): void => {
-        if (isCallExpression(node)) {
-            if (node.arguments.length === 1 &&
-                (node.expression.kind === ts.SyntaxKind.ImportKeyword && this._options & ImportKind.DynamicImport ||
-                    this._options & ImportKind.Require && node.expression.kind === ts.SyntaxKind.Identifier &&
-                        (<ts.Identifier>node.expression).text === 'require'))
-                this._result.push(<any>node);
-        } else if (isImportTypeNode(node) && this._options & ImportKind.ImportType) {
-            this._result.push(node);
+    private _findNestedImports() {
+        let re;
+        if ((this._options & ImportKind.AllNestedImports) === ImportKind.Require) {
+            re = /\brequire\s*[</(]/g;
+        } else if (this._options & ImportKind.Require) {
+            re = /\b(?:import|require)\s*[</(]/g;
+        } else {
+            re = /\bimport\s*[</(]/g;
         }
-        ts.forEachChild(node, this._findNested);
+        const isJavaScriptFile = (this._sourceFile.flags & ts.NodeFlags.JavaScriptFile) !== 0;
+        for (let match = re.exec(this._sourceFile.text); match !== null; match = re.exec(this._sourceFile.text)) {
+            const token = getTokenAtPositionWorker(
+                this._sourceFile,
+                match.index,
+                this._sourceFile,
+                // only look for ImportTypeNode within JSDoc in JS files
+                match[0][0] === 'i' && isJavaScriptFile,
+            )!;
+            if (token.kind === ts.SyntaxKind.ImportKeyword) {
+                if (token.end - 'import'.length !== match.index)
+                    continue;
+                switch (token.parent!.kind) {
+                    case ts.SyntaxKind.ImportType:
+                        this._result.push(<ts.ImportTypeNode>token.parent);
+                        break;
+                    case ts.SyntaxKind.CallExpression:
+                        if ((<ts.CallExpression>token.parent).arguments.length === 1)
+                            this._result.push(<any>token.parent);
+                }
+            } else if (
+                token.kind === ts.SyntaxKind.Identifier &&
+                token.end - 'require'.length === match.index &&
+                token.parent!.kind === ts.SyntaxKind.CallExpression &&
+                (<ts.CallExpression>token.parent).expression === token &&
+                (<ts.CallExpression>token.parent).arguments.length === 1
+            ) {
+                this._result.push(<any>token.parent);
+            }
+        }
     }
 }
 
