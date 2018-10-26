@@ -138,24 +138,24 @@ export function getNextToken(node: ts.Node, sourceFile = node.getSourceFile()) {
             return (<ts.SourceFile>node).endOfFileToken;
         node = node.parent;
     }
-    return getTokenAtPositionWorker(node, end, sourceFile);
+    return getTokenAtPositionWorker(node, end, sourceFile, false);
 }
 
 /** Returns the token at or following the specified position or undefined if none is found inside `parent`. */
-export function getTokenAtPosition(parent: ts.Node, pos: number, sourceFile?: ts.SourceFile) {
+export function getTokenAtPosition(parent: ts.Node, pos: number, sourceFile?: ts.SourceFile, allowJsDoc?: boolean) {
     if (pos < parent.pos || pos >= parent.end)
         return;
     if (isTokenKind(parent.kind))
         return parent;
     if (sourceFile === undefined)
         sourceFile = parent.getSourceFile();
-    return getTokenAtPositionWorker(parent, pos, sourceFile);
+    return getTokenAtPositionWorker(parent, pos, sourceFile, allowJsDoc === true);
 }
 
-function getTokenAtPositionWorker(node: ts.Node, pos: number, sourceFile: ts.SourceFile) {
+function getTokenAtPositionWorker(node: ts.Node, pos: number, sourceFile: ts.SourceFile, allowJsDoc: boolean) {
     outer: while (true) {
         for (const child of node.getChildren(sourceFile)) {
-            if (child.end > pos && child.kind !== ts.SyntaxKind.JSDocComment) {
+            if (child.end > pos && (allowJsDoc || child.kind !== ts.SyntaxKind.JSDocComment)) {
                 if (isTokenKind(child.kind))
                     return child;
                 // next token is nested in another node
