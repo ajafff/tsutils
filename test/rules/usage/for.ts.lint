@@ -1,0 +1,51 @@
+let y;
+
+for (x of [1]) {
+    let x;
+    console.log(x);
+}
+for (let x of [1]) {
+         ~ [Unused]
+    let x;
+    console.log(x);
+}
+for (y of [1]) {
+    let y;
+    console.log(y);
+}
+
+for (x in {foo: 1}) {
+    let x;
+    console.log(x);
+}
+for (let x in {foo: 1}) {
+         ~ [Unused]
+    let x;
+    console.log(x);
+}
+for (y in {foo: 1}) {
+    let y;
+    console.log(y);
+}
+
+for (x = 1; false; ) {
+    let x;
+    console.log(x);
+}
+for (let x = 1; false; ) {
+         ~ [Unused]
+    let x;
+    console.log(x);
+}
+for (let x = 1; false; ++x) {
+    let x;
+        ~ [Unused]
+}
+for (let x = 1; x < 10; ) {
+    let x;
+        ~ [Unused]
+}
+for (y = 1; false; ) {
+    let y;
+    console.log(y);
+}
