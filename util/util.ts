@@ -1238,7 +1238,13 @@ export function getIIFE(func: ts.FunctionExpression | ts.ArrowFunction): ts.Call
 }
 
 export type StrictCompilerOption =
-    'noImplicitAny' | 'noImplicitThis' | 'strictNullChecks' | 'strictFunctionTypes' | 'strictPropertyInitialization' | 'alwaysStrict';
+    | 'noImplicitAny'
+    | 'noImplicitThis'
+    | 'strictNullChecks'
+    | 'strictFunctionTypes'
+    | 'strictPropertyInitialization'
+    | 'alwaysStrict'
+    | 'strictBindCallApply';
 
 export function isStrictCompilerOptionEnabled(options: ts.CompilerOptions, option: StrictCompilerOption): boolean {
     return (options.strict ? options[option] !== false : options[option] === true) &&
@@ -1272,7 +1278,9 @@ export function isCompilerOptionEnabled(options: ts.CompilerOptions, option: Boo
         case 'strictFunctionTypes':
         case 'strictPropertyInitialization':
         case 'alwaysStrict':
-            return isStrictCompilerOptionEnabled(options, option);
+        case 'strictBindCallApply':
+            type AssertEqual<T, U extends T> = U; // make sure all strict options are handled here
+            return isStrictCompilerOptionEnabled(options, <AssertEqual<typeof option, StrictCompilerOption>>option);
     }
     return options[option] === true;
 }

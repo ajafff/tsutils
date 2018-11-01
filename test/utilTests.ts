@@ -192,5 +192,9 @@ describe('isCompilerOptionEnabled', () => {
         assert.isFalse(isCompilerOptionEnabled({strict: false, strictNullChecks: false}, 'strictNullChecks'));
 
         assert.isTrue(isCompilerOptionEnabled({strict: false, strictNullChecks: false, alwaysStrict: true}, 'alwaysStrict'));
+
+        assert.isTrue(isCompilerOptionEnabled({strict: true}, 'strictBindCallApply'));
+        assert.isTrue(isStrictCompilerOptionEnabled({strict: false, strictBindCallApply: true}, 'strictBindCallApply'));
+        assert.isFalse(isStrictCompilerOptionEnabled({strict: true, strictBindCallApply: false}, 'strictBindCallApply'));
     });
 });
