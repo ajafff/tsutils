@@ -197,4 +197,20 @@ describe('isCompilerOptionEnabled', () => {
         assert.isTrue(isStrictCompilerOptionEnabled({strict: false, strictBindCallApply: true}, 'strictBindCallApply'));
         assert.isFalse(isStrictCompilerOptionEnabled({strict: true, strictBindCallApply: false}, 'strictBindCallApply'));
     });
+
+    it('correctly determines allowSyntheticDefaultImports', () => {
+        assert.isFalse(isCompilerOptionEnabled({}, 'allowSyntheticDefaultImports'));
+        assert.isFalse(
+            isCompilerOptionEnabled({allowSyntheticDefaultImports: false, esModuleInterop: true}, 'allowSyntheticDefaultImports'),
+        );
+        assert.isTrue(
+            isCompilerOptionEnabled({allowSyntheticDefaultImports: true, esModuleInterop: false}, 'allowSyntheticDefaultImports'),
+        );
+        assert.isTrue(isCompilerOptionEnabled({allowSyntheticDefaultImports: true}, 'allowSyntheticDefaultImports'));
+        assert.isTrue(isCompilerOptionEnabled({esModuleInterop: true}, 'allowSyntheticDefaultImports'));
+        assert.isFalse(isCompilerOptionEnabled({esModuleInterop: false}, 'allowSyntheticDefaultImports'));
+        assert.isTrue(isCompilerOptionEnabled({esModuleInterop: false, module: ts.ModuleKind.System}, 'allowSyntheticDefaultImports'));
+        assert.isTrue(isCompilerOptionEnabled({module: ts.ModuleKind.System}, 'allowSyntheticDefaultImports'));
+        assert.isFalse(isCompilerOptionEnabled({esModuleInterop: false, module: ts.ModuleKind.ES2015}, 'allowSyntheticDefaultImports'));
+    });
 });

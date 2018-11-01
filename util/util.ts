@@ -1272,6 +1272,10 @@ export function isCompilerOptionEnabled(options: ts.CompilerOptions, option: Boo
             return options.skipDefaultLibCheck || isCompilerOptionEnabled(options, 'skipLibCheck');
         case 'suppressImplicitAnyIndexErrors':
             return options.suppressImplicitAnyIndexErrors === true && isCompilerOptionEnabled(options, 'noImplicitAny');
+        case 'allowSyntheticDefaultImports':
+            return options.allowSyntheticDefaultImports !== undefined
+                ? options.allowSyntheticDefaultImports
+                : isCompilerOptionEnabled(options, 'esModuleInterop') || options.module === ts.ModuleKind.System;
         case 'noImplicitAny':
         case 'noImplicitThis':
         case 'strictNullChecks':
