@@ -1,3 +1,16 @@
+# 3.3.0
+
+**Features:**
+
+* `isCompilerOptionEnabled`: recognizes `strictBindCallApply`
+* `getTokenAtPosition`: optionally includes JSDoc during lookup
+
+**Bugfixes:**
+
+* `isCompilerOptionEnabled`: correctly implements logic for `allowSyntheticDefaultImports`
+* `findImportLikeNodes`: correctly finds imports in namespaces
+* `findImportLikeNodes` / `findImports`: finds import types in JSDoc of JS files
+
 # 3.2.0
 
 **Features:**
