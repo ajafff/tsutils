@@ -1097,7 +1097,7 @@ export function findImports(sourceFile: ts.SourceFile, kinds: ImportKind) {
                 addIfTextualLiteral(node.moduleSpecifier);
                 break;
             case ts.SyntaxKind.ImportEqualsDeclaration:
-                addIfTextualLiteral(node.moduleReference);
+                addIfTextualLiteral(node.moduleReference.expression);
                 break;
             case ts.SyntaxKind.ExportDeclaration:
                 addIfTextualLiteral(node.moduleSpecifier);
@@ -1115,7 +1115,7 @@ export function findImports(sourceFile: ts.SourceFile, kinds: ImportKind) {
     }
     return result;
 
-    function addIfTextualLiteral(node: ts.Node) {
+    function addIfTextualLiteral(node: ts.Expression) {
         if (isTextualLiteral(node))
             result.push(node);
     }
