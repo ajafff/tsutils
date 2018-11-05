@@ -1,3 +1,9 @@
+# 3.3.1
+
+**Bugfixes:**
+
+* `findImports`: fixed handling of ImportEqualsDeclaration
+
 # 3.3.0
 
 **Features:**
