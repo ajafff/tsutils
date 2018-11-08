@@ -196,6 +196,10 @@ export function isPositionInComment(sourceFile: ts.SourceFile, pos: number, pare
     return getCommentAtPosition(sourceFile, pos, parent) !== undefined;
 }
 
+export function commentText(sourceText: string, comment: ts.CommentRange): string {
+    return sourceText.substring(comment.pos + 2, comment.end - (comment.kind === ts.SyntaxKind.MultiLineCommentTrivia ? 2 : 0));
+}
+
 /**
  * Returns the NodeWrap of deepest AST node that contains `pos` between its `pos` and `end`.
  * Only returns undefined if pos is outside of `wrap`
