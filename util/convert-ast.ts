@@ -18,6 +18,7 @@ export interface NodeWrap {
 }
 
 export interface WrappedAst extends NodeWrap {
+    node: ts.SourceFile;
     next: NodeWrap;
     skip: undefined;
     parent: undefined;
