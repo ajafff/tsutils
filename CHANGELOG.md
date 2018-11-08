@@ -1,3 +1,9 @@
+# 3.4.0
+
+**Features:**
+
+* added utility `commentText` to get the actual text content of a comment excluding the characters needed to start and end the comment
+
 # 3.3.1
 
 **Bugfixes:**
