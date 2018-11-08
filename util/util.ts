@@ -197,7 +197,7 @@ export function isPositionInComment(sourceFile: ts.SourceFile, pos: number, pare
 }
 
 export function commentText(sourceText: string, comment: ts.CommentRange): string {
-    return sourceText.substring(comment.pos + 2, comment.end - (comment.kind === ts.SyntaxKind.MultiLineCommentTrivia ? 2 : 0));
+    return sourceText.substring(comment.pos + 2, comment.kind === ts.SyntaxKind.SingleLineCommentTrivia ? comment.end : comment.end - 2);
 }
 
 /**
