@@ -36,7 +36,7 @@ export function isIntersectionType(type: ts.Type): type is ts.IntersectionType {
 }
 
 export function isLiteralType(type: ts.Type): type is ts.LiteralType {
-    return (type.flags & ts.TypeFlags.StringOrNumberLiteral) !== 0;
+    return (type.flags & (ts.TypeFlags.StringOrNumberLiteral | ts.TypeFlags.BigIntLiteral)) !== 0;
 }
 
 export function isObjectType(type: ts.Type): type is ts.ObjectType {
