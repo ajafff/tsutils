@@ -1,3 +1,12 @@
+# 3.5.0
+
+**Features:**
+
+* correctly handle BigInt literals
+  * added typeguard `isBigIntLiteral`
+  * `isLiteralType` recognises BigInt
+  * `getPropertyName` adds special handling for BigInt
+
 # 3.4.0
 
 **Features:**
