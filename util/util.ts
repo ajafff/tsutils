@@ -4,6 +4,7 @@ import {
     isBlockLike, isLiteralExpression, isPropertyDeclaration, isJsDoc, isImportDeclaration, isTextualLiteral,
     isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration, isLiteralTypeNode,
 } from '../typeguard/node';
+import { isBigIntLiteral } from '../typeguard/3.2';
 
 export function getChildOfKind<T extends ts.SyntaxKind>(node: ts.Node, kind: T, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))
@@ -224,6 +225,9 @@ export function getPropertyName(propertyName: ts.PropertyName): string | undefin
     if (propertyName.kind === ts.SyntaxKind.ComputedPropertyName) {
         if (!isLiteralExpression(propertyName.expression))
             return;
+        if (isBigIntLiteral(propertyName.expression))
+            // handle BigInt, even though TypeScript doesn't allow BigInt as computed property name
+            return propertyName.expression.text.slice(0, -1);
         return propertyName.expression.text;
     }
     return propertyName.text;
