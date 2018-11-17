@@ -139,7 +139,7 @@ class ResolverImpl implements Resolver {
                 return new ConditionalTypeScope(<ts.ConditionalTypeNode>node, ScopeBoundary.ConditionalType, this);
             // TODO handling of ClassLikeDeclaration might need change when https://github.com/Microsoft/TypeScript/issues/28472 is resolved
             case ts.SyntaxKind.ClassDeclaration:
-                return new DeclarationScope(
+                return new DecoratableDeclarationScope(
                     <ts.ClassDeclaration>node,
                     ScopeBoundary.Function,
                     this,
@@ -272,6 +272,7 @@ function getDomainOfSymbol(symbol: ts.Symbol) {
 interface Scope {
     resolver: ResolverImpl;
     getDeclarationsForParent(): Iterable<Declaration>;
+    getUsesForParent(): Iterable<Use>;
     getUses(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory): Iterable<Use>;
     getUsesInScope(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory): Iterable<Use>;
     getSymbol(declaration: ts.Identifier): Symbol;
@@ -281,10 +282,10 @@ interface Scope {
 }
 
 class BaseScope<T extends ts.Node = ts.Node> implements Scope {
-    protected _initial = true;
-    protected _uses: Use[] = [];
-    protected _symbols = new Map<string, Symbol>();
-    protected _scopes: Scope[] = [];
+    private _initial = true;
+    private _uses: Use[] = [];
+    private _symbols = new Map<string, Symbol>();
+    private _scopes: Scope[] = [];
     protected _declarationsForParent: Declaration[] = [];
 
     constructor(protected _node: T, protected _boundary: ScopeBoundary, public resolver: ResolverImpl) {}
@@ -292,6 +293,10 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     public getDeclarationsForParent() {
         this._initialize();
         return this._declarationsForParent;
+    }
+
+    public getUsesForParent(): Iterable<Use> {
+        return []; // overridden by scopes that really need this
     }
 
     public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory): Iterable<Use> {
@@ -362,14 +367,10 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     }
 
     public addDeclaration(declaration: Declaration) {
-        if (this._isOwnDeclaration(declaration)) {
-            this._addOwnDeclaration(declaration);
-        } else {
+        if (!this._isOwnDeclaration(declaration)) {
             this._declarationsForParent.push(declaration);
+            return;
         }
-    }
-
-    protected _addOwnDeclaration(declaration: Declaration) {
         const symbol = this._symbols.get(declaration.name);
         if (symbol !== undefined) {
             symbol.domain |= declaration.domain;
@@ -390,9 +391,12 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     protected _initialize() {
         if (this._initial) {
             this._analyze();
-            for (const scope of this._scopes)
+            for (const scope of this._scopes) {
                 for (const decl of scope.getDeclarationsForParent())
                     this.addDeclaration(decl);
+                for (const use of scope.getUsesForParent())
+                    this.addUse(use);
+            }
             this._initial = false;
         }
     }
@@ -510,6 +514,30 @@ class DeclarationScope<T extends ts.NamedDeclaration = ts.NamedDeclaration> exte
     }
 }
 
+class DecoratableDeclarationScope<
+    T extends ts.ClassDeclaration | ts.FunctionLikeDeclaration = ts.ClassDeclaration | ts.FunctionLikeDeclaration,
+> extends DeclarationScope<T> {
+    protected _usesForParent: Use[] = [];
+
+    public getUsesForParent() {
+        this._initialize();
+        return this._usesForParent;
+    }
+
+    public addUse(use: Use) {
+        if (this._isOwnUse(use)) {
+            super.addUse(use);
+        } else {
+            this._usesForParent.push(use);
+        }
+    }
+
+    protected _isOwnUse(use: Use) {
+        // decorators cannot access parameters and type parameters of the declaration they decorate
+        return this._node.decorators === undefined || use.location.end > this._node.decorators.end;
+    }
+}
+
 class NamespaceScope extends DeclarationScope<ts.ModuleDeclaration | ts.EnumDeclaration> {
     public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory) {
         const isEnum = this._node.kind === ts.SyntaxKind.EnumDeclaration;
@@ -532,41 +560,34 @@ class NamespaceScope extends DeclarationScope<ts.ModuleDeclaration | ts.EnumDecl
     }
 }
 
-class ConditionalTypeThenScope extends BaseScope {
-    public addOwnDeclaration(declaration: Declaration) {
-        this._addOwnDeclaration(declaration);
-    }
-
-    protected _analyze() {
-        this._analyzeNode(this._node);
-    }
-}
-
 class ConditionalTypeScope extends BaseScope<ts.ConditionalTypeNode> {
-    private _then: ConditionalTypeThenScope;
-
-    protected _analyze() {
-        this._analyzeNode(this._node.checkType);
-        this._analyzeNode(this._node.extendsType);
-        this.addChildScope(this._then = new ConditionalTypeThenScope(this._node.trueType, 0, this.resolver));
-        this._analyzeNode(this._node.falseType);
-    }
-
-    protected _addOwnDeclaration(declaration: Declaration) {
-        this._then.addDeclaration(declaration);
-    }
+    private _usesForParent: Use[] = [];
 
     protected _isOwnDeclaration(declaration: Declaration) {
         return super._isOwnDeclaration(declaration) &&
             declaration.node.pos > this._node.extendsType.pos &&
             declaration.node.pos < this._node.extendsType.end;
     }
+
+    public getUsesForParent() {
+        this._initialize();
+        return this._usesForParent;
+    }
+
+    public addUse(use: Use) {
+        // only 'trueType' can access InferTypes of a ConditionalType
+        if (use.location.pos < this._node.trueType.pos || use.location.pos > this._node.trueType.end) {
+            this._usesForParent.push(use);
+        } else {
+            super.addUse(use);
+        }
+    }
 }
 
 class NamedDeclarationExpressionScope extends BaseScope {
     constructor(node: ts.Node, resolver: ResolverImpl, childScope: Scope) {
         super(node, ScopeBoundary.Function, resolver);
-        this._scopes.push(childScope);
+        this.addChildScope(childScope);
     }
 
     public getDeclarationsForParent() {
@@ -587,7 +608,7 @@ class FunctionLikeInnerScope extends BaseScope<ts.FunctionLikeDeclaration> {
     }
 }
 
-class FunctionLikeScope extends DeclarationScope<ts.FunctionLikeDeclaration> {
+class FunctionLikeScope extends DecoratableDeclarationScope<ts.FunctionLikeDeclaration> {
     constructor(node: ts.FunctionLikeDeclaration, resolver: ResolverImpl) {
         super(
             node,
@@ -612,12 +633,22 @@ class FunctionLikeScope extends DeclarationScope<ts.FunctionLikeDeclaration> {
         for (const parameter of this._node.parameters)
             this._analyzeNode(parameter);
     }
+
+    protected _isOwnUse(use: Use) {
+        return super._isOwnUse(use) &&
+            (// 'typeof' in TypeParameters has no access to parameters
+                (use.domain & Domain.Type) !== 0 ||
+                this._node.typeParameters === undefined ||
+                use.location.pos < this._node.typeParameters.pos ||
+                use.location.pos > this._node.typeParameters.end
+            );
+    }
 }
 
 // TODO decorators !!!!! ARGH
-// function/class decorated with itself
-// type parmeters shadowing declaration name
-// type parameter cannot reference parameter
+// * function/class decorated with itself
+// * type parmeters shadowing declaration name
+// * type parameter cannot reference parameter
 // * member decorator accessing class generics
 // * MappedType type parameter referencing itself in its constraint
 // exporting partially shadowed declaration (SourceFile and Namespace)
