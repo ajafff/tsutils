@@ -600,6 +600,10 @@ class NamedDeclarationExpressionScope extends BaseScope {
 }
 
 class FunctionLikeInnerScope extends BaseScope<ts.FunctionLikeDeclaration> {
+    public getDeclarationsForParent() {
+        return [];
+    }
+
     protected _analyze() {
         if (this._node.type !== undefined)
             this._analyzeNode(this._node.type);
@@ -645,11 +649,11 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.FunctionLikeDecla
     }
 }
 
-// TODO decorators !!!!! ARGH
 // * function/class decorated with itself
 // * type parmeters shadowing declaration name
 // * type parameter cannot reference parameter
 // * member decorator accessing class generics
 // * MappedType type parameter referencing itself in its constraint
+// * return type can access declarations in function body
 // exporting partially shadowed declaration (SourceFile and Namespace)
 // domain of 'export import = ' in namespace
