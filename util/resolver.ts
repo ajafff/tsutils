@@ -275,10 +275,10 @@ function getDomainOfSymbol(symbol: ts.Symbol) {
     let domain = Domain.None;
     if (symbol.flags & ts.SymbolFlags.Type)
         domain |= Domain.Type;
-    if (symbol.flags & ts.SymbolFlags.Value)
+    if (symbol.flags & (ts.SymbolFlags.Value | ts.SymbolFlags.ValueModule))
         domain |= Domain.Value;
     if (symbol.flags & ts.SymbolFlags.Namespace)
-        domain |= Domain.ValueOrNamespace;
+        domain |= Domain.Namespace;
     return domain;
 }
 
@@ -700,7 +700,7 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.FunctionLikeDecla
 // * type parameter cannot reference parameter
 // * member decorator accessing class generics
 // * MappedType type parameter referencing itself in its constraint
-// * return type can access declarations in function body
 // * type use in enum
+// * type-only namespace not shadowing value
 // exporting partially shadowed declaration (SourceFile and Namespace)
 // domain of 'export import = ' in namespace
