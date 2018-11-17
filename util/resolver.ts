@@ -1,6 +1,6 @@
 import * as ts from 'typescript';
 import { ScopeBoundarySelector, isScopeBoundary, isBlockScopedVariableDeclarationList, isThisParameter, getPropertyName, getDeclarationOfBindingElement, ScopeBoundary, isBlockScopeBoundary, isNodeKind } from './util';
-import { getUsageDomain } from './usage';
+import { getUsageDomain, getDeclarationDomain } from './usage';
 import bind from 'bind-decorator';
 
 export enum Domain {
@@ -66,9 +66,13 @@ class ResolverImpl implements Resolver {
         let scopeNode = findScopeBoundary(declaration.parent!, selector.selector);
         if (selector.outer)
             scopeNode = findScopeBoundary(scopeNode.parent!, selector.selector);
-        const scope = this.getOrCreateScope(scopeNode);
+        const scope = this.getOrCreateScope(scopeNode).getDelegateScope(declaration);
         const result = [];
-        for (const use of scope.getUses(scope.getSymbol(declaration), domain, getChecker && makeCheckerFactory(getChecker))) {
+        const symbol = scope.getSymbol(declaration);
+        if (symbol === undefined)
+            return; // something went wrong, possibly a syntax error
+        domain &= getDeclarationDomain(declaration)!; // TODO
+        for (const use of scope.getUses(symbol, domain, getChecker && makeCheckerFactory(getChecker))) {
             if (use === SENTINEL_USE)
                 return;
             result.push(use);
@@ -155,7 +159,7 @@ class ResolverImpl implements Resolver {
             case ts.SyntaxKind.ClassExpression:
                 if ((<ts.ClassExpression>node).name === undefined)
                     return new DeclarationScope(<ts.ClassExpression>node, ScopeBoundary.Function, this);
-                return new NamedDeclarationExpressionScope(node, this, new DeclarationScope(
+                return new NamedDeclarationExpressionScope(<ts.ClassExpression>node, this, new DeclarationScope(
                     <ts.ClassExpression>node,
                     ScopeBoundary.Function,
                     this,
@@ -168,7 +172,11 @@ class ResolverImpl implements Resolver {
                 ));
             case ts.SyntaxKind.FunctionExpression:
                 if ((<ts.FunctionExpression>node).name !== undefined)
-                    return new NamedDeclarationExpressionScope(node, this, new FunctionLikeScope(<ts.FunctionExpression>node, this));
+                    return new NamedDeclarationExpressionScope(
+                        <ts.FunctionExpression>node,
+                        this,
+                        new FunctionLikeScope(<ts.FunctionExpression>node, this),
+                    );
                 // falls through
             case ts.SyntaxKind.MethodDeclaration:
             case ts.SyntaxKind.Constructor:
@@ -199,31 +207,36 @@ interface DeclarationBoundary {
 function getScopeBoundarySelector(node: ts.Identifier): DeclarationBoundary | undefined {
     switch (node.parent!.kind) {
         case ts.SyntaxKind.ClassDeclaration:
-        case ts.SyntaxKind.InterfaceDeclaration:
-        case ts.SyntaxKind.TypeAliasDeclaration:
         case ts.SyntaxKind.EnumDeclaration:
             return {selector: ScopeBoundarySelector.Block, outer: true};
         case ts.SyntaxKind.EnumMember:
-            if ((<ts.EnumMember>node.parent).name === node)
-                return {selector: ScopeBoundarySelector.Block, outer: false};
-            return;
-        case ts.SyntaxKind.FunctionDeclaration:
-        case ts.SyntaxKind.ModuleDeclaration:
-            return {selector: ScopeBoundarySelector.Function, outer: true};
-        case ts.SyntaxKind.FunctionExpression:
+            if ((<ts.EnumMember>node.parent).name !== node)
+                return;
+            // falls through
+        case ts.SyntaxKind.InterfaceDeclaration:
+        case ts.SyntaxKind.TypeAliasDeclaration:
+        case ts.SyntaxKind.FunctionExpression: // this is not entirely correct, but works for our purpose
         case ts.SyntaxKind.ClassExpression:
-            return {selector: ScopeBoundarySelector.Block, outer: false}; // this is not entirely correct, but works for our purpose
+            return {selector: ScopeBoundarySelector.Block, outer: false};
+        case ts.SyntaxKind.ModuleDeclaration:
+            if (node.parent.flags & ts.NodeFlags.GlobalAugmentation)
+                return;
+            // falls through
+        case ts.SyntaxKind.FunctionDeclaration:
+            return {selector: ScopeBoundarySelector.Function, outer: true};
         case ts.SyntaxKind.Parameter:
             if (node.originalKeywordKind === ts.SyntaxKind.ThisKeyword || node.parent!.parent!.kind === ts.SyntaxKind.IndexSignature)
                 return;
             return {selector: ScopeBoundarySelector.Function, outer: false};
-        case ts.SyntaxKind.VariableDeclaration:
+        case ts.SyntaxKind.VariableDeclaration: {
+            const parent = (<ts.VariableDeclaration>node.parent).parent!;
             return {
-                selector: isBlockScopedVariableDeclarationList(<ts.VariableDeclarationList>node.parent!.parent)
+                selector: parent.kind === ts.SyntaxKind.CatchClause || isBlockScopedVariableDeclarationList(parent)
                     ? ScopeBoundarySelector.Block
                     : ScopeBoundarySelector.Function,
                 outer: false,
             };
+        }
         case ts.SyntaxKind.BindingElement: {
             const declaration = getDeclarationOfBindingElement(<ts.BindingElement>node.parent);
             const blockScoped = declaration.kind === ts.SyntaxKind.Parameter ||
@@ -262,10 +275,10 @@ function getDomainOfSymbol(symbol: ts.Symbol) {
     let domain = Domain.None;
     if (symbol.flags & ts.SymbolFlags.Type)
         domain |= Domain.Type;
-    if (symbol.flags & (ts.SymbolFlags.Value | ts.SymbolFlags.ValueModule))
+    if (symbol.flags & ts.SymbolFlags.Value)
         domain |= Domain.Value;
     if (symbol.flags & ts.SymbolFlags.Namespace)
-        domain |= Domain.Namespace;
+        domain |= Domain.ValueOrNamespace;
     return domain;
 }
 
@@ -275,10 +288,11 @@ interface Scope {
     getUsesForParent(): Iterable<Use>;
     getUses(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory): Iterable<Use>;
     getUsesInScope(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory): Iterable<Use>;
-    getSymbol(declaration: ts.Identifier): Symbol;
+    getSymbol(declaration: ts.Identifier): Symbol | undefined;
     addUse(use: Use): void;
     addDeclaration(declaration: Declaration): void;
     addChildScope(scope: Scope): void;
+    getDelegateScope(location: ts.Node): Scope;
 }
 
 class BaseScope<T extends ts.Node = ts.Node> implements Scope {
@@ -289,6 +303,10 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     protected _declarationsForParent: Declaration[] = [];
 
     constructor(protected _node: T, protected _boundary: ScopeBoundary, public resolver: ResolverImpl) {}
+
+    public getDelegateScope(_location: ts.Node): Scope {
+        return this;
+    }
 
     public getDeclarationsForParent() {
         this._initialize();
@@ -327,6 +345,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     public* getUses(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory): Iterable<Use> {
         const resolvedSymbol = this._resolveSymbol(symbol, domain, getChecker);
         if (resolvedSymbol === undefined) {
+            // TODO maybe resolve all references and abort if there is a match
             yield SENTINEL_USE;
             return;
         }
@@ -359,7 +378,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
 
     public getSymbol(declaration: ts.Identifier) {
         this._initialize();
-        return this._symbols.get(declaration.text)!;
+        return this._symbols.get(declaration.text);
     }
 
     public addUse(use: Use) {
@@ -435,10 +454,20 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
                 if ((<ts.EnumMember>node).initializer !== undefined)
                     this._analyzeNode((<ts.EnumMember>node).initializer!);
                 return;
+            case ts.SyntaxKind.ImportClause:
+                if ((<ts.ImportClause>node).name !== undefined)
+                    this.addDeclaration({
+                        name: (<ts.ImportClause>node).name!.text,
+                        domain: Domain.Any | Domain.Lazy,
+                        node: <ts.ImportClause>node,
+                        selector: ScopeBoundarySelector.Function,
+                    });
+                if ((<ts.ImportClause>node).namedBindings !== undefined)
+                    this._analyzeNode((<ts.ImportClause>node).namedBindings!);
+                return;
             case ts.SyntaxKind.ImportEqualsDeclaration:
                 this._analyzeNode((<ts.ImportEqualsDeclaration>node).moduleReference);
                 // falls through
-            case ts.SyntaxKind.ImportClause:
             case ts.SyntaxKind.ImportSpecifier:
             case ts.SyntaxKind.NamespaceImport:
                 this.addDeclaration({
@@ -540,17 +569,21 @@ class DecoratableDeclarationScope<
 
 class NamespaceScope extends DeclarationScope<ts.ModuleDeclaration | ts.EnumDeclaration> {
     public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory) {
-        const isEnum = this._node.kind === ts.SyntaxKind.EnumDeclaration;
-        if (isEnum && (domain & Domain.ValueOrNamespace) === 0)
-            return; // if we are only looking for type uses, we won't find them in an enum
         if (getChecker === undefined) {
-            yield SENTINEL_USE;
+            // we cannot know for sure if a merged namespace has an export that shadows the outer declaration
+            // instead of aborting immediately, analyze the scope and abort if there is a match
+            for (const _ of super.getUsesInScope(symbol, domain, getChecker)) {
+                yield SENTINEL_USE;
+                return;
+            }
             return;
         }
         const namespaceSymbol = getChecker().getSymbolAtLocation(this._node)!;
         const exportedSymbol = namespaceSymbol.exports!.get(ts.escapeLeadingUnderscores(symbol.name));
         if (exportedSymbol !== undefined) {
-            const exportedSymbolDomain = isEnum ? Domain.Value : getDomainOfSymbol(exportedSymbol);
+            const exportedSymbolDomain = this._node.kind === ts.SyntaxKind.EnumDeclaration
+                ? Domain.Value
+                : getDomainOfSymbol(exportedSymbol);
             symbol = this._resolveSymbol(symbol, exportedSymbolDomain & ~exportedSymbolDomain, getChecker)!;
             domain &= symbol.domain;
             if (domain === Domain.None)
@@ -584,10 +617,9 @@ class ConditionalTypeScope extends BaseScope<ts.ConditionalTypeNode> {
     }
 }
 
-class NamedDeclarationExpressionScope extends BaseScope {
-    constructor(node: ts.Node, resolver: ResolverImpl, childScope: Scope) {
+class NamedDeclarationExpressionScope extends BaseScope<ts.NamedDeclaration> {
+    constructor(node: ts.NamedDeclaration, resolver: ResolverImpl, private _childScope: Scope) {
         super(node, ScopeBoundary.Function, resolver);
-        this.addChildScope(childScope);
     }
 
     public getDeclarationsForParent() {
@@ -595,7 +627,13 @@ class NamedDeclarationExpressionScope extends BaseScope {
     }
 
     protected _analyze() {
-        // do nothing
+        this.addChildScope(this._childScope);
+    }
+
+    public getDelegateScope(location: ts.Node): Scope {
+        return location === this._node.name
+            ? this
+            : this._childScope.getDelegateScope(location);
     }
 }
 
@@ -613,6 +651,8 @@ class FunctionLikeInnerScope extends BaseScope<ts.FunctionLikeDeclaration> {
 }
 
 class FunctionLikeScope extends DecoratableDeclarationScope<ts.FunctionLikeDeclaration> {
+    private _innerScope = new FunctionLikeInnerScope(this._node, ScopeBoundary.Function, this.resolver);
+
     constructor(node: ts.FunctionLikeDeclaration, resolver: ResolverImpl) {
         super(
             node,
@@ -629,8 +669,14 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.FunctionLikeDecla
         );
     }
 
+    public getDelegateScope(location: ts.Node): Scope {
+        return location.pos < this._node.parameters.end
+            ? this
+            : this._innerScope.getDelegateScope(location);
+    }
+
     protected _analyze() {
-        this.addChildScope(new FunctionLikeInnerScope(this._node, ScopeBoundary.Function, this.resolver));
+        this.addChildScope(this._innerScope);
         if (this._node.typeParameters !== undefined)
             for (const typeParameter of this._node.typeParameters)
                 this._analyzeNode(typeParameter);
@@ -655,5 +701,6 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.FunctionLikeDecla
 // * member decorator accessing class generics
 // * MappedType type parameter referencing itself in its constraint
 // * return type can access declarations in function body
+// * type use in enum
 // exporting partially shadowed declaration (SourceFile and Namespace)
 // domain of 'export import = ' in namespace
