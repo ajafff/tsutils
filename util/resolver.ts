@@ -30,11 +30,14 @@ export interface Use {
     domain: Domain;
 }
 
-type TypeCheckerFactory = () => ts.TypeChecker;
-export type TypeCheckerOrFactory = ts.TypeChecker | TypeCheckerFactory;
+type TypeCheckerFactory = () => ts.TypeChecker | undefined;
+export type TypeCheckerOrFactory =
+    | ts.TypeChecker
+    | {getTypeChecker(): ts.TypeChecker | undefined}
+    | {program: ts.Program | undefined}
+    | (() => ts.TypeChecker | ts.Program | undefined);
 
 export interface Resolver {
-    findReferences(declaration: ts.Identifier, domain: Domain | undefined, getChecker: TypeCheckerOrFactory): Use[];
     findReferences(declaration: ts.Identifier, domain?: Domain, getChecker?: TypeCheckerOrFactory): Use[] | undefined;
 }
 
@@ -42,14 +45,30 @@ export function createResolver(): Resolver {
     return new ResolverImpl();
 }
 
-function makeCheckerFactory(checkerOrFactory: TypeCheckerOrFactory): TypeCheckerFactory {
-    let checker = typeof checkerOrFactory === 'function' ? undefined : checkerOrFactory;
+function makeCheckerFactory(checkerOrFactory: TypeCheckerOrFactory | undefined): TypeCheckerFactory {
+    let checker: ts.TypeChecker | undefined | null = null;
     return getChecker;
     function getChecker() {
-        if (checker === undefined)
-            checker = (<Exclude<TypeCheckerOrFactory, ts.TypeChecker>>checkerOrFactory)();
+        if (checker === null)
+            checker = createChecker(checkerOrFactory);
         return checker;
     }
+}
+
+function createChecker(checkerOrFactory: TypeCheckerOrFactory | undefined): ts.TypeChecker | undefined {
+    if (checkerOrFactory === undefined)
+        return;
+    let result: {getTypeChecker(): ts.TypeChecker | undefined} | ts.TypeChecker | undefined;
+    if (typeof checkerOrFactory === 'function') {
+        result = checkerOrFactory();
+    } else if ('program' in checkerOrFactory) {
+        result = checkerOrFactory.program;
+    } else {
+        result = checkerOrFactory;
+    }
+    if (result !== undefined && 'getTypeChecker' in result)
+        result = result.getTypeChecker();
+    return result;
 }
 
 const SENTINEL_USE: Use = <any>{};
@@ -57,8 +76,6 @@ const SENTINEL_USE: Use = <any>{};
 class ResolverImpl implements Resolver {
     private _scopeMap = new WeakMap<ts.Node, Scope>();
 
-    public findReferences(declaration: ts.Identifier, domain: Domain | undefined, getChecker: TypeCheckerOrFactory): Use[];
-    public findReferences(declaration: ts.Identifier, domain?: Domain, getChecker?: TypeCheckerOrFactory): Use[] | undefined;
     public findReferences(declaration: ts.Identifier, domain = Domain.Any, getChecker?: TypeCheckerOrFactory): Use[] | undefined {
         const selector = getScopeBoundarySelector(declaration);
         if (selector === undefined)
@@ -286,8 +303,8 @@ interface Scope {
     resolver: ResolverImpl;
     getDeclarationsForParent(): Iterable<Declaration>;
     getUsesForParent(): Iterable<Use>;
-    getUses(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory): Iterable<Use>;
-    getUsesInScope(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory): Iterable<Use>;
+    getUses(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
+    getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
     getSymbol(declaration: ts.Identifier): Symbol | undefined;
     addUse(use: Use): void;
     addDeclaration(declaration: Declaration): void;
@@ -317,7 +334,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
         return []; // overridden by scopes that really need this
     }
 
-    public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory): Iterable<Use> {
+    public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
         this._initialize();
         const ownSymbol = this._symbols.get(symbol.name);
         if (ownSymbol !== undefined && ownSymbol.domain & domain) {
@@ -332,7 +349,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
         yield* this._matchUses(symbol, domain, getChecker);
     }
 
-    protected* _matchUses(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory) {
+    protected* _matchUses(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
         if (domain === Domain.None)
             return;
         for (const use of this._uses)
@@ -342,7 +359,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
             yield* scope.getUsesInScope(symbol, domain, getChecker);
     }
 
-    public* getUses(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory): Iterable<Use> {
+    public* getUses(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
         const resolvedSymbol = this._resolveSymbol(symbol, domain, getChecker);
         if (resolvedSymbol === undefined) {
             // TODO maybe resolve all references and abort if there is a match
@@ -353,7 +370,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
         yield* this._matchUses(resolvedSymbol, domain, getChecker);
     }
 
-    protected _resolveSymbol(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory): Symbol | undefined {
+    protected _resolveSymbol(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Symbol | undefined {
         const result: Symbol = {
             name: symbol.name,
             domain: Domain.None,
@@ -363,9 +380,10 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
             if ((declaration.domain & domain) === 0)
                 continue;
             if (declaration.domain & Domain.Lazy) {
-                if (getChecker === undefined)
+                const checker = getChecker();
+                if (checker === undefined)
                     return;
-                const newDomain = getLazyDeclarationDomain(declaration.node, getChecker());
+                const newDomain = getLazyDeclarationDomain(declaration.node, checker);
                 if ((newDomain & domain) === 0)
                     continue;
                 declaration = {...declaration, domain: newDomain};
@@ -568,8 +586,9 @@ class DecoratableDeclarationScope<
 }
 
 class NamespaceScope extends DeclarationScope<ts.ModuleDeclaration | ts.EnumDeclaration> {
-    public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker?: TypeCheckerFactory) {
-        if (getChecker === undefined) {
+    public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
+        const checker = getChecker();
+        if (checker === undefined) {
             // we cannot know for sure if a merged namespace has an export that shadows the outer declaration
             // instead of aborting immediately, analyze the scope and abort if there is a match
             for (const _ of super.getUsesInScope(symbol, domain, getChecker)) {
@@ -578,7 +597,7 @@ class NamespaceScope extends DeclarationScope<ts.ModuleDeclaration | ts.EnumDecl
             }
             return;
         }
-        const namespaceSymbol = getChecker().getSymbolAtLocation(this._node)!;
+        const namespaceSymbol = checker.getSymbolAtLocation(this._node)!;
         const exportedSymbol = namespaceSymbol.exports!.get(ts.escapeLeadingUnderscores(symbol.name));
         if (exportedSymbol !== undefined) {
             const exportedSymbolDomain = this._node.kind === ts.SyntaxKind.EnumDeclaration
