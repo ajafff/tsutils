@@ -71,7 +71,7 @@ function createChecker(checkerOrFactory: TypeCheckerOrFactory | undefined): ts.T
     return result;
 }
 
-const SENTINEL_USE: Use = <any>{};
+const SENTINEL_USE: Use = {location: undefined!, domain: Domain.Any};
 
 class ResolverImpl implements Resolver {
     private _scopeMap = new WeakMap<ts.Node, Scope>();
@@ -88,8 +88,9 @@ class ResolverImpl implements Resolver {
         const symbol = scope.getSymbol(declaration);
         if (symbol === undefined)
             return; // something went wrong, possibly a syntax error
+        // TODO move this up front to avoid unnecessary work
         domain &= getDeclarationDomain(declaration)!; // TODO
-        for (const use of scope.getUses(symbol, domain, getChecker && makeCheckerFactory(getChecker))) {
+        for (const use of scope.getUses(symbol, domain, makeCheckerFactory(getChecker))) {
             if (use === SENTINEL_USE)
                 return;
             result.push(use);
@@ -299,6 +300,35 @@ function getDomainOfSymbol(symbol: ts.Symbol) {
     return domain;
 }
 
+function* lazyFilterUses<T extends unknown[]>(
+    uses: Iterable<Use>,
+    getChecker: TypeCheckerFactory,
+    inclusive: boolean,
+    resolveDomain: (checker: ts.TypeChecker, ...args: T) => Domain,
+    ...args: T
+) {
+    let resolvedDomain: Domain | undefined;
+    for (const use of uses) {
+        if (resolvedDomain === undefined) {
+            const checker = getChecker();
+            if (checker === undefined) {
+                yield SENTINEL_USE;
+                return;
+            }
+            resolvedDomain = resolveDomain(checker, ...args);
+        }
+        if (((use.domain & resolvedDomain) !== 0) === inclusive)
+            yield use;
+    }
+}
+
+function resolveLazySymbolDomain(checker: ts.TypeChecker, symbol: Symbol): Domain {
+    let result: Domain = Domain.None;
+    for (const declaration of symbol.declarations)
+        result |= declaration.domain & Domain.Lazy ? getLazyDeclarationDomain(declaration.node, checker) : declaration.domain;
+    return result;
+}
+
 interface Scope {
     resolver: ResolverImpl;
     getDeclarationsForParent(): Iterable<Declaration>;
@@ -334,19 +364,18 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
         return []; // overridden by scopes that really need this
     }
 
-    public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
+    public getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
         this._initialize();
-        const ownSymbol = this._symbols.get(symbol.name);
-        if (ownSymbol !== undefined && ownSymbol.domain & domain) {
-            const resolvedOwnSymbol = this._resolveSymbol(ownSymbol, domain, getChecker);
-            if (resolvedOwnSymbol === undefined) {
-                yield SENTINEL_USE;
-                return;
-            }
-            symbol = this._resolveSymbol(symbol, domain & ~resolvedOwnSymbol.domain, getChecker)!;
+        let ownSymbol = this._symbols.get(symbol.name);
+        if (ownSymbol !== undefined) {
+            ownSymbol = this._resolveSymbol(ownSymbol, domain);
+            if (ownSymbol.domain & Domain.Lazy)
+                // we don't know exactly what we have to deal with -> search uses syntactically and filter or abort later
+                return lazyFilterUses(this._matchUses(symbol, domain, getChecker), getChecker, false, resolveLazySymbolDomain, ownSymbol);
+            symbol = this._resolveSymbol(symbol, domain & ~ownSymbol.domain);
             domain &= symbol.domain;
         }
-        yield* this._matchUses(symbol, domain, getChecker);
+        return this._matchUses(symbol, domain, getChecker);
     }
 
     protected* _matchUses(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
@@ -355,39 +384,29 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
         for (const use of this._uses)
             if (use.domain & domain && use.location.text === symbol.name)
                 yield use;
+
         for (const scope of this._scopes)
             yield* scope.getUsesInScope(symbol, domain, getChecker);
     }
 
-    public* getUses(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
-        const resolvedSymbol = this._resolveSymbol(symbol, domain, getChecker);
-        if (resolvedSymbol === undefined) {
-            // TODO maybe resolve all references and abort if there is a match
-            yield SENTINEL_USE;
-            return;
-        }
-        domain &= resolvedSymbol.domain;
-        yield* this._matchUses(resolvedSymbol, domain, getChecker);
+    public getUses(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
+        symbol = this._resolveSymbol(symbol, domain);
+        domain &= symbol.domain;
+        let uses = this._matchUses(symbol, domain, getChecker);
+        if (symbol.domain & Domain.Lazy)
+            uses = lazyFilterUses(uses, getChecker, true, resolveLazySymbolDomain, symbol);
+        return uses;
     }
 
-    protected _resolveSymbol(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Symbol | undefined {
+    protected _resolveSymbol(symbol: Symbol, domain: Domain): Symbol {
         const result: Symbol = {
             name: symbol.name,
             domain: Domain.None,
             declarations: [],
         };
-        for (let declaration of symbol.declarations) {
+        for (const declaration of symbol.declarations) {
             if ((declaration.domain & domain) === 0)
                 continue;
-            if (declaration.domain & Domain.Lazy) {
-                const checker = getChecker();
-                if (checker === undefined)
-                    return;
-                const newDomain = getLazyDeclarationDomain(declaration.node, checker);
-                if ((newDomain & domain) === 0)
-                    continue;
-                declaration = {...declaration, domain: newDomain};
-            }
             result.declarations.push(declaration);
             result.domain |= declaration.domain;
         }
@@ -585,30 +604,25 @@ class DecoratableDeclarationScope<
     }
 }
 
+function resolveNamespaceExportDomain(checker: ts.TypeChecker, node: ts.ModuleDeclaration | ts.EnumDeclaration, name: string) {
+    const exportedSymbol = checker.getSymbolAtLocation(node)!.exports!.get(ts.escapeLeadingUnderscores(name));
+    if (exportedSymbol === undefined)
+        return Domain.None;
+    return node.kind === ts.SyntaxKind.EnumDeclaration
+        ? Domain.Value
+        : getDomainOfSymbol(exportedSymbol);
+}
+
 class NamespaceScope extends DeclarationScope<ts.ModuleDeclaration | ts.EnumDeclaration> {
-    public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
-        const checker = getChecker();
-        if (checker === undefined) {
-            // we cannot know for sure if a merged namespace has an export that shadows the outer declaration
-            // instead of aborting immediately, analyze the scope and abort if there is a match
-            for (const _ of super.getUsesInScope(symbol, domain, getChecker)) {
-                yield SENTINEL_USE;
-                return;
-            }
-            return;
-        }
-        const namespaceSymbol = checker.getSymbolAtLocation(this._node)!;
-        const exportedSymbol = namespaceSymbol.exports!.get(ts.escapeLeadingUnderscores(symbol.name));
-        if (exportedSymbol !== undefined) {
-            const exportedSymbolDomain = this._node.kind === ts.SyntaxKind.EnumDeclaration
-                ? Domain.Value
-                : getDomainOfSymbol(exportedSymbol);
-            symbol = this._resolveSymbol(symbol, exportedSymbolDomain & ~exportedSymbolDomain, getChecker)!;
-            domain &= symbol.domain;
-            if (domain === Domain.None)
-                return;
-        }
-        yield* super.getUsesInScope(symbol, domain, getChecker);
+    public getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
+        return lazyFilterUses(
+            super.getUsesInScope(symbol, domain, getChecker),
+            getChecker,
+            false,
+            resolveNamespaceExportDomain,
+            this._node,
+            symbol.name,
+        );
     }
 }
 
