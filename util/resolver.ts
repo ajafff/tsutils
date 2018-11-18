@@ -523,7 +523,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
                 });
                 if ((<ts.TypeParameterDeclaration>node).constraint !== undefined)
                     this._analyzeNode((<ts.TypeParameterDeclaration>node).constraint!);
-                if ((<ts.TypeParameterDeclaration>node).decorators !== undefined)
+                if ((<ts.TypeParameterDeclaration>node).default !== undefined)
                     this._analyzeNode((<ts.TypeParameterDeclaration>node).default!);
                 return;
             case ts.SyntaxKind.Identifier: {
