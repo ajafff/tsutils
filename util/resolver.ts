@@ -11,7 +11,9 @@ export enum Domain {
     Any = Type | Value | Namespace,
     ValueOrNamespace = Value | Namespace,
     // @internal
-    Lazy = 1 << 3, // TODO handle Lazy Domain everywhere
+    Lazy = 1 << 3,
+    // @internal
+    DoNotUse = 1 << 4,
 }
 
 interface Declaration {
@@ -71,8 +73,6 @@ function createChecker(checkerOrFactory: TypeCheckerOrFactory | undefined): ts.T
     return result;
 }
 
-const SENTINEL_USE: Use = {location: undefined!, domain: Domain.Any};
-
 class ResolverImpl implements Resolver {
     private _scopeMap = new WeakMap<ts.Node, Scope>();
 
@@ -91,7 +91,7 @@ class ResolverImpl implements Resolver {
         // TODO move this up front to avoid unnecessary work
         domain &= getDeclarationDomain(declaration)!; // TODO
         for (const use of scope.getUses(symbol, domain, makeCheckerFactory(getChecker))) {
-            if (use === SENTINEL_USE)
+            if (use.domain & Domain.DoNotUse)
                 return;
             result.push(use);
         }
@@ -110,11 +110,6 @@ class ResolverImpl implements Resolver {
     private _createScope(node: ts.Node): Scope {
         switch (node.kind) {
             case ts.SyntaxKind.SourceFile:
-            case ts.SyntaxKind.CallSignature:
-            case ts.SyntaxKind.ConstructSignature:
-            case ts.SyntaxKind.MethodSignature:
-            case ts.SyntaxKind.FunctionType:
-            case ts.SyntaxKind.ConstructorType:
                 return new BaseScope(node, ScopeBoundary.Function, this);
             case ts.SyntaxKind.MappedType:
                 return new BaseScope(node, ScopeBoundary.Type, this);
@@ -202,7 +197,12 @@ class ResolverImpl implements Resolver {
             case ts.SyntaxKind.SetAccessor:
             case ts.SyntaxKind.FunctionDeclaration:
             case ts.SyntaxKind.ArrowFunction:
-                return new FunctionLikeScope(<ts.FunctionLikeDeclaration>node, this);
+            case ts.SyntaxKind.CallSignature:
+            case ts.SyntaxKind.ConstructSignature:
+            case ts.SyntaxKind.MethodSignature:
+            case ts.SyntaxKind.FunctionType:
+            case ts.SyntaxKind.ConstructorType:
+                return new FunctionLikeScope(<ts.SignatureDeclaration>node, this);
             case ts.SyntaxKind.WithStatement:
                 return new WithStatementScope(node, ScopeBoundary.Block, this);
             default:
@@ -314,8 +314,8 @@ function* lazyFilterUses<T extends unknown[]>(
         if (resolvedDomain === undefined) {
             const checker = getChecker();
             if (checker === undefined) {
-                yield SENTINEL_USE;
-                return;
+                yield {location: use.location, domain: use.domain | Domain.DoNotUse};
+                continue;
             }
             resolvedDomain = resolveDomain(checker, ...args);
         }
@@ -576,10 +576,8 @@ class WithStatementScope extends BaseScope {
     }
     public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
         // we don't know what could be in scope here
-        for (const _ of super.getUsesInScope(symbol, domain, getChecker)) {
-            yield SENTINEL_USE; // TODO make SENTINEL a flag instead of a constant object
-            return;
-        }
+        for (const use of super.getUsesInScope(symbol, domain, getChecker))
+            yield {location: use.location, domain: use.domain | Domain.DoNotUse};
     }
 }
 
@@ -596,7 +594,7 @@ class DeclarationScope<T extends ts.NamedDeclaration = ts.NamedDeclaration> exte
 }
 
 class DecoratableDeclarationScope<
-    T extends ts.ClassDeclaration | ts.FunctionLikeDeclaration = ts.ClassDeclaration | ts.FunctionLikeDeclaration,
+    T extends ts.ClassDeclaration | ts.SignatureDeclaration = ts.ClassDeclaration | ts.SignatureDeclaration,
 > extends DeclarationScope<T> {
     protected _usesForParent: Use[] = [];
 
@@ -630,6 +628,7 @@ function resolveNamespaceExportDomain(checker: ts.TypeChecker, node: ts.ModuleDe
 
 class NamespaceScope extends DeclarationScope<ts.ModuleDeclaration | ts.EnumDeclaration> {
     public getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
+        // TODO allow type uses in Enum even without the checker
         return lazyFilterUses(
             super.getUsesInScope(symbol, domain, getChecker),
             getChecker,
@@ -685,7 +684,7 @@ class NamedDeclarationExpressionScope extends BaseScope<ts.NamedDeclaration> {
     }
 }
 
-class FunctionLikeInnerScope extends BaseScope<ts.FunctionLikeDeclaration> {
+class FunctionLikeInnerScope extends BaseScope<ts.SignatureDeclaration> {
     public getDeclarationsForParent() {
         return [];
     }
@@ -693,15 +692,15 @@ class FunctionLikeInnerScope extends BaseScope<ts.FunctionLikeDeclaration> {
     protected _analyze() {
         if (this._node.type !== undefined)
             this._analyzeNode(this._node.type);
-        if (this._node.body !== undefined)
+        if ('body' in this._node && this._node.body !== undefined)
             this._analyzeNode(this._node.body);
     }
 }
 
-class FunctionLikeScope extends DecoratableDeclarationScope<ts.FunctionLikeDeclaration> {
+class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclaration> {
     private _innerScope = new FunctionLikeInnerScope(this._node, ScopeBoundary.Function, this.resolver);
 
-    constructor(node: ts.FunctionLikeDeclaration, resolver: ResolverImpl) {
+    constructor(node: ts.SignatureDeclaration, resolver: ResolverImpl) {
         super(
             node,
             ScopeBoundary.Function,
