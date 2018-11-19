@@ -366,6 +366,7 @@ export function isBlockScopeBoundary(node: ts.Node): ScopeBoundary {
         case ts.SyntaxKind.ForOfStatement:
         case ts.SyntaxKind.CaseBlock:
         case ts.SyntaxKind.CatchClause:
+        case ts.SyntaxKind.WithStatement:
             return ScopeBoundary.Block;
         default:
             return ScopeBoundary.None;
