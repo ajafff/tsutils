@@ -372,8 +372,8 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
             if (ownSymbol.domain & Domain.Lazy)
                 // we don't know exactly what we have to deal with -> search uses syntactically and filter or abort later
                 return lazyFilterUses(this._matchUses(symbol, domain, getChecker), getChecker, false, resolveLazySymbolDomain, ownSymbol);
-            symbol = this._resolveSymbol(symbol, domain & ~ownSymbol.domain);
-            domain &= symbol.domain;
+            domain &= ~ownSymbol.domain;
+            symbol = this._resolveSymbol(symbol, domain);
         }
         return this._matchUses(symbol, domain, getChecker);
     }
@@ -737,3 +737,7 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.FunctionLikeDecla
 // * type-only namespace not shadowing value
 // exporting partially shadowed declaration (SourceFile and Namespace)
 // domain of 'export import = ' in namespace
+// getUsesForParent doesn't work as expected if there are subscopes
+//    ConditionalType using 'typeof' in function's type parameter constraint
+//    FunctionScope in Decorator
+// handle WithStatement
