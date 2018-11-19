@@ -12,6 +12,7 @@ export enum Domain {
     ValueOrNamespace = Value | Namespace,
     // @internal
     Lazy = 1 << 3,
+    /** Mark this use as unsafe as we cannot know for sure if it really resolves to a given declaration. */
     // @internal
     DoNotUse = 1 << 4,
 }
@@ -642,15 +643,11 @@ class NamespaceScope extends DeclarationScope<ts.ModuleDeclaration | ts.EnumDecl
 
 class ConditionalTypeScope extends BaseScope<ts.ConditionalTypeNode> {
     protected _isOwnDeclaration(declaration: Declaration) {
-        return super._isOwnDeclaration(declaration) &&
-            declaration.node.pos > this.node.extendsType.pos &&
-            declaration.node.pos < this.node.extendsType.end;
+        return super._isOwnDeclaration(declaration) && isInRange(declaration.node.pos, this.node.extendsType);
     }
 
-    public _propagateUsesToParent(location: ts.Node) {
-        return location.pos < this.node.trueType.pos || location.pos > this.node.trueType.end
-            ? Domain.Any
-            : Domain.None;
+    protected _propagateUsesToParent(location: ts.Node) {
+        return isInRange(location.pos, this.node.trueType) ? Domain.None : Domain.Any;
     }
 }
 
@@ -722,15 +719,28 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
     }
 
     protected _propagateUsesToParent(location: ts.Node) {
-        return super._propagateUsesToParent(location) |
-            (
-                this.node.typeParameters !== undefined &&
-                location.pos > this.node.typeParameters.pos &&
-                location.pos < this.node.typeParameters.end
-                    ? Domain.Type
-                    : Domain.None
-            );
+        return super._propagateUsesToParent(location) || // method decorators
+            // 'typeof' in type parameters cannot access parameters of that function
+            (isInRange(location.pos, this.node.typeParameters) ? Domain.Type : Domain.None) ||
+            // property decorators cannot access parameters
+            (isInParameterDecorator(location.pos, this.node) ? Domain.Any : Domain.None);
     }
+}
+
+function isInParameterDecorator(pos: number, {parameters}: ts.SignatureDeclaration): boolean {
+    if (!isInRange(pos, parameters))
+        return false;
+    for (const param of parameters) {
+        if (isInRange(pos, param.decorators))
+            return true;
+        if (pos < param.end)
+            break;
+    }
+    return false;
+}
+
+function isInRange(pos: number, range?: ts.TextRange): boolean {
+    return range !== undefined && pos > range.pos && pos < range.end;
 }
 
 // * function/class decorated with itself
@@ -745,3 +755,4 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
 // * ConditionalType using 'typeof' in function's type parameter constraint
 // * FunctionScope in Decorator has no access to parameters and generics
 // * with statement
+// * parameter decorator cannot access parameters
