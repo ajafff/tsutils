@@ -332,9 +332,9 @@ function resolveLazySymbolDomain(checker: ts.TypeChecker, symbol: Symbol): Domai
 }
 
 interface Scope {
+    node: ts.Node;
     resolver: ResolverImpl;
     getDeclarationsForParent(): Iterable<Declaration>;
-    getUsesForParent(): Iterable<Use>;
     getUses(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
     getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
     getSymbol(declaration: ts.Identifier): Symbol | undefined;
@@ -348,10 +348,10 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     private _initial = true;
     private _uses: Use[] = [];
     private _symbols = new Map<string, Symbol>();
-    private _scopes: Scope[] = [];
+    protected _scopes: Scope[] = [];
     protected _declarationsForParent: Declaration[] = [];
 
-    constructor(protected _node: T, protected _boundary: ScopeBoundary, public resolver: ResolverImpl) {}
+    constructor(public node: T, protected _boundary: ScopeBoundary, public resolver: ResolverImpl) {}
 
     public getDelegateScope(_location: ts.Node): Scope {
         return this;
@@ -362,39 +362,55 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
         return this._declarationsForParent;
     }
 
-    public getUsesForParent(): Iterable<Use> {
-        return []; // overridden by scopes that really need this
-    }
-
-    public getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
+    public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
         this._initialize();
+        yield* this._matchUsesBeforeShadowing(symbol, domain, getChecker);
         let ownSymbol = this._symbols.get(symbol.name);
         if (ownSymbol !== undefined) {
             ownSymbol = this._resolveSymbol(ownSymbol, domain);
             if (ownSymbol.domain & Domain.Lazy)
                 // we don't know exactly what we have to deal with -> search uses syntactically and filter or abort later
-                return lazyFilterUses(this._matchUses(symbol, domain, getChecker), getChecker, false, resolveLazySymbolDomain, ownSymbol);
+                yield* lazyFilterUses(
+                    this._matchUsesAfterShadowing(symbol, domain, getChecker),
+                    getChecker,
+                    false,
+                    resolveLazySymbolDomain,
+                    ownSymbol,
+                );
             domain &= ~ownSymbol.domain;
             symbol = this._resolveSymbol(symbol, domain);
         }
-        return this._matchUses(symbol, domain, getChecker);
+        yield* this._matchUsesAfterShadowing(symbol, domain, getChecker);
     }
 
-    protected* _matchUses(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
+    protected* _matchUsesBeforeShadowing(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
+        for (const use of this._uses)
+            if (use.domain & domain && use.location.text === symbol.name && use.domain & this._propagateUsesToParent(use.location))
+                yield use;
+        for (const scope of this._scopes) {
+            const propagateDomain = this._propagateUsesToParent(scope.node) & domain;
+            if (propagateDomain !== Domain.None)
+                yield* scope.getUsesInScope(this._resolveSymbol(symbol, propagateDomain), propagateDomain, getChecker);
+        }
+    }
+
+    protected* _matchUsesAfterShadowing(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
         if (domain === Domain.None)
             return;
         for (const use of this._uses)
-            if (use.domain & domain && use.location.text === symbol.name)
+            if (use.domain & domain && use.location.text === symbol.name && (use.domain & this._propagateUsesToParent(use.location)) === 0)
                 yield use;
-
-        for (const scope of this._scopes)
-            yield* scope.getUsesInScope(symbol, domain, getChecker);
+        for (const scope of this._scopes) {
+            const nonPropagatedDomain = domain & ~this._propagateUsesToParent(scope.node);
+            if (nonPropagatedDomain !== Domain.None)
+                yield* scope.getUsesInScope(this._resolveSymbol(symbol, nonPropagatedDomain), nonPropagatedDomain, getChecker);
+        }
     }
 
     public getUses(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
         symbol = this._resolveSymbol(symbol, domain);
         domain &= symbol.domain;
-        let uses = this._matchUses(symbol, domain, getChecker);
+        let uses = this._matchUsesAfterShadowing(symbol, domain, getChecker);
         if (symbol.domain & Domain.Lazy)
             uses = lazyFilterUses(uses, getChecker, true, resolveLazySymbolDomain, symbol);
         return uses;
@@ -449,22 +465,23 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     protected _initialize() {
         if (this._initial) {
             this._analyze();
-            for (const scope of this._scopes) {
+            for (const scope of this._scopes)
                 for (const decl of scope.getDeclarationsForParent())
                     this.addDeclaration(decl);
-                for (const use of scope.getUsesForParent())
-                    this.addUse(use);
-            }
             this._initial = false;
         }
     }
 
     protected _analyze() {
-        ts.forEachChild(this._node, this._analyzeNode);
+        ts.forEachChild(this.node, this._analyzeNode);
     }
 
     protected _isOwnDeclaration(declaration: Declaration) {
         return (declaration.selector & this._boundary) !== 0;
+    }
+
+    protected _propagateUsesToParent(_location: ts.Node): Domain {
+        return Domain.None;
     }
 
     @bind
@@ -596,24 +613,11 @@ class DeclarationScope<T extends ts.NamedDeclaration = ts.NamedDeclaration> exte
 class DecoratableDeclarationScope<
     T extends ts.ClassDeclaration | ts.SignatureDeclaration = ts.ClassDeclaration | ts.SignatureDeclaration,
 > extends DeclarationScope<T> {
-    protected _usesForParent: Use[] = [];
-
-    public getUsesForParent() {
-        this._initialize();
-        return this._usesForParent;
-    }
-
-    public addUse(use: Use) {
-        if (this._isOwnUse(use)) {
-            super.addUse(use);
-        } else {
-            this._usesForParent.push(use);
-        }
-    }
-
-    protected _isOwnUse(use: Use) {
+    protected _propagateUsesToParent(location: ts.Node) {
         // decorators cannot access parameters and type parameters of the declaration they decorate
-        return this._node.decorators === undefined || use.location.end > this._node.decorators.end;
+        return this.node.decorators !== undefined && location.pos < this.node.decorators.end
+            ? Domain.Any
+            : Domain.None;
     }
 }
 
@@ -634,33 +638,23 @@ class NamespaceScope extends DeclarationScope<ts.ModuleDeclaration | ts.EnumDecl
             getChecker,
             false,
             resolveNamespaceExportDomain,
-            this._node,
+            this.node,
             symbol.name,
         );
     }
 }
 
 class ConditionalTypeScope extends BaseScope<ts.ConditionalTypeNode> {
-    private _usesForParent: Use[] = [];
-
     protected _isOwnDeclaration(declaration: Declaration) {
         return super._isOwnDeclaration(declaration) &&
-            declaration.node.pos > this._node.extendsType.pos &&
-            declaration.node.pos < this._node.extendsType.end;
+            declaration.node.pos > this.node.extendsType.pos &&
+            declaration.node.pos < this.node.extendsType.end;
     }
 
-    public getUsesForParent() {
-        this._initialize();
-        return this._usesForParent;
-    }
-
-    public addUse(use: Use) {
-        // only 'trueType' can access InferTypes of a ConditionalType
-        if (use.location.pos < this._node.trueType.pos || use.location.pos > this._node.trueType.end) {
-            this._usesForParent.push(use);
-        } else {
-            super.addUse(use);
-        }
+    public _propagateUsesToParent(location: ts.Node) {
+        return location.pos < this.node.trueType.pos || location.pos > this.node.trueType.end
+            ? Domain.Any
+            : Domain.None;
     }
 }
 
@@ -678,7 +672,7 @@ class NamedDeclarationExpressionScope extends BaseScope<ts.NamedDeclaration> {
     }
 
     public getDelegateScope(location: ts.Node): Scope {
-        return location === this._node.name
+        return location === this.node.name
             ? this
             : this._childScope.getDelegateScope(location);
     }
@@ -690,15 +684,15 @@ class FunctionLikeInnerScope extends BaseScope<ts.SignatureDeclaration> {
     }
 
     protected _analyze() {
-        if (this._node.type !== undefined)
-            this._analyzeNode(this._node.type);
-        if ('body' in this._node && this._node.body !== undefined)
-            this._analyzeNode(this._node.body);
+        if (this.node.type !== undefined)
+            this._analyzeNode(this.node.type);
+        if ('body' in this.node && this.node.body !== undefined)
+            this._analyzeNode(this.node.body);
     }
 }
 
 class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclaration> {
-    private _innerScope = new FunctionLikeInnerScope(this._node, ScopeBoundary.Function, this.resolver);
+    private _innerScope = new FunctionLikeInnerScope(this.node, ScopeBoundary.Function, this.resolver);
 
     constructor(node: ts.SignatureDeclaration, resolver: ResolverImpl) {
         super(
@@ -717,27 +711,28 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
     }
 
     public getDelegateScope(location: ts.Node): Scope {
-        return location.pos < this._node.parameters.end
+        return location.pos < this.node.parameters.end
             ? this
             : this._innerScope.getDelegateScope(location);
     }
 
     protected _analyze() {
         this.addChildScope(this._innerScope);
-        if (this._node.typeParameters !== undefined)
-            for (const typeParameter of this._node.typeParameters)
-                this._analyzeNode(typeParameter);
-        for (const parameter of this._node.parameters)
-            this._analyzeNode(parameter);
+        if (this.node.decorators !== undefined)
+            this.node.decorators.forEach(this._analyzeNode);
+        if (this.node.typeParameters !== undefined)
+            this.node.typeParameters.forEach(this._analyzeNode);
+        this.node.parameters.forEach(this._analyzeNode);
     }
 
-    protected _isOwnUse(use: Use) {
-        return super._isOwnUse(use) &&
-            (// 'typeof' in TypeParameters has no access to parameters
-                (use.domain & Domain.Type) !== 0 ||
-                this._node.typeParameters === undefined ||
-                use.location.pos < this._node.typeParameters.pos ||
-                use.location.pos > this._node.typeParameters.end
+    protected _propagateUsesToParent(location: ts.Node) {
+        return super._propagateUsesToParent(location) |
+            (
+                this.node.typeParameters !== undefined &&
+                location.pos > this.node.typeParameters.pos &&
+                location.pos < this.node.typeParameters.end
+                    ? Domain.Type
+                    : Domain.None
             );
     }
 }
@@ -751,7 +746,6 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
 // * type-only namespace not shadowing value
 // exporting partially shadowed declaration (SourceFile and Namespace)
 // domain of 'export import = ' in namespace
-// getUsesForParent doesn't work as expected if there are subscopes
-//    ConditionalType using 'typeof' in function's type parameter constraint
-//    FunctionScope in Decorator
+// * ConditionalType using 'typeof' in function's type parameter constraint
+// * FunctionScope in Decorator has no access to parameters and generics
 // * with statement
