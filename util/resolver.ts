@@ -203,6 +203,8 @@ class ResolverImpl implements Resolver {
             case ts.SyntaxKind.FunctionDeclaration:
             case ts.SyntaxKind.ArrowFunction:
                 return new FunctionLikeScope(<ts.FunctionLikeDeclaration>node, this);
+            case ts.SyntaxKind.WithStatement:
+                return new WithStatementScope(node, ScopeBoundary.Block, this);
             default:
                 if (isBlockScopeBoundary(node))
                     return new BaseScope(node, ScopeBoundary.Block, this);
@@ -568,6 +570,19 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     }
 }
 
+class WithStatementScope extends BaseScope {
+    public getDeclarationsForParent() {
+        return []; // nothing to do here
+    }
+    public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
+        // we don't know what could be in scope here
+        for (const _ of super.getUsesInScope(symbol, domain, getChecker)) {
+            yield SENTINEL_USE; // TODO make SENTINEL a flag instead of a constant object
+            return;
+        }
+    }
+}
+
 class DeclarationScope<T extends ts.NamedDeclaration = ts.NamedDeclaration> extends BaseScope<T> {
     constructor(node: T, boundary: ScopeBoundary, resolver: ResolverImpl, declaration?: Declaration) {
         super(node, boundary, resolver);
@@ -740,4 +755,4 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.FunctionLikeDecla
 // getUsesForParent doesn't work as expected if there are subscopes
 //    ConditionalType using 'typeof' in function's type parameter constraint
 //    FunctionScope in Decorator
-// handle WithStatement
+// * with statement
