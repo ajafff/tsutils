@@ -333,14 +333,10 @@ function resolveLazySymbolDomain(checker: ts.TypeChecker, symbol: Symbol): Domai
 
 interface Scope {
     node: ts.Node;
-    resolver: ResolverImpl;
     getDeclarationsForParent(): Iterable<Declaration>;
     getUses(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
     getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
     getSymbol(declaration: ts.Identifier): Symbol | undefined;
-    addUse(use: Use): void;
-    addDeclaration(declaration: Declaration): void;
-    addChildScope(scope: Scope): void;
     getDelegateScope(location: ts.Node): Scope;
 }
 
@@ -348,10 +344,10 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     private _initial = true;
     private _uses: Use[] = [];
     private _symbols = new Map<string, Symbol>();
-    protected _scopes: Scope[] = [];
+    private _scopes: Scope[] = [];
     protected _declarationsForParent: Declaration[] = [];
 
-    constructor(public node: T, protected _boundary: ScopeBoundary, public resolver: ResolverImpl) {}
+    constructor(public node: T, protected _boundary: ScopeBoundary, protected _resolver: ResolverImpl) {}
 
     public getDelegateScope(_location: ts.Node): Scope {
         return this;
@@ -436,11 +432,11 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
         return this._symbols.get(declaration.text);
     }
 
-    public addUse(use: Use) {
+    protected _addUse(use: Use) {
         this._uses.push(use);
     }
 
-    public addDeclaration(declaration: Declaration) {
+    protected _addDeclaration(declaration: Declaration) {
         if (!this._isOwnDeclaration(declaration)) {
             this._declarationsForParent.push(declaration);
             return;
@@ -458,7 +454,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
         }
     }
 
-    public addChildScope(scope: Scope) {
+    protected _addChildScope(scope: Scope) {
         this._scopes.push(scope);
     }
 
@@ -467,7 +463,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
             this._analyze();
             for (const scope of this._scopes)
                 for (const decl of scope.getDeclarationsForParent())
-                    this.addDeclaration(decl);
+                    this._addDeclaration(decl);
             this._initial = false;
         }
     }
@@ -487,7 +483,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     @bind
     protected _analyzeNode(node: ts.Node): void {
         if (isScopeBoundary(node)) {
-            this.addChildScope(this.resolver.getOrCreateScope(node));
+            this._addChildScope(this._resolver.getOrCreateScope(node));
             return;
         }
         switch (node.kind) {
@@ -501,7 +497,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
                     return (<ts.ParameterDeclaration>node).type && this._analyzeNode((<ts.ParameterDeclaration>node).type!);
                 return this._handleVariableLikeDeclaration(<ts.ParameterDeclaration>node, false);
             case ts.SyntaxKind.EnumMember:
-                this.addDeclaration({
+                this._addDeclaration({
                     name: getPropertyName((<ts.EnumMember>node).name)!,
                     domain: Domain.Value,
                     node: <ts.EnumMember>node,
@@ -512,7 +508,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
                 return;
             case ts.SyntaxKind.ImportClause:
                 if ((<ts.ImportClause>node).name !== undefined)
-                    this.addDeclaration({
+                    this._addDeclaration({
                         name: (<ts.ImportClause>node).name!.text,
                         domain: Domain.Any | Domain.Lazy,
                         node: <ts.ImportClause>node,
@@ -526,7 +522,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
                 // falls through
             case ts.SyntaxKind.ImportSpecifier:
             case ts.SyntaxKind.NamespaceImport:
-                this.addDeclaration({
+                this._addDeclaration({
                     name: (<ts.Identifier>(<ts.NamedDeclaration>node).name).text,
                     domain: Domain.Any | Domain.Lazy,
                     node: <ts.NamedDeclaration>node,
@@ -534,7 +530,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
                 });
                 return;
             case ts.SyntaxKind.TypeParameter:
-                this.addDeclaration({
+                this._addDeclaration({
                     name: (<ts.TypeParameterDeclaration>node).name.text,
                     domain: Domain.Type,
                     node: (<ts.TypeParameterDeclaration>node).name,
@@ -548,7 +544,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
             case ts.SyntaxKind.Identifier: {
                 const domain = getUsageDomain(<ts.Identifier>node);
                 if (domain !== undefined) // TODO
-                    this.addUse({location: <ts.Identifier>node, domain: domain | 0});
+                    this._addUse({location: <ts.Identifier>node, domain: domain | 0});
                 return;
             }
         }
@@ -573,7 +569,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     private _handleBindingName(name: ts.BindingName, blockScoped: boolean) {
         const selector = blockScoped ? ScopeBoundarySelector.Block : ScopeBoundarySelector.Function;
         if (name.kind === ts.SyntaxKind.Identifier)
-            return this.addDeclaration({name: name.text, domain: Domain.Value, node: name, selector});
+            return this._addDeclaration({name: name.text, domain: Domain.Value, node: name, selector});
 
         for (const element of name.elements) {
             if (element.kind === ts.SyntaxKind.OmittedExpression)
@@ -668,7 +664,7 @@ class NamedDeclarationExpressionScope extends BaseScope<ts.NamedDeclaration> {
     }
 
     protected _analyze() {
-        this.addChildScope(this._childScope);
+        this._addChildScope(this._childScope);
     }
 
     public getDelegateScope(location: ts.Node): Scope {
@@ -692,7 +688,7 @@ class FunctionLikeInnerScope extends BaseScope<ts.SignatureDeclaration> {
 }
 
 class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclaration> {
-    private _innerScope = new FunctionLikeInnerScope(this.node, ScopeBoundary.Function, this.resolver);
+    private _innerScope = new FunctionLikeInnerScope(this.node, ScopeBoundary.Function, this._resolver);
 
     constructor(node: ts.SignatureDeclaration, resolver: ResolverImpl) {
         super(
@@ -717,7 +713,7 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
     }
 
     protected _analyze() {
-        this.addChildScope(this._innerScope);
+        this._addChildScope(this._innerScope);
         if (this.node.decorators !== undefined)
             this.node.decorators.forEach(this._analyzeNode);
         if (this.node.typeParameters !== undefined)
