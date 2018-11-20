@@ -157,7 +157,7 @@ class ResolverImpl implements Resolver {
                 return new ConditionalTypeScope(<ts.ConditionalTypeNode>node, ScopeBoundary.ConditionalType, this);
             // TODO handling of ClassLikeDeclaration might need change when https://github.com/Microsoft/TypeScript/issues/28472 is resolved
             case ts.SyntaxKind.ClassDeclaration:
-                return new DecoratableDeclarationScope(
+                return new ClassScope(
                     <ts.ClassDeclaration>node,
                     ScopeBoundary.Function,
                     this,
@@ -172,8 +172,8 @@ class ResolverImpl implements Resolver {
                 );
             case ts.SyntaxKind.ClassExpression:
                 if ((<ts.ClassExpression>node).name === undefined)
-                    return new DeclarationScope(<ts.ClassExpression>node, ScopeBoundary.Function, this);
-                return new NamedDeclarationExpressionScope(<ts.ClassExpression>node, this, new DeclarationScope(
+                    return new ClassScope(<ts.ClassExpression>node, ScopeBoundary.Function, this);
+                return new NamedDeclarationExpressionScope(<ts.ClassExpression>node, this, new ClassScope(
                     <ts.ClassExpression>node,
                     ScopeBoundary.Function,
                     this,
@@ -339,6 +339,8 @@ interface Scope {
     getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
     getSymbol(declaration: ts.Identifier): Symbol | undefined;
     getDelegateScope(location: ts.Node): Scope;
+    matchUsesBeforeShadowing(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
+    matchUsesAfterShadowing(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
 }
 
 class BaseScope<T extends ts.Node = ts.Node> implements Scope {
@@ -361,14 +363,14 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
 
     public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
         this._initialize();
-        yield* this._matchUsesBeforeShadowing(symbol, domain, getChecker);
+        yield* this.matchUsesBeforeShadowing(symbol, domain, getChecker);
         let ownSymbol = this._symbols.get(symbol.name);
         if (ownSymbol !== undefined) {
             ownSymbol = this._resolveSymbol(ownSymbol, domain);
             if (ownSymbol.domain & Domain.Lazy)
                 // we don't know exactly what we have to deal with -> search uses syntactically and filter or abort later
                 yield* lazyFilterUses(
-                    this._matchUsesAfterShadowing(symbol, domain, getChecker),
+                    this.matchUsesAfterShadowing(symbol, domain, getChecker),
                     getChecker,
                     false,
                     resolveLazySymbolDomain,
@@ -377,37 +379,38 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
             domain &= ~ownSymbol.domain;
             symbol = this._resolveSymbol(symbol, domain);
         }
-        yield* this._matchUsesAfterShadowing(symbol, domain, getChecker);
+        yield* this.matchUsesAfterShadowing(symbol, domain, getChecker);
     }
 
-    protected* _matchUsesBeforeShadowing(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
+    public* matchUsesBeforeShadowing(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
         for (const use of this._uses)
             if (use.domain & domain && use.location.text === symbol.name && use.domain & this._propagateUsesToParent(use.location))
                 yield use;
-        for (const scope of this._scopes) {
-            const propagateDomain = this._propagateUsesToParent(scope.node) & domain;
-            if (propagateDomain !== Domain.None)
-                yield* scope.getUsesInScope(this._resolveSymbol(symbol, propagateDomain), propagateDomain, getChecker);
-        }
+        for (const scope of this._scopes)
+            yield* this._matchChildScope(scope, true, symbol, domain, getChecker);
     }
 
-    protected* _matchUsesAfterShadowing(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
+    protected _matchChildScope(scope: Scope, beforeShadowing: boolean, symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
+        domain &= beforeShadowing ? this._propagateUsesToParent(scope.node) : ~this._propagateUsesToParent(scope.node);
+        if (domain !== Domain.None)
+            return scope.getUsesInScope(this._resolveSymbol(symbol, domain), domain, getChecker);
+        return [];
+    }
+
+    public* matchUsesAfterShadowing(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
         if (domain === Domain.None)
             return;
         for (const use of this._uses)
             if (use.domain & domain && use.location.text === symbol.name && (use.domain & this._propagateUsesToParent(use.location)) === 0)
                 yield use;
-        for (const scope of this._scopes) {
-            const nonPropagatedDomain = domain & ~this._propagateUsesToParent(scope.node);
-            if (nonPropagatedDomain !== Domain.None)
-                yield* scope.getUsesInScope(this._resolveSymbol(symbol, nonPropagatedDomain), nonPropagatedDomain, getChecker);
-        }
+        for (const scope of this._scopes)
+            yield* this._matchChildScope(scope, false, symbol, domain, getChecker);
     }
 
     public getUses(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
         symbol = this._resolveSymbol(symbol, domain);
         domain &= symbol.domain;
-        let uses = this._matchUsesAfterShadowing(symbol, domain, getChecker);
+        let uses = this.matchUsesAfterShadowing(symbol, domain, getChecker);
         if (symbol.domain & Domain.Lazy)
             uses = lazyFilterUses(uses, getChecker, true, resolveLazySymbolDomain, symbol);
         return uses;
@@ -608,7 +611,7 @@ class DeclarationScope<T extends ts.NamedDeclaration = ts.NamedDeclaration> exte
 }
 
 class DecoratableDeclarationScope<
-    T extends ts.ClassDeclaration | ts.SignatureDeclaration = ts.ClassDeclaration | ts.SignatureDeclaration,
+    T extends ts.ClassLikeDeclaration | ts.SignatureDeclaration = ts.ClassLikeDeclaration | ts.SignatureDeclaration,
 > extends DeclarationScope<T> {
     protected _propagateUsesToParent(location: ts.Node) {
         // decorators cannot access parameters and type parameters of the declaration they decorate
@@ -616,6 +619,33 @@ class DecoratableDeclarationScope<
             ? Domain.Any
             : Domain.None;
     }
+}
+
+class ClassScope extends DecoratableDeclarationScope<ts.ClassLikeDeclaration> {
+    protected _propagateUsesToParent(location: ts.Node) {
+        return super._propagateUsesToParent(location) || // decorators
+            // computed property names cannot access type parameters of class
+            // TODO this won't work for method scopes
+            (isInComputedNameOfMember(location.pos, this.node) ? Domain.Type : Domain.None) ||
+            // expression in 'extends' clause cannot access type parameters of class
+            (isInHeritageClauseExpression(location.pos, this.node) ? Domain.Type : Domain.None);
+    }
+}
+
+function isInHeritageClauseExpression(pos: number, {heritageClauses}: ts.ClassLikeDeclaration): boolean {
+    if (heritageClauses === undefined || heritageClauses[0].token !== ts.SyntaxKind.ExtendsKeyword || heritageClauses[0].types.length !== 1)
+        return false;
+    return isInRange(pos, heritageClauses[0].types[0].expression);
+}
+
+function isInComputedNameOfMember(pos: number, node: ts.ClassLikeDeclaration): boolean {
+    for (const member of node.members) {
+        if (pos < member.pos)
+            break;
+        if (isInComputedPropertyName(pos, member))
+            return true;
+    }
+    return false;
 }
 
 function resolveNamespaceExportDomain(checker: ts.TypeChecker, node: ts.ModuleDeclaration | ts.EnumDeclaration, name: string) {
@@ -723,8 +753,14 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
             // 'typeof' in type parameters cannot access parameters of that function
             (isInRange(location.pos, this.node.typeParameters) ? Domain.Type : Domain.None) ||
             // property decorators cannot access parameters
-            (isInParameterDecorator(location.pos, this.node) ? Domain.Any : Domain.None);
+            (isInParameterDecorator(location.pos, this.node) ? Domain.Any : Domain.None) ||
+            // computed method name cannot access method generics and parameters
+            (isInComputedPropertyName(location.pos, this.node) ? Domain.Any : Domain.None);
     }
+}
+
+function isInComputedPropertyName(pos: number, {name}: ts.ClassElement | ts.SignatureDeclaration): boolean {
+    return name !== undefined && name.kind === ts.SyntaxKind.ComputedPropertyName && isInRange(pos, name);
 }
 
 function isInParameterDecorator(pos: number, {parameters}: ts.SignatureDeclaration): boolean {
@@ -739,8 +775,8 @@ function isInParameterDecorator(pos: number, {parameters}: ts.SignatureDeclarati
     return false;
 }
 
-function isInRange(pos: number, range?: ts.TextRange): boolean {
-    return range !== undefined && pos > range.pos && pos < range.end;
+function isInRange(pos: number, range: ts.TextRange | undefined): boolean {
+    return range !== undefined && pos >= range.pos && pos < range.end;
 }
 
 // * function/class decorated with itself
@@ -756,3 +792,10 @@ function isInRange(pos: number, range?: ts.TextRange): boolean {
 // * FunctionScope in Decorator has no access to parameters and generics
 // * with statement
 // * parameter decorator cannot access parameters
+// handle arguments
+// * computed property names of methods cannot access parameters and generics
+// * computed property names cannot access class generics
+// computed method names cannot access class generics
+// * ExpressionWithTypeArguments.expression in class extends clause cannot reference class generics
+// in ambient namespace exclude alias exports 'export {T as V}'
+// make sure namespace import is treated as namespace
