@@ -157,7 +157,7 @@ class ResolverImpl implements Resolver {
                 return new ConditionalTypeScope(<ts.ConditionalTypeNode>node, ScopeBoundary.ConditionalType, this);
             // TODO handling of ClassLikeDeclaration might need change when https://github.com/Microsoft/TypeScript/issues/28472 is resolved
             case ts.SyntaxKind.ClassDeclaration:
-                return new ClassScope(
+                return new DecoratableDeclarationScope(
                     <ts.ClassDeclaration>node,
                     ScopeBoundary.Function,
                     this,
@@ -172,8 +172,8 @@ class ResolverImpl implements Resolver {
                 );
             case ts.SyntaxKind.ClassExpression:
                 if ((<ts.ClassExpression>node).name === undefined)
-                    return new ClassScope(<ts.ClassExpression>node, ScopeBoundary.Function, this);
-                return new NamedDeclarationExpressionScope(<ts.ClassExpression>node, this, new ClassScope(
+                    return new DeclarationScope(<ts.ClassExpression>node, ScopeBoundary.Function, this);
+                return new NamedDeclarationExpressionScope(<ts.ClassExpression>node, this, new DeclarationScope(
                     <ts.ClassExpression>node,
                     ScopeBoundary.Function,
                     this,
@@ -339,8 +339,23 @@ interface Scope {
     getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
     getSymbol(declaration: ts.Identifier): Symbol | undefined;
     getDelegateScope(location: ts.Node): Scope;
-    matchUsesBeforeShadowing(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
-    matchUsesAfterShadowing(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
+}
+
+interface MatchRange extends ts.TextRange {
+    domain: Domain;
+}
+
+namespace MatchRange {
+    export function create(domain: Domain, {pos, end}: ts.TextRange): MatchRange {
+        return {domain, pos, end};
+    }
+}
+
+function getDomainOfMatchingRange(pos: number, ranges: ReadonlyArray<MatchRange>) {
+    for (const range of ranges)
+        if (isInRange(pos, range))
+            return range.domain;
+    return Domain.None;
 }
 
 class BaseScope<T extends ts.Node = ts.Node> implements Scope {
@@ -348,6 +363,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     private _uses: Use[] = [];
     private _symbols = new Map<string, Symbol>();
     private _scopes: Scope[] = [];
+    private _propagatedRanges: ReadonlyArray<MatchRange> = this._collectPropagatedRanges();
     protected _declarationsForParent: Declaration[] = [];
 
     constructor(public node: T, protected _boundary: ScopeBoundary, protected _resolver: ResolverImpl) {}
@@ -363,14 +379,16 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
 
     public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
         this._initialize();
-        yield* this.matchUsesBeforeShadowing(symbol, domain, getChecker);
+        if (this._propagatedRanges.length !== 0)
+            yield* this._match(symbol, domain, getChecker, this._propagatedRanges, true);
+
         let ownSymbol = this._symbols.get(symbol.name);
         if (ownSymbol !== undefined) {
             ownSymbol = this._resolveSymbol(ownSymbol, domain);
             if (ownSymbol.domain & Domain.Lazy)
                 // we don't know exactly what we have to deal with -> search uses syntactically and filter or abort later
                 yield* lazyFilterUses(
-                    this.matchUsesAfterShadowing(symbol, domain, getChecker),
+                    this._match(symbol, domain, getChecker, this._propagatedRanges, false),
                     getChecker,
                     false,
                     resolveLazySymbolDomain,
@@ -379,38 +397,31 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
             domain &= ~ownSymbol.domain;
             symbol = this._resolveSymbol(symbol, domain);
         }
-        yield* this.matchUsesAfterShadowing(symbol, domain, getChecker);
+        yield* this._match(symbol, domain, getChecker, this._propagatedRanges, false);
     }
 
-    public* matchUsesBeforeShadowing(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
+    private* _match(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory, ranges: ReadonlyArray<MatchRange>, include: boolean) {
         for (const use of this._uses)
-            if (use.domain & domain && use.location.text === symbol.name && use.domain & this._propagateUsesToParent(use.location))
+            if (
+                use.domain & domain &&
+                use.location.text === symbol.name &&
+                ((use.domain & getDomainOfMatchingRange(use.location.pos, ranges)) !== 0) === include
+            )
                 yield use;
-        for (const scope of this._scopes)
-            yield* this._matchChildScope(scope, true, symbol, domain, getChecker);
-    }
-
-    protected _matchChildScope(scope: Scope, beforeShadowing: boolean, symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
-        domain &= beforeShadowing ? this._propagateUsesToParent(scope.node) : ~this._propagateUsesToParent(scope.node);
-        if (domain !== Domain.None)
-            return scope.getUsesInScope(this._resolveSymbol(symbol, domain), domain, getChecker);
-        return [];
-    }
-
-    public* matchUsesAfterShadowing(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
-        if (domain === Domain.None)
-            return;
-        for (const use of this._uses)
-            if (use.domain & domain && use.location.text === symbol.name && (use.domain & this._propagateUsesToParent(use.location)) === 0)
-                yield use;
-        for (const scope of this._scopes)
-            yield* this._matchChildScope(scope, false, symbol, domain, getChecker);
+        for (const scope of this._scopes) {
+            let propagatedDomain = getDomainOfMatchingRange(scope.node.pos, ranges);
+            if (!include)
+                propagatedDomain = ~propagatedDomain;
+            const d = domain & propagatedDomain;
+            if (d !== 0)
+                yield* scope.getUsesInScope(this._resolveSymbol(symbol, d), d, getChecker);
+        }
     }
 
     public getUses(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
         symbol = this._resolveSymbol(symbol, domain);
-        domain &= symbol.domain;
-        let uses = this.matchUsesAfterShadowing(symbol, domain, getChecker);
+        domain &= symbol.domain; // TODO kann weg
+        let uses = this._match(symbol, domain, getChecker, this._propagatedRanges, false);
         if (symbol.domain & Domain.Lazy)
             uses = lazyFilterUses(uses, getChecker, true, resolveLazySymbolDomain, symbol);
         return uses;
@@ -480,8 +491,8 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
         return (declaration.selector & this._boundary) !== 0;
     }
 
-    protected _propagateUsesToParent(_location: ts.Node): Domain {
-        return Domain.None;
+    protected _collectPropagatedRanges(): MatchRange[] {
+        return [];
     }
 
     @bind
@@ -611,41 +622,15 @@ class DeclarationScope<T extends ts.NamedDeclaration = ts.NamedDeclaration> exte
 }
 
 class DecoratableDeclarationScope<
-    T extends ts.ClassLikeDeclaration | ts.SignatureDeclaration = ts.ClassLikeDeclaration | ts.SignatureDeclaration,
+    T extends ts.ClassDeclaration | ts.SignatureDeclaration = ts.ClassDeclaration | ts.SignatureDeclaration,
 > extends DeclarationScope<T> {
-    protected _propagateUsesToParent(location: ts.Node) {
+    protected _collectPropagatedRanges() {
         // decorators cannot access parameters and type parameters of the declaration they decorate
-        return this.node.decorators !== undefined && location.pos < this.node.decorators.end
-            ? Domain.Any
-            : Domain.None;
-    }
-}
+        return this.node.decorators === undefined
+            ? []
+            : [MatchRange.create(Domain.Any, this.node.decorators)];
 
-class ClassScope extends DecoratableDeclarationScope<ts.ClassLikeDeclaration> {
-    protected _propagateUsesToParent(location: ts.Node) {
-        return super._propagateUsesToParent(location) || // decorators
-            // computed property names cannot access type parameters of class
-            // TODO this won't work for method scopes
-            (isInComputedNameOfMember(location.pos, this.node) ? Domain.Type : Domain.None) ||
-            // expression in 'extends' clause cannot access type parameters of class
-            (isInHeritageClauseExpression(location.pos, this.node) ? Domain.Type : Domain.None);
     }
-}
-
-function isInHeritageClauseExpression(pos: number, {heritageClauses}: ts.ClassLikeDeclaration): boolean {
-    if (heritageClauses === undefined || heritageClauses[0].token !== ts.SyntaxKind.ExtendsKeyword || heritageClauses[0].types.length !== 1)
-        return false;
-    return isInRange(pos, heritageClauses[0].types[0].expression);
-}
-
-function isInComputedNameOfMember(pos: number, node: ts.ClassLikeDeclaration): boolean {
-    for (const member of node.members) {
-        if (pos < member.pos)
-            break;
-        if (isInComputedPropertyName(pos, member))
-            return true;
-    }
-    return false;
 }
 
 function resolveNamespaceExportDomain(checker: ts.TypeChecker, node: ts.ModuleDeclaration | ts.EnumDeclaration, name: string) {
@@ -676,8 +661,8 @@ class ConditionalTypeScope extends BaseScope<ts.ConditionalTypeNode> {
         return super._isOwnDeclaration(declaration) && isInRange(declaration.node.pos, this.node.extendsType);
     }
 
-    protected _propagateUsesToParent(location: ts.Node) {
-        return isInRange(location.pos, this.node.trueType) ? Domain.None : Domain.Any;
+    protected _collectPropagatedRanges() {
+        return [MatchRange.create(Domain.Type, this.node.trueType)];
     }
 }
 
@@ -743,36 +728,26 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
         this._addChildScope(this._innerScope);
         if (this.node.decorators !== undefined)
             this.node.decorators.forEach(this._analyzeNode);
+        if (this.node.name !== undefined && this.node.name.kind === ts.SyntaxKind.ComputedPropertyName)
+            this._analyzeNode(this.node.name.expression);
         if (this.node.typeParameters !== undefined)
             this.node.typeParameters.forEach(this._analyzeNode);
         this.node.parameters.forEach(this._analyzeNode);
     }
 
-    protected _propagateUsesToParent(location: ts.Node) {
-        return super._propagateUsesToParent(location) || // method decorators
+    protected _collectPropagatedRanges() {
+        const result = super._collectPropagatedRanges(); // method decorators
+        if (this.node.typeParameters !== undefined)
             // 'typeof' in type parameters cannot access parameters of that function
-            (isInRange(location.pos, this.node.typeParameters) ? Domain.Type : Domain.None) ||
-            // property decorators cannot access parameters
-            (isInParameterDecorator(location.pos, this.node) ? Domain.Any : Domain.None) ||
+            result.push(MatchRange.create(Domain.Value, this.node.typeParameters));
+        if (this.node.decorators !== undefined)
+            // method decorators cannot access parameters and type parameters
+            result.push(MatchRange.create(Domain.Any, this.node.decorators));
+        if (this.node.name !== undefined && this.node.name.kind === ts.SyntaxKind.ComputedPropertyName)
             // computed method name cannot access method generics and parameters
-            (isInComputedPropertyName(location.pos, this.node) ? Domain.Any : Domain.None);
+            result.push(MatchRange.create(Domain.Any, this.node.name));
+        return result;
     }
-}
-
-function isInComputedPropertyName(pos: number, {name}: ts.ClassElement | ts.SignatureDeclaration): boolean {
-    return name !== undefined && name.kind === ts.SyntaxKind.ComputedPropertyName && isInRange(pos, name);
-}
-
-function isInParameterDecorator(pos: number, {parameters}: ts.SignatureDeclaration): boolean {
-    if (!isInRange(pos, parameters))
-        return false;
-    for (const param of parameters) {
-        if (isInRange(pos, param.decorators))
-            return true;
-        if (pos < param.end)
-            break;
-    }
-    return false;
 }
 
 function isInRange(pos: number, range: ts.TextRange | undefined): boolean {
@@ -794,8 +769,7 @@ function isInRange(pos: number, range: ts.TextRange | undefined): boolean {
 // * parameter decorator cannot access parameters
 // handle arguments
 // * computed property names of methods cannot access parameters and generics
-// * computed property names cannot access class generics
-// computed method names cannot access class generics
+// * computed property names access class generics (which is reported as error)
 // * ExpressionWithTypeArguments.expression in class extends clause cannot reference class generics
 // in ambient namespace exclude alias exports 'export {T as V}'
 // make sure namespace import is treated as namespace
