@@ -1,5 +1,15 @@
 import * as ts from 'typescript';
-import { ScopeBoundarySelector, isScopeBoundary, isBlockScopedVariableDeclarationList, isThisParameter, getPropertyName, getDeclarationOfBindingElement, ScopeBoundary, isBlockScopeBoundary, isNodeKind } from './util';
+import {
+    ScopeBoundarySelector,
+    isScopeBoundary,
+    isBlockScopedVariableDeclarationList,
+    isThisParameter,
+    getPropertyName,
+    getDeclarationOfBindingElement,
+    ScopeBoundary,
+    isBlockScopeBoundary,
+    isNodeKind,
+} from './util';
 import { getUsageDomain, getDeclarationDomain } from './usage';
 import bind from 'bind-decorator';
 
@@ -49,7 +59,7 @@ export function createResolver(): Resolver {
 }
 
 function makeCheckerFactory(checkerOrFactory: TypeCheckerOrFactory | undefined): TypeCheckerFactory {
-    let checker: ts.TypeChecker | undefined | null = null;
+    let checker: ts.TypeChecker | undefined | null = null; // tslint:disable-line:no-null-keyword
     return getChecker;
     function getChecker() {
         if (checker === null)
@@ -78,19 +88,20 @@ class ResolverImpl implements Resolver {
     private _scopeMap = new WeakMap<ts.Node, Scope>();
 
     public findReferences(declaration: ts.Identifier, domain = Domain.Any, getChecker?: TypeCheckerOrFactory): Use[] | undefined {
+        domain &= getDeclarationDomain(declaration)!; // TODO
+        if (domain === 0)
+            return; // not a declaration
         const selector = getScopeBoundarySelector(declaration);
         if (selector === undefined)
-            return; // not a declaration name
+            throw new Error(`unhandled declaration '${ts.SyntaxKind[declaration.parent!.kind]}'`); // shouldn't happen
         let scopeNode = findScopeBoundary(declaration.parent!, selector.selector);
         if (selector.outer)
             scopeNode = findScopeBoundary(scopeNode.parent!, selector.selector);
         const scope = this.getOrCreateScope(scopeNode).getDelegateScope(declaration);
-        const result = [];
         const symbol = scope.getSymbol(declaration);
         if (symbol === undefined)
             return; // something went wrong, possibly a syntax error
-        // TODO move this up front to avoid unnecessary work
-        domain &= getDeclarationDomain(declaration)!; // TODO
+        const result = [];
         for (const use of scope.getUses(symbol, domain, makeCheckerFactory(getChecker))) {
             if (use.domain & Domain.DoNotUse)
                 return;
@@ -303,7 +314,7 @@ function getDomainOfSymbol(symbol: ts.Symbol) {
     return domain;
 }
 
-function* lazyFilterUses<T extends unknown[]>(
+function* lazyFilterUses<T extends Array<unknown>>(
     uses: Iterable<Use>,
     getChecker: TypeCheckerFactory,
     inclusive: boolean,
@@ -326,9 +337,24 @@ function* lazyFilterUses<T extends unknown[]>(
 }
 
 function resolveLazySymbolDomain(checker: ts.TypeChecker, symbol: Symbol): Domain {
-    let result: Domain = Domain.None;
+    let result = Domain.None;
     for (const declaration of symbol.declarations)
         result |= declaration.domain & Domain.Lazy ? getLazyDeclarationDomain(declaration.node!, checker) : declaration.domain;
+    return result;
+}
+
+function filterSymbol(symbol: Symbol, domain: Domain): Symbol {
+    const result: Symbol = {
+        name: symbol.name,
+        domain: Domain.None,
+        declarations: [],
+    };
+    for (const declaration of symbol.declarations) {
+        if ((declaration.domain & domain) === 0)
+            continue;
+        result.declarations.push(declaration);
+        result.domain |= declaration.domain;
+    }
     return result;
 }
 
@@ -358,6 +384,10 @@ function getDomainOfMatchingRange(pos: number, ranges: ReadonlyArray<MatchRange>
     return Domain.None;
 }
 
+function isInRange(pos: number, range: ts.TextRange): boolean {
+    return pos >= range.pos && pos < range.end;
+}
+
 class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     private _initial = true;
     private _uses: Use[] = [];
@@ -384,7 +414,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
 
         let ownSymbol = this._symbols.get(symbol.name);
         if (ownSymbol !== undefined) {
-            ownSymbol = this._resolveSymbol(ownSymbol, domain);
+            ownSymbol = filterSymbol(ownSymbol, domain);
             if (ownSymbol.domain & Domain.Lazy)
                 // we don't know exactly what we have to deal with -> search uses syntactically and filter or abort later
                 yield* lazyFilterUses(
@@ -395,7 +425,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
                     ownSymbol,
                 );
             domain &= ~ownSymbol.domain;
-            symbol = this._resolveSymbol(symbol, domain);
+            symbol = filterSymbol(symbol, domain);
         }
         yield* this._match(symbol, domain, getChecker, this._propagatedRanges, false);
     }
@@ -414,32 +444,16 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
                 propagatedDomain = ~propagatedDomain;
             const d = domain & propagatedDomain;
             if (d !== 0)
-                yield* scope.getUsesInScope(this._resolveSymbol(symbol, d), d, getChecker);
+                yield* scope.getUsesInScope(filterSymbol(symbol, d), d, getChecker);
         }
     }
 
     public getUses(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use> {
-        symbol = this._resolveSymbol(symbol, domain);
-        domain &= symbol.domain; // TODO kann weg
+        symbol = filterSymbol(symbol, domain);
         let uses = this._match(symbol, domain, getChecker, this._propagatedRanges, false);
         if (symbol.domain & Domain.Lazy)
             uses = lazyFilterUses(uses, getChecker, true, resolveLazySymbolDomain, symbol);
         return uses;
-    }
-
-    protected _resolveSymbol(symbol: Symbol, domain: Domain): Symbol {
-        const result: Symbol = {
-            name: symbol.name,
-            domain: Domain.None,
-            declarations: [],
-        };
-        for (const declaration of symbol.declarations) {
-            if ((declaration.domain & domain) === 0)
-                continue;
-            result.declarations.push(declaration);
-            result.domain |= declaration.domain;
-        }
-        return result;
     }
 
     public getSymbol(declaration: ts.Identifier) {
@@ -491,6 +505,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
         return (declaration.selector & this._boundary) !== 0;
     }
 
+    // tslint:disable-next-line:prefer-function-over-method
     protected _collectPropagatedRanges(): MatchRange[] {
         return [];
     }
@@ -584,6 +599,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     private _handleBindingName(name: ts.BindingName, blockScoped: boolean) {
         const selector = blockScoped ? ScopeBoundarySelector.Block : ScopeBoundarySelector.Function;
         if (name.kind === ts.SyntaxKind.Identifier)
+            // tslint:disable-next-line:object-shorthand-properties-first
             return this._addDeclaration({name: name.text, domain: Domain.Value, node: name, selector});
 
         for (const element of name.elements) {
@@ -599,6 +615,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
 }
 
 class WithStatementScope extends BaseScope {
+    // tslint:disable-next-line:prefer-function-over-method
     public getDeclarationsForParent() {
         return []; // nothing to do here
     }
@@ -667,10 +684,12 @@ class ConditionalTypeScope extends BaseScope<ts.ConditionalTypeNode> {
 }
 
 class NamedDeclarationExpressionScope extends BaseScope<ts.NamedDeclaration> {
+    // tslint:disable-next-line:parameter-properties
     constructor(node: ts.NamedDeclaration, resolver: ResolverImpl, private _childScope: Scope) {
         super(node, ScopeBoundary.Function, resolver);
     }
 
+    // tslint:disable-next-line:prefer-function-over-method
     public getDeclarationsForParent() {
         return [];
     }
@@ -687,6 +706,7 @@ class NamedDeclarationExpressionScope extends BaseScope<ts.NamedDeclaration> {
 }
 
 class FunctionLikeInnerScope extends BaseScope<ts.SignatureDeclaration> {
+    // tslint:disable-next-line:prefer-function-over-method
     public getDeclarationsForParent() {
         return [];
     }
@@ -712,7 +732,7 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
                 : {
                     name: node.name.text,
                     domain: Domain.Value,
-                    node,
+                    node, // tslint:disable-line:object-shorthand-properties-first
                     selector: ScopeBoundarySelector.Function,
                 },
         );
@@ -759,10 +779,6 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
     }
 }
 
-function isInRange(pos: number, range: ts.TextRange | undefined): boolean {
-    return range !== undefined && pos >= range.pos && pos < range.end;
-}
-
 // * function/class decorated with itself
 // * type parmeters shadowing declaration name
 // * type parameter cannot reference parameter
@@ -782,3 +798,8 @@ function isInRange(pos: number, range: ts.TextRange | undefined): boolean {
 // * ExpressionWithTypeArguments.expression in class extends clause cannot reference class generics
 // in ambient namespace exclude alias exports 'export {T as V}'
 // make sure namespace import is treated as namespace
+
+// statically analyze merged namespaces and enums
+// statically etermine if namespace or enum can merge with something else
+// add function to determine if symbol is exported or global
+// add function to get declarations at use site
