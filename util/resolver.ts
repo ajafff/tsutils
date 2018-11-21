@@ -19,7 +19,7 @@ export enum Domain {
 
 interface Declaration {
     name: string;
-    node: ts.NamedDeclaration;
+    node: ts.NamedDeclaration | undefined;
     domain: Domain;
     selector: ScopeBoundarySelector;
 }
@@ -328,7 +328,7 @@ function* lazyFilterUses<T extends unknown[]>(
 function resolveLazySymbolDomain(checker: ts.TypeChecker, symbol: Symbol): Domain {
     let result: Domain = Domain.None;
     for (const declaration of symbol.declarations)
-        result |= declaration.domain & Domain.Lazy ? getLazyDeclarationDomain(declaration.node, checker) : declaration.domain;
+        result |= declaration.domain & Domain.Lazy ? getLazyDeclarationDomain(declaration.node!, checker) : declaration.domain;
     return result;
 }
 
@@ -658,7 +658,7 @@ class NamespaceScope extends DeclarationScope<ts.ModuleDeclaration | ts.EnumDecl
 
 class ConditionalTypeScope extends BaseScope<ts.ConditionalTypeNode> {
     protected _isOwnDeclaration(declaration: Declaration) {
-        return super._isOwnDeclaration(declaration) && isInRange(declaration.node.pos, this.node.extendsType);
+        return super._isOwnDeclaration(declaration) && isInRange(declaration.node!.pos, this.node.extendsType);
     }
 
     protected _collectPropagatedRanges() {
@@ -716,6 +716,15 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
                     selector: ScopeBoundarySelector.Function,
                 },
         );
+        switch (node.kind) {
+            case ts.SyntaxKind.FunctionDeclaration:
+            case ts.SyntaxKind.FunctionExpression:
+            case ts.SyntaxKind.MethodDeclaration:
+            case ts.SyntaxKind.GetAccessor:
+            case ts.SyntaxKind.SetAccessor:
+            case ts.SyntaxKind.Constructor:
+                this._addDeclaration({name: 'arguments', domain: Domain.Value, node: undefined, selector: ScopeBoundarySelector.Function});
+        }
     }
 
     public getDelegateScope(location: ts.Node): Scope {
@@ -767,7 +776,7 @@ function isInRange(pos: number, range: ts.TextRange | undefined): boolean {
 // * FunctionScope in Decorator has no access to parameters and generics
 // * with statement
 // * parameter decorator cannot access parameters
-// handle arguments
+// * handle arguments
 // * computed property names of methods cannot access parameters and generics
 // * computed property names access class generics (which is reported as error)
 // * ExpressionWithTypeArguments.expression in class extends clause cannot reference class generics
