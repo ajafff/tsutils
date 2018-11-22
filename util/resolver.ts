@@ -720,7 +720,7 @@ class FunctionLikeInnerScope extends BaseScope<ts.SignatureDeclaration> {
 }
 
 class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclaration> {
-    private _innerScope = new FunctionLikeInnerScope(this.node, ScopeBoundary.Function, this._resolver);
+    private _innerScope: FunctionLikeInnerScope | undefined = undefined;
 
     constructor(node: ts.SignatureDeclaration, resolver: ResolverImpl) {
         super(
@@ -745,16 +745,17 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
             case ts.SyntaxKind.Constructor:
                 this._addDeclaration({name: 'arguments', domain: Domain.Value, node: undefined, selector: ScopeBoundarySelector.Function});
         }
+        if ('body' in node && node.body !== undefined) // don't create a nested scope if there is no body and therefore no scoping problem
+            this._innerScope = new FunctionLikeInnerScope(this.node, ScopeBoundary.Function, this._resolver);
     }
 
     public getDelegateScope(location: ts.Node): Scope {
-        return location.pos < this.node.parameters.end
+        return this._innerScope === undefined || location.pos < this.node.parameters.end
             ? this
             : this._innerScope.getDelegateScope(location);
     }
 
     protected _analyze() {
-        this._addChildScope(this._innerScope);
         if (this.node.decorators !== undefined)
             this.node.decorators.forEach(this._analyzeNode);
         if (this.node.name !== undefined && this.node.name.kind === ts.SyntaxKind.ComputedPropertyName)
@@ -762,6 +763,11 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
         if (this.node.typeParameters !== undefined)
             this.node.typeParameters.forEach(this._analyzeNode);
         this.node.parameters.forEach(this._analyzeNode);
+        if (this._innerScope !== undefined) {
+            this._addChildScope(this._innerScope);
+        } else if (this.node.type !== undefined) {
+            this._analyzeNode(this.node.type);
+        }
     }
 
     protected _collectPropagatedRanges() {
@@ -791,11 +797,10 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
 // * ConditionalType using 'typeof' in function's type parameter constraint
 // * FunctionScope in Decorator has no access to parameters and generics
 // * with statement
-// * parameter decorator cannot access parameters
+// * parameter decorator cannot access parameters and type parameters
 // * handle arguments
 // * computed property names of methods cannot access parameters and generics
 // * computed property names access class generics (which is reported as error)
-// * ExpressionWithTypeArguments.expression in class extends clause cannot reference class generics
 // in ambient namespace exclude alias exports 'export {T as V}'
 // make sure namespace import is treated as namespace
 
@@ -803,3 +808,6 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
 // statically etermine if namespace or enum can merge with something else
 // add function to determine if symbol is exported or global
 // add function to get declarations at use site
+
+// maybe optimize subtrees by collecting all uses of parents and permanently assign them to the symbols in that scope
+// this introduces a lot of arrays that contain a lot of duplicates, as each scope holds a list of all uses for its own parent
