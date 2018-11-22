@@ -705,7 +705,7 @@ class NamedDeclarationExpressionScope extends BaseScope<ts.NamedDeclaration> {
     }
 }
 
-class FunctionLikeInnerScope extends BaseScope<ts.SignatureDeclaration> {
+class FunctionLikeInnerScope extends BaseScope<ts.FunctionLikeDeclaration & {body: {}}> {
     // tslint:disable-next-line:prefer-function-over-method
     public getDeclarationsForParent() {
         return [];
@@ -714,8 +714,7 @@ class FunctionLikeInnerScope extends BaseScope<ts.SignatureDeclaration> {
     protected _analyze() {
         if (this.node.type !== undefined)
             this._analyzeNode(this.node.type);
-        if ('body' in this.node && this.node.body !== undefined)
-            this._analyzeNode(this.node.body);
+        this._analyzeNode(this.node.body);
     }
 }
 
@@ -746,7 +745,11 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
                 this._addDeclaration({name: 'arguments', domain: Domain.Value, node: undefined, selector: ScopeBoundarySelector.Function});
         }
         if ('body' in node && node.body !== undefined) // don't create a nested scope if there is no body and therefore no scoping problem
-            this._innerScope = new FunctionLikeInnerScope(this.node, ScopeBoundary.Function, this._resolver);
+            this._innerScope = new FunctionLikeInnerScope(
+                <ts.FunctionLikeDeclaration & {body: {}}>this.node,
+                ScopeBoundary.Function,
+                this._resolver,
+            );
     }
 
     public getDelegateScope(location: ts.Node): Scope {
