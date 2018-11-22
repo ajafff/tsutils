@@ -93,7 +93,10 @@ export function unionTypeParts(type: ts.Type): ts.Type[] {
 }
 
 /** Determines if a type thenable and can be used with `await`. */
-export function isThenableType(checker: ts.TypeChecker, node: ts.Expression, type = checker.getTypeAtLocation(node)!): boolean {
+export function isThenableType(checker: ts.TypeChecker, node: ts.Node, type: ts.Type): boolean;
+/** Determines if a type thenable and can be used with `await`. */
+export function isThenableType(checker: ts.TypeChecker, node: ts.Expression, type?: ts.Type): boolean;
+export function isThenableType(checker: ts.TypeChecker, node: ts.Node, type = checker.getTypeAtLocation(node)!): boolean {
     for (const ty of unionTypeParts(checker.getApparentType(type))) {
         const then = ty.getProperty('then');
         if (then === undefined)
@@ -107,7 +110,7 @@ export function isThenableType(checker: ts.TypeChecker, node: ts.Expression, typ
     return false;
 }
 
-function isCallback(checker: ts.TypeChecker, param: ts.Symbol, node: ts.Expression): boolean {
+function isCallback(checker: ts.TypeChecker, param: ts.Symbol, node: ts.Node): boolean {
     let type: ts.Type | undefined = checker.getApparentType(checker.getTypeOfSymbolAtLocation(param, node));
     if ((<ts.ParameterDeclaration>param.valueDeclaration).dotDotDotToken) {
         // unwrap array type of rest parameter
