@@ -604,7 +604,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
 
         for (const element of name.elements) {
             if (element.kind === ts.SyntaxKind.OmittedExpression)
-                break;
+                continue;
             if (element.propertyName !== undefined && element.propertyName.kind === ts.SyntaxKind.ComputedPropertyName)
                 this._analyzeNode(element.propertyName);
             this._handleBindingName(element.name, blockScoped);
