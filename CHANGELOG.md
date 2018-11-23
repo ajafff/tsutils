@@ -1,3 +1,10 @@
+# 3.5.1
+
+**Bugfixes:**
+
+* `isThenableType` allows `Node` instead of `Expression` as parameter
+* `isBlockScopeBoundary` and `isScopeBoundary` consider `WithStatement` as scope boundary
+
 # 3.5.0
 
 **Features:**
