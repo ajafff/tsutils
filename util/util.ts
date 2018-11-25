@@ -1297,3 +1297,7 @@ export function isCompilerOptionEnabled(options: ts.CompilerOptions, option: Boo
     }
     return options[option] === true;
 }
+
+export function isAmbientModule(node: ts.ModuleDeclaration): boolean {
+    return node.name.kind === ts.SyntaxKind.StringLiteral || (node.flags & ts.NodeFlags.GlobalAugmentation) !== 0;
+}
