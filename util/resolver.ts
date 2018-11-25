@@ -9,9 +9,11 @@ import {
     ScopeBoundary,
     isBlockScopeBoundary,
     isNodeKind,
+    isAmbientModule,
 } from './util';
 import { getUsageDomain, getDeclarationDomain } from './usage';
 import bind from 'bind-decorator';
+import { isExportSpecifier, isInterfaceDeclaration, isClassDeclaration, isFunctionDeclaration } from '../typeguard';
 
 export enum Domain {
     None = 0,
@@ -651,8 +653,32 @@ class DecoratableDeclarationScope<
 }
 
 function resolveNamespaceExportDomain(checker: ts.TypeChecker, node: ts.ModuleDeclaration | ts.EnumDeclaration, name: string) {
-    const exportedSymbol = checker.getSymbolAtLocation(node)!.exports!.get(ts.escapeLeadingUnderscores(name));
+    const exports = checker.getSymbolAtLocation(node)!.exports!;
+    const ambientModule = node.kind === ts.SyntaxKind.ModuleDeclaration && isAmbientModule(node);
+    if (ambientModule) {
+        // 'export default class C' is visible as 'C' in merged ambient modules
+        // it shadows named exports of the same name in that ambient module
+        const exportDefault = exports.get(ts.InternalSymbolName.Default);
+        if (exportDefault !== undefined) {
+            const declaration = exportDefault.declarations![0];
+            if (
+                (isInterfaceDeclaration(declaration) || isClassDeclaration(declaration) || isFunctionDeclaration(declaration)) &&
+                declaration.name !== undefined &&
+                declaration.name.text === name
+            )
+                return getDomainOfSymbol(exportDefault);
+        }
+
+    }
+    const exportedSymbol = exports.get(ts.escapeLeadingUnderscores(name));
     if (exportedSymbol === undefined)
+        return Domain.None;
+    if (ambientModule &&
+        exportedSymbol.flags === ts.SymbolFlags.Alias &&
+        exportedSymbol.declarations !== undefined &&
+        exportedSymbol.declarations.some(isExportSpecifier)
+    )
+        // 'export {Foo as Bar}' of ambient module is not in scope
         return Domain.None;
     return node.kind === ts.SyntaxKind.EnumDeclaration
         ? Domain.Value
@@ -795,7 +821,7 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
 // * MappedType type parameter referencing itself in its constraint
 // * type use in enum
 // * type-only namespace not shadowing value
-// exporting partially shadowed declaration (SourceFile and Namespace)
+// exporting partially shadowed declaration from ambient namespace only uses closest declaration
 // domain of 'export import = ' in namespace
 // * ConditionalType using 'typeof' in function's type parameter constraint
 // * FunctionScope in Decorator has no access to parameters and generics
@@ -804,13 +830,14 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
 // * handle arguments
 // * computed property names of methods cannot access parameters and generics
 // * computed property names access class generics (which is reported as error)
-// in ambient namespace exclude alias exports 'export {T as V}'
-// make sure namespace import is treated as namespace
+// * in ambient **module** exclude alias exports 'export {T as V}'
+// * make sure namespace import is treated as namespace
+// * 'export default class C' is visible in merged ambient module
 
 // statically analyze merged namespaces and enums
 // statically etermine if namespace or enum can merge with something else
 // add function to determine if symbol is exported or global
 // add function to get declarations at use site
 
-// maybe optimize subtrees by collecting all uses of parents and permanently assign them to the symbols in that scope
+// maybe optimize subtrees by collecting all uses of children and permanently assign them to the symbols in that scope
 // this introduces a lot of arrays that contain a lot of duplicates, as each scope holds a list of all uses for its own parent
