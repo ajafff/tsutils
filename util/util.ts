@@ -1298,6 +1298,11 @@ export function isCompilerOptionEnabled(options: ts.CompilerOptions, option: Boo
     return options[option] === true;
 }
 
+/**
+ * Has nothing to do with `isAmbientModuleBlock`.
+ *
+ * @returns `true` if it's a global augmentation or has a string name.
+ */
 export function isAmbientModule(node: ts.ModuleDeclaration): boolean {
     return node.name.kind === ts.SyntaxKind.StringLiteral || (node.flags & ts.NodeFlags.GlobalAugmentation) !== 0;
 }
