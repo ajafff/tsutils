@@ -54,6 +54,7 @@ export type TypeCheckerOrFactory =
 
 export interface Resolver {
     findReferences(declaration: ts.Identifier, domain?: Domain, getChecker?: TypeCheckerOrFactory): Use[] | undefined;
+    findDeclarations(use: ts.Identifier, getChecker?: TypeCheckerOrFactory): ts.NamedDeclaration[] | undefined;
 }
 
 export function createResolver(): Resolver {
@@ -89,6 +90,12 @@ function createChecker(checkerOrFactory: TypeCheckerOrFactory | undefined): ts.T
 class ResolverImpl implements Resolver {
     private _scopeMap = new WeakMap<ts.Node, Scope>();
 
+    public findParentScope(node: ts.Node): Scope | undefined {
+        if (node.kind === ts.SyntaxKind.SourceFile)
+            return;
+        return this.getOrCreateScope(findScopeBoundary(node.parent!, -1)).getDelegateScope(node);
+    }
+
     public findReferences(declaration: ts.Identifier, domain = Domain.Any, getChecker?: TypeCheckerOrFactory): Use[] | undefined {
         domain &= getDeclarationDomain(declaration)!; // TODO
         if (domain === 0)
@@ -109,6 +116,22 @@ class ResolverImpl implements Resolver {
                 return;
             result.push(use);
         }
+        return result;
+    }
+
+    public findDeclarations(use: ts.Identifier, getChecker?: TypeCheckerOrFactory) {
+        const domain = getUsageDomain(use)! & Domain.Any; // TODO
+        if (domain === 0)
+            return;
+        const symbol = this.getOrCreateScope(findScopeBoundary(use.parent!, -1)).lookupSymbol(use, domain, makeCheckerFactory(getChecker));
+        if (symbol === undefined)
+            return [];
+        if (symbol.domain & Domain.DoNotUse)
+            return;
+        const result: ts.NamedDeclaration[] = [];
+        for (const declaration of symbol.declarations)
+            if (declaration.node !== undefined) // TODO filter by domain?
+                result.push(declaration.node);
         return result;
     }
 
@@ -362,11 +385,13 @@ function filterSymbol(symbol: Symbol, domain: Domain): Symbol {
 
 interface Scope {
     node: ts.Node;
+    parent?: Scope;
     getDeclarationsForParent(): Iterable<Declaration>;
     getUses(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
     getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
     getSymbol(declaration: ts.Identifier): Symbol | undefined;
     getDelegateScope(location: ts.Node): Scope;
+    lookupSymbol(use: ts.Identifier, domain: Domain, getChecker: TypeCheckerFactory): Symbol | undefined;
 }
 
 interface MatchRange extends ts.TextRange {
@@ -391,6 +416,7 @@ function isInRange(pos: number, range: ts.TextRange): boolean {
 }
 
 class BaseScope<T extends ts.Node = ts.Node> implements Scope {
+    public parent: Scope | undefined = undefined;
     private _initial = true;
     private _uses: Use[] = [];
     private _symbols = new Map<string, Symbol>();
@@ -461,6 +487,32 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     public getSymbol(declaration: ts.Identifier) {
         this._initialize();
         return this._symbols.get(declaration.text);
+    }
+
+    public lookupSymbol(location: ts.Identifier, domain: Domain, getChecker: TypeCheckerFactory) {
+        if ((domain & getDomainOfMatchingRange(location.pos, this._propagatedRanges)) === 0) {
+            const ownSymbol = this._getOwnSymbol(location, domain, getChecker);
+            if (ownSymbol !== undefined)
+                return ownSymbol;
+        }
+        const parent = this.parent || this._resolver.findParentScope(this.node);
+        return parent && parent.lookupSymbol(location, domain, getChecker);
+    }
+
+    protected _getOwnSymbol(location: ts.Identifier, domain: Domain, getChecker: TypeCheckerFactory) {
+        this._initialize();
+        const ownSymbol = this._symbols.get(location.text);
+        if (ownSymbol === undefined || (ownSymbol.domain & domain) === 0)
+            return;
+        if (ownSymbol.domain & Domain.Lazy) {
+            const checker = getChecker();
+            if (checker === undefined)
+                return {...ownSymbol, domain: ownSymbol.domain | Domain.DoNotUse};
+            const resolvedDomain = resolveLazySymbolDomain(checker, ownSymbol);
+            if (resolvedDomain & domain)
+                return {...ownSymbol, domain: resolvedDomain};
+        }
+        return ownSymbol;
     }
 
     protected _addUse(use: Use) {
@@ -626,6 +678,11 @@ class WithStatementScope extends BaseScope {
         for (const use of super.getUsesInScope(symbol, domain, getChecker))
             yield {location: use.location, domain: use.domain | Domain.DoNotUse};
     }
+
+    // tslint:disable-next-line:prefer-function-over-method
+    protected _getOwnSymbol(location: ts.Identifier, domain: Domain): Symbol {
+        return {name: location.text, domain: domain | Domain.DoNotUse, declarations: []};
+    }
 }
 
 class DeclarationScope<T extends ts.NamedDeclaration = ts.NamedDeclaration> extends BaseScope<T> {
@@ -697,6 +754,23 @@ class NamespaceScope extends DeclarationScope<ts.ModuleDeclaration | ts.EnumDecl
             symbol.name,
         );
     }
+
+    protected _getOwnSymbol(location: ts.Identifier, domain: Domain, getChecker: TypeCheckerFactory) {
+        let result = super._getOwnSymbol(location, domain, getChecker);
+        if (result === undefined) {
+            if (this.node.kind === ts.SyntaxKind.EnumDeclaration && (domain & Domain.Value) === 0)
+                return;
+            const checker = getChecker();
+            if (checker === undefined) {
+                result = {name: location.text, declarations: [], domain: domain | Domain.DoNotUse};
+            } else {
+                const resolvedDomain = resolveNamespaceExportDomain(checker, this.node, location.text);
+                if (resolvedDomain !== 0)
+                    result = {name: location.text, declarations: [], domain: resolvedDomain};
+            }
+        }
+        return result;
+    }
 }
 
 class ConditionalTypeScope extends BaseScope<ts.ConditionalTypeNode> {
@@ -705,7 +779,10 @@ class ConditionalTypeScope extends BaseScope<ts.ConditionalTypeNode> {
     }
 
     protected _collectPropagatedRanges() {
-        return [MatchRange.create(Domain.Type, this.node.trueType)];
+        return [
+            {domain: Domain.Any, pos: this.node.pos, end: this.node.extendsType.end},
+            MatchRange.create(Domain.Any, this.node.falseType),
+        ];
     }
 }
 
@@ -713,6 +790,7 @@ class NamedDeclarationExpressionScope extends BaseScope<ts.NamedDeclaration> {
     // tslint:disable-next-line:parameter-properties
     constructor(node: ts.NamedDeclaration, resolver: ResolverImpl, private _childScope: Scope) {
         super(node, ScopeBoundary.Function, resolver);
+        this._childScope.parent = this;
     }
 
     // tslint:disable-next-line:prefer-function-over-method
@@ -770,12 +848,14 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
             case ts.SyntaxKind.Constructor:
                 this._addDeclaration({name: 'arguments', domain: Domain.Value, node: undefined, selector: ScopeBoundarySelector.Function});
         }
-        if ('body' in node && node.body !== undefined) // don't create a nested scope if there is no body and therefore no scoping problem
+        if ('body' in node && node.body !== undefined) { // don't create a nested scope if there is no body and therefore no scoping problem
             this._innerScope = new FunctionLikeInnerScope(
                 <ts.FunctionLikeDeclaration & {body: {}}>this.node,
                 ScopeBoundary.Function,
                 this._resolver,
             );
+            this._innerScope.parent = this;
+        }
     }
 
     public getDelegateScope(location: ts.Node): Scope {
@@ -835,9 +915,8 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
 // * 'export default class C' is visible in merged ambient module
 
 // statically analyze merged namespaces and enums
-// statically etermine if namespace or enum can merge with something else
+// statically determine if namespace or enum can merge with something else
 // add function to determine if symbol is exported or global
-// add function to get declarations at use site
 
 // maybe optimize subtrees by collecting all uses of children and permanently assign them to the symbols in that scope
 // this introduces a lot of arrays that contain a lot of duplicates, as each scope holds a list of all uses for its own parent
