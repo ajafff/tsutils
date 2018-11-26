@@ -130,7 +130,7 @@ class ResolverImpl implements Resolver {
             return;
         const result: ts.NamedDeclaration[] = [];
         for (const declaration of symbol.declarations)
-            if (declaration.node !== undefined) // TODO filter by domain?
+            if (declaration.node !== undefined)
                 result.push(declaration.node);
         return result;
     }
@@ -362,9 +362,25 @@ function* lazyFilterUses<T extends Array<unknown>>(
 }
 
 function resolveLazySymbolDomain(checker: ts.TypeChecker, symbol: Symbol): Domain {
-    let result = Domain.None;
-    for (const declaration of symbol.declarations)
-        result |= declaration.domain & Domain.Lazy ? getLazyDeclarationDomain(declaration.node!, checker) : declaration.domain;
+    return resolveLazySymbol(checker, symbol).domain;
+}
+
+function resolveLazySymbol(checker: ts.TypeChecker, symbol: Symbol): Symbol {
+    const result: Symbol = {
+        name: symbol.name,
+        domain: Domain.None,
+        declarations: [],
+    };
+    for (const declaration of symbol.declarations) {
+        if (declaration.domain & Domain.Lazy) {
+            const domain = getLazyDeclarationDomain(declaration.node!, checker);
+            result.declarations.push({...declaration, domain});
+            result.domain |= domain;
+        } else {
+            result.declarations.push(declaration);
+            result.domain |= declaration.domain;
+        }
+    }
     return result;
 }
 
@@ -518,18 +534,18 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
 
     protected _getOwnSymbol(location: ts.Identifier, domain: Domain, getChecker: TypeCheckerFactory) {
         this._initialize();
-        const ownSymbol = this._symbols.get(location.text);
+        let ownSymbol = this._symbols.get(location.text);
         if (ownSymbol === undefined || (ownSymbol.domain & domain) === 0)
             return;
         if (ownSymbol.domain & Domain.Lazy) {
             const checker = getChecker();
             if (checker === undefined)
                 return {...ownSymbol, domain: ownSymbol.domain | Domain.DoNotUse};
-            const resolvedDomain = resolveLazySymbolDomain(checker, ownSymbol);
-            if (resolvedDomain & domain)
-                return {...ownSymbol, domain: resolvedDomain};
+            ownSymbol = resolveLazySymbol(checker, ownSymbol);
+            if ((ownSymbol.domain & domain) === 0)
+                return;
         }
-        return ownSymbol;
+        return filterSymbol(ownSymbol, domain);
     }
 
     protected _addUse(use: Use) {
