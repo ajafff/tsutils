@@ -415,6 +415,20 @@ function isInRange(pos: number, range: ts.TextRange): boolean {
     return pos >= range.pos && pos < range.end;
 }
 
+function scopeBoundaryToDomain(boundary: ScopeBoundary): Domain {
+    switch (boundary) {
+        case ScopeBoundary.Block:
+            return Domain.Type | Domain.Value;
+        case ScopeBoundary.Function:
+            return Domain.Any;
+        case ScopeBoundary.Type:
+        case ScopeBoundary.ConditionalType:
+            return Domain.Type;
+        default:
+            return Domain.None;
+    }
+}
+
 class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     public parent: Scope | undefined = undefined;
     private _initial = true;
@@ -490,7 +504,10 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     }
 
     public lookupSymbol(location: ts.Identifier, domain: Domain, getChecker: TypeCheckerFactory) {
-        if ((domain & getDomainOfMatchingRange(location.pos, this._propagatedRanges)) === 0) {
+        if (
+            (domain & scopeBoundaryToDomain(this._boundary)) !== 0 &&
+            (domain & getDomainOfMatchingRange(location.pos, this._propagatedRanges)) === 0
+        ) {
             const ownSymbol = this._getOwnSymbol(location, domain, getChecker);
             if (ownSymbol !== undefined)
                 return ownSymbol;
