@@ -166,7 +166,7 @@ class ResolverImpl implements Resolver {
             case ts.SyntaxKind.EnumDeclaration:
                 return new NamespaceScope(
                     <ts.EnumDeclaration>node,
-                    ScopeBoundary.Function,
+                    ScopeBoundary.Block,
                     this,
                     {
                         name: (<ts.EnumDeclaration>node).name.text,
@@ -708,13 +708,21 @@ class WithStatementScope extends BaseScope {
     }
     public* getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
         // we don't know what could be in scope here
-        for (const use of super.getUsesInScope(symbol, domain, getChecker))
-            yield {location: use.location, domain: use.domain | Domain.DoNotUse};
+        for (const use of super.getUsesInScope(symbol, domain, getChecker)) {
+            if (use.domain & Domain.Value) {
+                yield {location: use.location, domain: use.domain | Domain.DoNotUse};
+            } else {
+                yield use;
+            }
+        }
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    protected _getOwnSymbol(location: ts.Identifier, domain: Domain): Symbol {
-        return {name: location.text, domain: domain | Domain.DoNotUse, declarations: []};
+    protected _getOwnSymbol(location: ts.Identifier, domain: Domain) {
+        // we don't need to call super here, as a WithStatement should never have any own declaration
+        return domain & Domain.Value
+            ? {name: location.text, domain: domain | Domain.DoNotUse, declarations: []}
+            : undefined;
     }
 }
 
@@ -777,7 +785,7 @@ function resolveNamespaceExportDomain(checker: ts.TypeChecker, node: ts.ModuleDe
 
 class NamespaceScope extends DeclarationScope<ts.ModuleDeclaration | ts.EnumDeclaration> {
     public getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory) {
-        // TODO allow type uses in Enum even without the checker
+        // TODO allow non-value uses in Enum even without the checker
         return lazyFilterUses(
             super.getUsesInScope(symbol, domain, getChecker),
             getChecker,
