@@ -144,7 +144,7 @@ export function getDeclarationDomain(node: ts.Identifier): DeclarationDomain | u
         case ts.SyntaxKind.ModuleDeclaration:
             return DeclarationDomain.Namespace;
         case ts.SyntaxKind.Parameter:
-            if (node.parent!.parent!.kind === ts.SyntaxKind.IndexSignature)
+            if (node.parent!.parent!.kind === ts.SyntaxKind.IndexSignature || node.originalKeywordKind === ts.SyntaxKind.ThisKeyword)
                 return;
             // falls through
         case ts.SyntaxKind.BindingElement:
