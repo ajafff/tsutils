@@ -463,6 +463,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     private _scopes: Scope[] = [];
     private _propagatedRanges: ReadonlyArray<MatchRange> = this._collectPropagatedRanges();
     protected _declarationsForParent: Declaration[] = [];
+    private _declarationsForParentInitialized = false;
 
     constructor(public node: T, protected _boundary: ScopeBoundary, protected _resolver: ResolverImpl) {}
 
@@ -472,6 +473,11 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
 
     public getDeclarationsForParent() {
         this._initialize();
+        if (!this._declarationsForParentInitialized) {
+            for (const scope of this._scopes)
+                this._declarationsForParent.push(...scope.getDeclarationsForParent());
+            this._declarationsForParentInitialized = true;
+        }
         return this._declarationsForParent;
     }
 
@@ -587,10 +593,13 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     protected _initialize() {
         if (this._initial) {
             this._analyze();
-            // TODO Only ConditionalType and Function can get declarations from a child scope
-            for (const scope of this._scopes)
-                for (const decl of scope.getDeclarationsForParent())
-                    this._addDeclaration(decl);
+            if (this._boundary === ScopeBoundary.Function || this._boundary === ScopeBoundary.ConditionalType) {
+                // only ConditionalType and Function can get declarations from a child scope
+                for (const scope of this._scopes)
+                    for (const decl of scope.getDeclarationsForParent())
+                        this._addDeclaration(decl);
+                this._declarationsForParentInitialized = true;
+            }
             this._initial = false;
         }
     }
