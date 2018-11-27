@@ -251,8 +251,18 @@ class ResolverImpl implements Resolver {
 }
 
 function findScopeBoundary(node: ts.Node, selector: ScopeBoundarySelector): ts.Node {
-    while ((isScopeBoundary(node) & selector) === 0 && node.parent !== undefined)
+    let prev = node;
+    while (
+        (
+            (isScopeBoundary(node) & selector) === 0 ||
+            // InferTypes belong to the ConditionalType where they occur in the `extendsType`
+            selector === ScopeBoundarySelector.InferType && (<ts.ConditionalTypeNode>node).extendsType !== prev
+        ) &&
+        node.parent !== undefined
+    ) {
+        prev = node;
         node = node.parent;
+    }
     return node;
 }
 
@@ -577,6 +587,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     protected _initialize() {
         if (this._initial) {
             this._analyze();
+            // TODO Only ConditionalType and Function can get declarations from a child scope
             for (const scope of this._scopes)
                 for (const decl of scope.getDeclarationsForParent())
                     this._addDeclaration(decl);
@@ -935,12 +946,14 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
     }
 }
 
+// * nested conditional types
 // * function/class decorated with itself
 // * type parmeters shadowing declaration name
 // * type parameter cannot reference parameter
 // * member decorator accessing class generics
 // * MappedType type parameter referencing itself in its constraint
-// * type use in enum
+// type and namespace use in enum
+// * type and namespace use in with statement
 // * type-only namespace not shadowing value
 // exporting partially shadowed declaration from ambient namespace only uses closest declaration
 // domain of 'export import = ' in namespace
@@ -954,6 +967,8 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
 // * in ambient **module** exclude alias exports 'export {T as V}'
 // * make sure namespace import is treated as namespace
 // * 'export default class C' is visible in merged ambient module
+
+// expose Iterable API for findReferences
 
 // statically analyze merged namespaces and enums
 // statically determine if namespace or enum can merge with something else
