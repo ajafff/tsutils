@@ -15,7 +15,8 @@
     "lib": ["es2016"],
     "skipLibCheck": true,
     "declaration": true,
-    "importHelpers": true
+    "importHelpers": true,
+    "experimentalDecorators": true
   },
   "exclude": [
     "node_modules",

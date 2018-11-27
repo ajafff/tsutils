@@ -113,7 +113,8 @@
     "switch-final-break": true,
     "trailing-comma": [true, {
       "singleline": "never",
-      "multiline": "always"
+      "multiline": "always",
+      "esSpecCompliant": true
     }],
     "triple-equals": [true, "allow-null-check"],
     "typedef-whitespace": [true, {
