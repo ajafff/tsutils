@@ -1,3 +1,9 @@
+# 3.5.2
+
+**Bugfixes:**
+
+* Published declaration files no longer contain `const enum`. They are now declared as regular enums instead.
+
 # 3.5.1
 
 **Bugfixes:**
