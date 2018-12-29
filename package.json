@@ -9,11 +9,11 @@
     "lint": "run-p lint:*",
     "test": "mocha test/*Tests.js && tslint --test 'test/rules/**/tslint.json'",
     "verify": "run-s compile lint coverage",
-    "prepublishOnly": "npm run verify",
-    "coverage": "nyc npm test",
+    "prepublishOnly": "run-s verify",
+    "coverage": "nyc run-s test",
     "report-coverage": "cat ./coverage/lcov.info | coveralls",
     "github-release": "GITHUB_TOKEN=$(cat ~/github_token.txt) github-release-from-changelog",
-    "postpublish": "git push origin master --tags; npm run github-release"
+    "postpublish": "git push origin master --tags; run-s github-release"
   },
   "repository": {
     "type": "git",
