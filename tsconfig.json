@@ -16,6 +16,7 @@
     "declaration": true,
     "importHelpers": true,
     "plugins": [
+      { "name": "@fimbul/mithotyn", "displayErrorsAsWarnings": true },
       { "transform": "ts-transform-const-enum" },
       { "transform": "ts-transform-const-enum", "afterDeclarations": true }
     ]
