@@ -1,3 +1,9 @@
+# 3.6.0
+
+**Features:**
+
+* added `getCheckJsDirective` utility to parse `// @ts-check` and `// @ts-nocheck` pragmas
+
 # 3.5.2
 
 **Bugfixes:**
