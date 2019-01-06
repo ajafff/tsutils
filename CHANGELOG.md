@@ -1,3 +1,10 @@
+# 3.7.0
+
+**Features:**
+
+* added `isBlockScopedDeclarationStatement`
+* added `isInSingleStatementContext`
+
 # 3.6.0
 
 **Features:**
