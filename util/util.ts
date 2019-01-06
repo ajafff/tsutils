@@ -305,6 +305,22 @@ export function isBlockScopedDeclarationStatement(statement: ts.Statement): stat
     }
 }
 
+export function isInSingleStatementContext(statement: ts.Statement): boolean {
+    switch (statement.parent!.kind) {
+        case ts.SyntaxKind.ForStatement:
+        case ts.SyntaxKind.ForInStatement:
+        case ts.SyntaxKind.ForOfStatement:
+        case ts.SyntaxKind.WhileStatement:
+        case ts.SyntaxKind.DoStatement:
+        case ts.SyntaxKind.IfStatement:
+        case ts.SyntaxKind.WithStatement:
+        case ts.SyntaxKind.LabeledStatement:
+            return true;
+        default:
+            return false;
+    }
+}
+
 export const enum ScopeBoundary {
     None = 0,
     Function = 1,
