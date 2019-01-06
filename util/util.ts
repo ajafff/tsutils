@@ -291,6 +291,20 @@ export function isBlockScopedVariableDeclaration(declaration: ts.VariableDeclara
         isBlockScopedVariableDeclarationList(parent);
 }
 
+export function isBlockScopedDeclarationStatement(statement: ts.Statement): statement is ts.DeclarationStatement {
+    switch (statement.kind) {
+        case ts.SyntaxKind.VariableStatement:
+            return isBlockScopedVariableDeclarationList((<ts.VariableStatement>statement).declarationList);
+        case ts.SyntaxKind.ClassDeclaration:
+        case ts.SyntaxKind.EnumDeclaration:
+        case ts.SyntaxKind.InterfaceDeclaration:
+        case ts.SyntaxKind.TypeAliasDeclaration:
+            return true;
+        default:
+            return false;
+    }
+}
+
 export const enum ScopeBoundary {
     None = 0,
     Function = 1,
