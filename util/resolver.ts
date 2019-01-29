@@ -192,34 +192,34 @@ class ResolverImpl implements Resolver {
             case ts.SyntaxKind.ConditionalType:
                 return new ConditionalTypeScope(<ts.ConditionalTypeNode>node, ScopeBoundary.ConditionalType, this);
             // TODO handling of ClassLikeDeclaration might need change when https://github.com/Microsoft/TypeScript/issues/28472 is resolved
+            case ts.SyntaxKind.ClassExpression:
+                if ((<ts.ClassExpression>node).name !== undefined)
+                    return new NamedDeclarationExpressionScope(<ts.ClassExpression>node, this, new ClassLikeScope(
+                        <ts.ClassExpression>node,
+                        ScopeBoundary.Function,
+                        this,
+                        {
+                            name: (<ts.ClassExpression>node).name!.text,
+                            domain: Domain.Type | Domain.Value,
+                            node: <ts.ClassExpression>node,
+                            selector: ScopeBoundarySelector.Block,
+                        },
+                    ));
+                // falls through
             case ts.SyntaxKind.ClassDeclaration:
-                return new DecoratableDeclarationScope(
-                    <ts.ClassDeclaration>node,
+                return new ClassLikeScope(
+                    <ts.ClassLikeDeclaration>node,
                     ScopeBoundary.Function,
                     this,
-                    (<ts.ClassDeclaration>node).name === undefined
+                    (<ts.ClassLikeDeclaration>node).name === undefined
                         ? undefined
                         : {
-                            name: (<ts.ClassDeclaration>node).name!.text,
+                            name: (<ts.ClassLikeDeclaration>node).name!.text,
                             domain: Domain.Type | Domain.Value,
-                            node: <ts.ClassDeclaration>node,
+                            node: <ts.ClassLikeDeclaration>node,
                             selector: ScopeBoundarySelector.Block,
                         },
                 );
-            case ts.SyntaxKind.ClassExpression:
-                if ((<ts.ClassExpression>node).name === undefined)
-                    return new DeclarationScope(<ts.ClassExpression>node, ScopeBoundary.Function, this);
-                return new NamedDeclarationExpressionScope(<ts.ClassExpression>node, this, new DeclarationScope(
-                    <ts.ClassExpression>node,
-                    ScopeBoundary.Function,
-                    this,
-                    {
-                        name: (<ts.ClassExpression>node).name!.text,
-                        domain: Domain.Type | Domain.Value,
-                        node: <ts.ClassExpression>node,
-                        selector: ScopeBoundarySelector.Block,
-                    },
-                ));
             case ts.SyntaxKind.FunctionExpression:
                 if ((<ts.FunctionExpression>node).name !== undefined)
                     return new NamedDeclarationExpressionScope(
@@ -759,7 +759,7 @@ class DeclarationScope<T extends ts.NamedDeclaration = ts.NamedDeclaration> exte
 }
 
 class DecoratableDeclarationScope<
-    T extends ts.ClassDeclaration | ts.SignatureDeclaration = ts.ClassDeclaration | ts.SignatureDeclaration,
+    T extends ts.ClassLikeDeclaration | ts.SignatureDeclaration = ts.ClassLikeDeclaration | ts.SignatureDeclaration,
 > extends DeclarationScope<T> {
     protected _collectPropagatedRanges() {
         // decorators cannot access parameters and type parameters of the declaration they decorate
@@ -767,6 +767,20 @@ class DecoratableDeclarationScope<
             ? []
             : [MatchRange.create(Domain.Any, this.node.decorators)];
 
+    }
+}
+
+class ClassLikeScope extends DecoratableDeclarationScope<ts.ClassLikeDeclaration> {
+    protected _collectPropagatedRanges() {
+        const result = super._collectPropagatedRanges(); // decorators
+        if (this.node.heritageClauses !== undefined) {
+            const [clause] = this.node.heritageClauses;
+            if (clause.token === ts.SyntaxKind.ExtendsKeyword && clause.types.length !== 0)
+                // expression in 'extends' clause cannot access type parameters and 'this' of the class
+                // this slightly deviates from TypeScript's behavior, but it's an error to reference class generics inside 'extends' anyway
+                result.push(MatchRange.create(Domain.Any, clause.types[0].expression));
+        }
+        return result;
     }
 }
 
@@ -945,12 +959,13 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
         if (this.node.typeParameters !== undefined)
             // 'typeof' in type parameters cannot access parameters of that function
             result.push(MatchRange.create(Domain.Value, this.node.typeParameters));
-        if (this.node.decorators !== undefined)
-            // method decorators cannot access parameters and type parameters
-            result.push(MatchRange.create(Domain.Any, this.node.decorators));
         if (this.node.name !== undefined && this.node.name.kind === ts.SyntaxKind.ComputedPropertyName)
             // computed method name cannot access method generics and parameters
             result.push(MatchRange.create(Domain.Any, this.node.name));
+        for (const parameter of this.node.parameters)
+            if (parameter.decorators !== undefined)
+                // references in parameter decorators are resolved outside of the class declaration
+                result.push(MatchRange.create(Domain.Any, parameter.decorators));
         return result;
     }
 }
@@ -973,9 +988,14 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
 // * handle arguments
 // * computed property names of methods cannot access parameters and generics
 // * computed property names access class generics (which is reported as error)
+// * parameter decorators resolve outside of class declaration
+// * expression in class 'extends' clause resolves outside of class declaration
+// * type arguments in class 'extends' resolve inside class declaration
 // * in ambient **module** exclude alias exports 'export {T as V}'
 // * make sure namespace import is treated as namespace
 // * 'export default class C' is visible in merged ambient module
+
+// track 'this' and 'super'
 
 // expose Iterable API for findReferences
 
