@@ -86,6 +86,18 @@ function createChecker(checkerOrFactory: TypeCheckerOrFactory | undefined): ts.T
     return result;
 }
 
+function getUseDomain(node: Use['location']): Domain {
+    switch (node.kind) {
+        case ts.SyntaxKind.ThisKeyword:
+        case ts.SyntaxKind.SuperKeyword:
+            return Domain.Value;
+        case ts.SyntaxKind.ThisType:
+            return Domain.Type;
+        default:
+            return getUsageDomain(node)! & Domain.Any;
+    }
+}
+
 class ResolverImpl implements Resolver {
     private _scopeMap = new WeakMap<ts.Node, Scope>();
 
@@ -96,6 +108,7 @@ class ResolverImpl implements Resolver {
     }
 
     public findReferences(declaration: ts.Identifier, domain = Domain.Any, getChecker?: TypeCheckerOrFactory): Use[] | undefined {
+        // TODO allow 'this'-parameter
         domain &= getDeclarationDomain(declaration)!; // TODO
         if (domain === 0)
             return; // not a declaration
@@ -118,8 +131,8 @@ class ResolverImpl implements Resolver {
         return result;
     }
 
-    public findDeclarations(use: ts.Identifier, getChecker?: TypeCheckerOrFactory) {
-        const domain = getUsageDomain(use)! & Domain.Any; // TODO
+    public findDeclarations(use: Use['location'], getChecker?: TypeCheckerOrFactory) {
+        const domain = getUseDomain(use);
         if (domain === 0)
             return;
         const symbol = this.getOrCreateScope(findScopeBoundary(use.parent!, -1)).lookupSymbol(use, domain, makeCheckerFactory(getChecker));
@@ -427,7 +440,7 @@ interface Scope {
     getUsesInScope(symbol: Symbol, domain: Domain, getChecker: TypeCheckerFactory): Iterable<Use>;
     getSymbol(declaration: ts.Identifier): Symbol | undefined;
     getDelegateScope(location: ts.Node): Scope;
-    lookupSymbol(use: ts.Identifier, domain: Domain, getChecker: TypeCheckerFactory): Symbol | undefined;
+    lookupSymbol(use: Use['location'], domain: Domain, getChecker: TypeCheckerFactory): Symbol | undefined;
 }
 
 interface MatchRange extends ts.TextRange {
@@ -557,12 +570,12 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
         return this._symbols.get(declaration.text);
     }
 
-    public lookupSymbol(location: ts.Identifier, domain: Domain, getChecker: TypeCheckerFactory) {
+    public lookupSymbol(location: Use['location'], domain: Domain, getChecker: TypeCheckerFactory) {
         if (
             (domain & scopeBoundaryToDomain(this._boundary)) !== 0 &&
             (domain & getDomainOfMatchingRange(location.pos, this._propagatedRanges)) === 0
         ) {
-            const ownSymbol = this._getOwnSymbol(location, domain, getChecker);
+            const ownSymbol = this._getOwnSymbol(getUseName(location), domain, getChecker);
             if (ownSymbol !== undefined)
                 return ownSymbol;
         }
@@ -570,9 +583,9 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
         return parent && parent.lookupSymbol(location, domain, getChecker);
     }
 
-    protected _getOwnSymbol(location: ts.Identifier, domain: Domain, getChecker: TypeCheckerFactory) {
+    protected _getOwnSymbol(name: string, domain: Domain, getChecker: TypeCheckerFactory) {
         this._initialize();
-        let ownSymbol = this._symbols.get(location.text);
+        let ownSymbol = this._symbols.get(name);
         if (ownSymbol === undefined || (ownSymbol.domain & domain) === 0)
             return;
         if (ownSymbol.domain & Domain.Lazy) {
@@ -769,10 +782,10 @@ class WithStatementScope extends BaseScope {
     }
 
     // tslint:disable-next-line:prefer-function-over-method
-    protected _getOwnSymbol(location: ts.Identifier, domain: Domain) {
+    protected _getOwnSymbol(name: string, domain: Domain) {
         // we don't need to call super here, as a WithStatement should never have any own declaration
         return domain & Domain.Value
-            ? {name: location.text, domain: domain | Domain.DoNotUse, declarations: []}
+            ? {name, domain: domain | Domain.DoNotUse, declarations: []}
             : undefined;
     }
 }
@@ -875,18 +888,18 @@ class NamespaceScope extends DeclarationScope<ts.ModuleDeclaration | ts.EnumDecl
         );
     }
 
-    protected _getOwnSymbol(location: ts.Identifier, domain: Domain, getChecker: TypeCheckerFactory) {
-        let result = super._getOwnSymbol(location, domain, getChecker);
+    protected _getOwnSymbol(name: string, domain: Domain, getChecker: TypeCheckerFactory) {
+        let result = super._getOwnSymbol(name, domain, getChecker);
         if (result === undefined) {
             if (this.node.kind === ts.SyntaxKind.EnumDeclaration && (domain & Domain.Value) === 0)
                 return;
             const checker = getChecker();
             if (checker === undefined) {
-                result = {name: location.text, declarations: [], domain: domain | Domain.DoNotUse};
+                result = {name, declarations: [], domain: domain | Domain.DoNotUse};
             } else {
-                const resolvedDomain = resolveNamespaceExportDomain(checker, this.node, location.text);
+                const resolvedDomain = resolveNamespaceExportDomain(checker, this.node, name);
                 if (resolvedDomain !== 0)
-                    result = {name: location.text, declarations: [], domain: resolvedDomain};
+                    result = {name, declarations: [], domain: resolvedDomain};
             }
         }
         return result;
