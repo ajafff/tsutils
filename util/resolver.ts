@@ -3,7 +3,6 @@ import {
     ScopeBoundarySelector,
     isScopeBoundary,
     isBlockScopedVariableDeclarationList,
-    isThisParameter,
     getPropertyName,
     getDeclarationOfBindingElement,
     ScopeBoundary,
@@ -41,7 +40,7 @@ interface Symbol {
     declarations: Declaration[];
 }
 export interface Use {
-    location: ts.Identifier;
+    location: ts.Identifier | ts.SuperExpression | ts.ThisExpression | ts.ThisTypeNode;
     domain: Domain;
 }
 
@@ -151,15 +150,26 @@ class ResolverImpl implements Resolver {
             case ts.SyntaxKind.MappedType:
                 return new BaseScope(node, ScopeBoundary.Type, this);
             case ts.SyntaxKind.InterfaceDeclaration:
-            case ts.SyntaxKind.TypeAliasDeclaration:
-                return new DeclarationScope(
-                    <ts.InterfaceDeclaration | ts.TypeAliasDeclaration>node,
+                return new InterfaceScope(
+                    <ts.InterfaceDeclaration>node,
                     ScopeBoundary.Type,
                     this,
                     {
-                        name: (<ts.InterfaceDeclaration | ts.TypeAliasDeclaration>node).name.text,
+                        name: (<ts.InterfaceDeclaration>node).name.text,
                         domain: Domain.Type,
-                        node: <ts.InterfaceDeclaration | ts.TypeAliasDeclaration>node,
+                        node: <ts.InterfaceDeclaration>node,
+                        selector: ScopeBoundarySelector.Type,
+                    },
+                );
+            case ts.SyntaxKind.TypeAliasDeclaration:
+                return new DeclarationScope(
+                    <ts.TypeAliasDeclaration>node,
+                    ScopeBoundary.Type,
+                    this,
+                    {
+                        name: (<ts.TypeAliasDeclaration>node).name.text,
+                        domain: Domain.Type,
+                        node: <ts.TypeAliasDeclaration>node,
                         selector: ScopeBoundarySelector.Type,
                     },
                 );
@@ -455,6 +465,18 @@ function scopeBoundaryToDomain(boundary: ScopeBoundary): Domain {
     }
 }
 
+function getUseName(node: Use['location']) {
+    switch (node.kind) {
+        case ts.SyntaxKind.ThisKeyword:
+        case ts.SyntaxKind.ThisType:
+            return 'this';
+        case ts.SyntaxKind.SuperKeyword:
+            return 'super';
+        default:
+            return node.text;
+    }
+}
+
 class BaseScope<T extends ts.Node = ts.Node> implements Scope {
     public parent: Scope | undefined = undefined;
     private _initial = true;
@@ -508,7 +530,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
         for (const use of this._uses)
             if (
                 use.domain & domain &&
-                use.location.text === symbol.name &&
+                getUseName(use.location) === symbol.name &&
                 ((use.domain & getDomainOfMatchingRange(use.location.pos, ranges)) !== 0) === include
             )
                 yield use;
@@ -630,7 +652,7 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
                 // catch binding
                 return this._handleBindingName((<ts.VariableDeclaration>node).name, true);
             case ts.SyntaxKind.Parameter:
-                if (node.parent!.kind === ts.SyntaxKind.IndexSignature || isThisParameter(<ts.ParameterDeclaration>node))
+                if (node.parent!.kind === ts.SyntaxKind.IndexSignature)
                     return (<ts.ParameterDeclaration>node).type && this._analyzeNode((<ts.ParameterDeclaration>node).type!);
                 return this._handleVariableLikeDeclaration(<ts.ParameterDeclaration>node, false);
             case ts.SyntaxKind.EnumMember:
@@ -677,6 +699,15 @@ class BaseScope<T extends ts.Node = ts.Node> implements Scope {
                     this._analyzeNode((<ts.TypeParameterDeclaration>node).constraint!);
                 if ((<ts.TypeParameterDeclaration>node).default !== undefined)
                     this._analyzeNode((<ts.TypeParameterDeclaration>node).default!);
+                return;
+            case ts.SyntaxKind.ThisType:
+                this._addUse({location: <ts.ThisTypeNode>node, domain: Domain.Type});
+                return;
+            case ts.SyntaxKind.ThisKeyword:
+                this._addUse({location: <ts.ThisExpression>node, domain: Domain.Value});
+                return;
+            case ts.SyntaxKind.SuperKeyword:
+                this._addUse({location: <ts.SuperExpression>node, domain: Domain.Value});
                 return;
             case ts.SyntaxKind.Identifier: {
                 const domain = getUsageDomain(<ts.Identifier>node);
@@ -770,17 +801,31 @@ class DecoratableDeclarationScope<
     }
 }
 
+class InterfaceScope extends DeclarationScope<ts.InterfaceDeclaration> {
+    protected _analyze() {
+        this._addDeclaration({name: 'this', domain: Domain.Type, node: undefined, selector: ScopeBoundarySelector.Type});
+        super._analyze();
+    }
+}
+
 class ClassLikeScope extends DecoratableDeclarationScope<ts.ClassLikeDeclaration> {
     protected _collectPropagatedRanges() {
         const result = super._collectPropagatedRanges(); // decorators
         if (this.node.heritageClauses !== undefined) {
             const [clause] = this.node.heritageClauses;
             if (clause.token === ts.SyntaxKind.ExtendsKeyword && clause.types.length !== 0)
-                // expression in 'extends' clause cannot access type parameters and 'this' of the class
-                // this slightly deviates from TypeScript's behavior, but it's an error to reference class generics inside 'extends' anyway
-                result.push(MatchRange.create(Domain.Any, clause.types[0].expression));
+                // expression in 'extends' cannot access 'this' and 'super' of the class
+                result.push(MatchRange.create(Domain.ValueOrNamespace, clause.types[0].expression));
         }
         return result;
+    }
+
+    protected _analyze() {
+        this._addDeclaration(
+            {name: 'this', domain: Domain.Type | Domain.Value, node: undefined, selector: ScopeBoundarySelector.Function},
+        );
+        this._addDeclaration({name: 'super', domain: Domain.Value, node: undefined, selector: ScopeBoundarySelector.Function});
+        super._analyze();
     }
 }
 
@@ -922,6 +967,10 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
             case ts.SyntaxKind.SetAccessor:
             case ts.SyntaxKind.Constructor:
                 this._addDeclaration({name: 'arguments', domain: Domain.Value, node: undefined, selector: ScopeBoundarySelector.Function});
+                this._addDeclaration(
+                    {name: 'this', domain: Domain.Type | Domain.Value, node: undefined, selector: ScopeBoundarySelector.Function},
+                );
+                this._addDeclaration({name: 'super', domain: Domain.Value, node: undefined, selector: ScopeBoundarySelector.Function});
         }
         if ('body' in node && node.body !== undefined) { // don't create a nested scope if there is no body and therefore no scoping problem
             this._innerScope = new FunctionLikeInnerScope(
@@ -994,8 +1043,9 @@ class FunctionLikeScope extends DecoratableDeclarationScope<ts.SignatureDeclarat
 // * in ambient **module** exclude alias exports 'export {T as V}'
 // * make sure namespace import is treated as namespace
 // * 'export default class C' is visible in merged ambient module
+// * track 'this' and 'super'
 
-// track 'this' and 'super'
+// add an API to get an arbitrary Symbol by name at a certain location
 
 // expose Iterable API for findReferences
 
