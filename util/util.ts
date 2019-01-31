@@ -2,7 +2,7 @@ import * as ts from 'typescript';
 import { NodeWrap } from './convert-ast';
 import {
     isBlockLike, isLiteralExpression, isPropertyDeclaration, isJsDoc, isImportDeclaration, isTextualLiteral,
-    isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration, isLiteralTypeNode,
+    isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration, isLiteralTypeNode, isTypeReferenceNode,
 } from '../typeguard/node';
 import { isBigIntLiteral } from '../typeguard/3.2';
 
@@ -1350,4 +1350,10 @@ export function getCheckJsDirective(source: string) {
         }
     });
     return directive;
+}
+
+export function isConstAssertion(node: ts.AssertionExpression) {
+    return isTypeReferenceNode(node.type) &&
+        node.type.typeName.kind === ts.SyntaxKind.Identifier &&
+        node.type.typeName.escapedText === 'const';
 }
