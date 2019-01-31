@@ -1358,6 +1358,7 @@ export function isConstAssertion(node: ts.AssertionExpression) {
         node.type.typeName.escapedText === 'const';
 }
 
+/** Detects whether an expression is affected by an enclosing 'as const' assertion and therefore treated literally. */
 export function isInConstContext(node: ts.Expression) {
     let current: ts.Node = node;
     while (true) {
