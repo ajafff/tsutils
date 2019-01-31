@@ -1,3 +1,10 @@
+# 3.8.0
+
+**Features:**
+
+* exposes typeguards for typescript@3.2 by default
+* added utilities: `isConstAssertion` and `isInConstContext`
+
 # 3.7.0
 
 **Features:**
