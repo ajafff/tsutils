@@ -104,7 +104,8 @@ export function isThenableType(checker: ts.TypeChecker, node: ts.Node, type = ch
         const thenType = checker.getTypeOfSymbolAtLocation(then, node);
         for (const t of unionTypeParts(thenType))
             for (const signature of t.getCallSignatures())
-                if (signature.parameters.length !== 0 && isCallback(checker, signature.parameters[0], node))
+              if (signature.parameters.length !== 0 && signature.typeParameters !== undefined &&
+                signature.typeParameters.length !== 0 && isCallback(checker, signature.parameters[0], node))
                     return true;
     }
     return false;
