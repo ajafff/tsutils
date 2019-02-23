@@ -1,7 +1,87 @@
 import * as ts from 'typescript';
 import { assert } from 'chai';
 import { isStatementInAmbientContext, isStrictCompilerOptionEnabled } from '..';
-import { isCompilerOptionEnabled } from '../util';
+import { isCompilerOptionEnabled, getLineRanges } from '../util';
+
+describe('getLineRanges', () => {
+    it('returns content length without line breaks', () => {
+        const sourceFile = ts.createSourceFile(
+            'foo.ts',
+            'foo\nbar();\r\nbaz;',
+            ts.ScriptTarget.ESNext,
+        );
+        assert.deepStrictEqual(getLineRanges(sourceFile), [
+            {pos: 0, end: 4, contentLength: 3},
+            {pos: 4, end: 12, contentLength: 6},
+            {pos: 12, end: 16, contentLength: 4},
+        ]);
+    });
+
+    it('can handle empty files', () => {
+        const sourceFile = ts.createSourceFile(
+            'foo.ts',
+            '',
+            ts.ScriptTarget.ESNext,
+        );
+        assert.deepStrictEqual(getLineRanges(sourceFile), [{pos: 0, end: 0, contentLength: 0}]);
+    });
+
+    it('can handle line break only', () => {
+        const sourceFile = ts.createSourceFile(
+            'foo.ts',
+            '\n',
+            ts.ScriptTarget.ESNext,
+        );
+        assert.deepStrictEqual(getLineRanges(sourceFile), [{pos: 0, end: 1, contentLength: 0}, {pos: 1, end: 1, contentLength: 0}]);
+    });
+
+    it('handles empty line at start of file', () => {
+        const sourceFile = ts.createSourceFile(
+            'foo.ts',
+            '\na\n\nb\n',
+            ts.ScriptTarget.ESNext,
+        );
+        assert.deepStrictEqual(getLineRanges(sourceFile), [
+            {pos: 0, end: 1, contentLength: 0},
+            {pos: 1, end: 3, contentLength: 1},
+            {pos: 3, end: 4, contentLength: 0},
+            {pos: 4, end: 6, contentLength: 1},
+            {pos: 6, end: 6, contentLength: 0},
+        ]);
+    });
+
+    it('handles empty lines correctly', () => {
+        const sourceFile = ts.createSourceFile(
+            'foo.ts',
+            '\nfoo\n\nbar\n\n',
+            ts.ScriptTarget.ESNext,
+        );
+        assert.deepStrictEqual(getLineRanges(sourceFile), [
+            {pos: 0, end: 1, contentLength: 0},
+            {pos: 1, end: 5, contentLength: 3},
+            {pos: 5, end: 6, contentLength: 0},
+            {pos: 6, end: 10, contentLength: 3},
+            {pos: 10, end: 11, contentLength: 0},
+            {pos: 11, end: 11, contentLength: 0},
+        ]);
+    });
+
+    it('handles empty lines with CRLF', () => {
+        const sourceFile = ts.createSourceFile(
+            'foo.ts',
+            '\r\nfoo\r\n\r\nbar\r\n\r\n',
+            ts.ScriptTarget.ESNext,
+        );
+        assert.deepStrictEqual(getLineRanges(sourceFile), [
+            {pos: 0, end: 2, contentLength: 0},
+            {pos: 2, end: 7, contentLength: 3},
+            {pos: 7, end: 9, contentLength: 0},
+            {pos: 9, end: 14, contentLength: 3},
+            {pos: 14, end: 16, contentLength: 0},
+            {pos: 16, end: 16, contentLength: 0},
+        ]);
+    });
+});
 
 describe('isStatementInAmbientContext', () => {
     it("doesn't handle declaration files special", () => {
