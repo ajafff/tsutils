@@ -1,3 +1,9 @@
+# 3.9.0
+
+**Features:**
+
+* added typeguards: `isNullLiteral` and `isBooleanLiteral`
+
 # 3.8.0
 
 **Features:**
