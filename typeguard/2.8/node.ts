@@ -686,3 +686,11 @@ export function isWhileStatement(node: ts.Node): node is ts.WhileStatement {
 export function isWithStatement(node: ts.Node): node is ts.WithStatement {
     return node.kind === ts.SyntaxKind.WithStatement;
 }
+
+export function isNullLiteral(node: ts.Node): node is ts.NullLiteral {
+    return node.kind === ts.SyntaxKind.NullKeyword;
+}
+
+export function isBooleanLiteral(node: ts.Node): node is ts.BooleanLiteral {
+    return node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword;
+}
