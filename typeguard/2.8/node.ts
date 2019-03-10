@@ -55,6 +55,10 @@ export function isBlockLike(node: ts.Node): node is ts.BlockLike {
     return (<any>node).statements !== undefined;
 }
 
+export function isBooleanLiteral(node: ts.Node): node is ts.BooleanLiteral {
+    return node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword;
+}
+
 export function isBreakOrContinueStatement(node: ts.Node): node is ts.BreakOrContinueStatement {
     return node.kind === ts.SyntaxKind.BreakStatement ||
         node.kind === ts.SyntaxKind.ContinueStatement;
@@ -493,6 +497,10 @@ export function isNoSubstitutionTemplateLiteral(node: ts.Node): node is ts.NoSub
     return node.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral;
 }
 
+export function isNullLiteral(node: ts.Node): node is ts.NullLiteral {
+    return node.kind === ts.SyntaxKind.NullKeyword;
+}
+
 export function isNumericLiteral(node: ts.Node): node is ts.NumericLiteral {
     return node.kind === ts.SyntaxKind.NumericLiteral;
 }
@@ -685,12 +693,4 @@ export function isWhileStatement(node: ts.Node): node is ts.WhileStatement {
 
 export function isWithStatement(node: ts.Node): node is ts.WithStatement {
     return node.kind === ts.SyntaxKind.WithStatement;
-}
-
-export function isNullLiteral(node: ts.Node): node is ts.NullLiteral {
-    return node.kind === ts.SyntaxKind.NullKeyword;
-}
-
-export function isBooleanLiteral(node: ts.Node): node is ts.BooleanLiteral {
-    return node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword;
 }
