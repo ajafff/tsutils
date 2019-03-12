@@ -1,3 +1,10 @@
+# 3.9.1
+
+**Bugfixes:**
+
+* reverted invalid deprecation of `canHaveJsdoc`
+* fixed condition in `parseJsdocOfNode`
+
 # 3.9.0
 
 **Features:**

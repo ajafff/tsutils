@@ -997,7 +997,6 @@ export function isReassignmentTarget(node: ts.Expression): boolean {
     return false;
 }
 
-/** @deprecated use `ts.isJSDocCommentContainingNode` instead */
 export function canHaveJsDoc(node: ts.Node): node is ts.HasJSDoc {
     const kind = (<ts.HasJSDoc>node).kind;
     switch (kind) {
@@ -1064,7 +1063,7 @@ export function getJsDoc(node: ts.Node, sourceFile?: ts.SourceFile): ts.JSDoc[] 
  *                                 as the previous node ends.
  */
 export function parseJsDocOfNode(node: ts.Node, considerTrailingComments?: boolean, sourceFile = node.getSourceFile()): ts.JSDoc[] {
-    if (ts.isJSDocCommentContainingNode(node) && node.kind !== ts.SyntaxKind.EndOfFileToken) {
+    if (canHaveJsDoc(node) && node.kind !== ts.SyntaxKind.EndOfFileToken) {
         const result = getJsDoc(node, sourceFile);
         if (result.length !== 0 || !considerTrailingComments)
             return result;
