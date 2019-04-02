@@ -1,3 +1,13 @@
+# 3.10.0
+
+**Features:**
+
+* `isCompilerOptionEnabled`: `incremental` is implicitly enabled by `composite`
+
+**Bugfixes:**
+
+* `collectVariableUsage`/`getUsageDomain`: no longer treat `as const` as type usage
+
 # 3.9.1
 
 **Bugfixes:**
