@@ -55,7 +55,7 @@ export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
     const parent = node.parent!;
     switch (parent.kind) {
         case ts.SyntaxKind.TypeReference:
-            return UsageDomain.Type;
+            return node.originalKeywordKind !== ts.SyntaxKind.ConstKeyword ? UsageDomain.Type : undefined;
         case ts.SyntaxKind.ExpressionWithTypeArguments:
             return (<ts.HeritageClause>parent.parent).token === ts.SyntaxKind.ImplementsKeyword ||
                 parent.parent!.parent!.kind === ts.SyntaxKind.InterfaceDeclaration
