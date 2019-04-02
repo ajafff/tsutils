@@ -1308,7 +1308,7 @@ export function isCompilerOptionEnabled(options: ts.CompilerOptions, option: Boo
         case 'declaration':
             return options.declaration || isCompilerOptionEnabled(options, 'composite');
         case 'incremental':
-            return options.incremental || isCompilerOptionEnabled(options, 'composite');
+            return options.incremental === undefined ? isCompilerOptionEnabled(options, 'composite') : options.incremental;
         case 'skipDefaultLibCheck':
             return options.skipDefaultLibCheck || isCompilerOptionEnabled(options, 'skipLibCheck');
         case 'suppressImplicitAnyIndexErrors':

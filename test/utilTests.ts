@@ -225,6 +225,19 @@ describe('isCompilerOptionEnabled', () => {
         assert.isTrue(isCompilerOptionEnabled({composite: true, declaration: undefined}, 'declaration'));
     });
 
+    it('knows composite implicitly enables incremental', () => {
+        assert.isFalse(isCompilerOptionEnabled({}, 'incremental'));
+        assert.isFalse(isCompilerOptionEnabled({incremental: false}, 'incremental'));
+        assert.isFalse(isCompilerOptionEnabled({incremental: undefined}, 'incremental'));
+        assert.isTrue(isCompilerOptionEnabled({incremental: true}, 'incremental'));
+
+        assert.isFalse(isCompilerOptionEnabled({composite: false}, 'incremental'));
+        assert.isFalse(isCompilerOptionEnabled({composite: undefined}, 'incremental'));
+        assert.isTrue(isCompilerOptionEnabled({composite: true}, 'incremental'));
+        assert.isTrue(isCompilerOptionEnabled({composite: true, incremental: undefined}, 'incremental'));
+        assert.isFalse(isCompilerOptionEnabled({composite: true, incremental: false}, 'incremental'));
+    });
+
     it('knows stripInternal can only be used with declaration', () => {
         assert.isFalse(isCompilerOptionEnabled({declaration: true}, 'stripInternal'));
         assert.isFalse(isCompilerOptionEnabled({stripInternal: false}, 'stripInternal'));
