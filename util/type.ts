@@ -130,7 +130,11 @@ export function isFalsyType(type: ts.Type): boolean {
         return true;
     if (isLiteralType(type))
         return !type.value;
-    if (type.flags & ts.TypeFlags.BooleanLiteral)
-        return (<{intrinsicName: string}><{}>type).intrinsicName === 'false';
-    return false;
+    return isBooleanLiteralType(type, false);
+}
+
+/** Determines whether the given type is a boolean literal type and matches the given boolean literal (true or false). */
+export function isBooleanLiteralType(type: ts.Type, literal: boolean) {
+    return isTypeFlagSet(type, ts.TypeFlags.BooleanLiteral) &&
+        (<{intrinsicName: string}><{}>type).intrinsicName === (literal ? 'true' : 'false');
 }
