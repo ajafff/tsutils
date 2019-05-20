@@ -505,6 +505,19 @@ export function isNumericLiteral(node: ts.Node): node is ts.NumericLiteral {
     return node.kind === ts.SyntaxKind.NumericLiteral;
 }
 
+export function isNumericOrStringLikeLiteral(
+    node: ts.Node,
+): node is ts.NumericLiteral | ts.StringLiteral | ts.NoSubstitutionTemplateLiteral {
+    switch (node.kind) {
+        case ts.SyntaxKind.StringLiteral:
+        case ts.SyntaxKind.NumericLiteral:
+        case ts.SyntaxKind.NoSubstitutionTemplateLiteral:
+            return true;
+        default:
+            return false;
+    }
+}
+
 export function isObjectBindingPattern(node: ts.Node): node is ts.ObjectBindingPattern {
     return node.kind === ts.SyntaxKind.ObjectBindingPattern;
 }

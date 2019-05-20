@@ -3,8 +3,10 @@ import { NodeWrap } from './convert-ast';
 import {
     isBlockLike, isLiteralExpression, isPropertyDeclaration, isJsDoc, isImportDeclaration, isTextualLiteral,
     isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration, isLiteralTypeNode, isTypeReferenceNode,
+    isPropertyAssignment, isEntityNameExpression, isNumericOrStringLikeLiteral, isPropertyAccessExpression, isIdentifier,
 } from '../typeguard/node';
 import { isBigIntLiteral } from '../typeguard/3.2';
+import { isBooleanLiteralType } from './type';
 
 export function getChildOfKind<T extends ts.SyntaxKind>(node: ts.Node, kind: T, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))
@@ -634,6 +636,10 @@ export function isValidJsxIdentifier(text: string): boolean {
         if (!ts.isIdentifierPart(text.charCodeAt(i), ts.ScriptTarget.Latest) && text[i] !== '-')
             return false;
     return true;
+}
+
+export function isNumericPropertyName(name: string | ts.__String): boolean {
+    return String(+name) === name;
 }
 
 export function isSameLine(sourceFile: ts.SourceFile, pos1: number, pos2: number) {
@@ -1397,4 +1403,31 @@ export function isInConstContext(node: ts.Expression) {
                 return false;
         }
     }
+}
+
+/** Returns true for `Object.defineProperty(o, 'prop', {value, writable: false})` and  `Object.defineProperty(o, 'prop', {get: () => 1})`*/
+export function isReadonlyAssignmentDeclaration(node: ts.CallExpression, checker: ts.TypeChecker) {
+    if (!isBindableObjectDefinePropertyCall(node))
+        return false;
+    const descriptorType = checker.getTypeAtLocation(node.arguments[2]);
+    if (descriptorType.getProperty('value') === undefined)
+        return descriptorType.getProperty('set') === undefined;
+    const writableProp = descriptorType.getProperty('writable');
+    if (writableProp === undefined)
+        return false;
+    const writableType = writableProp.valueDeclaration !== undefined && isPropertyAssignment(writableProp.valueDeclaration)
+        ? checker.getTypeAtLocation(writableProp.valueDeclaration.initializer)
+        : checker.getTypeOfSymbolAtLocation(writableProp, node.arguments[2]);
+    return isBooleanLiteralType(writableType, false);
+}
+
+/** Determines whether a call to `Object.defineProperty` is statically analyzable. */
+export function isBindableObjectDefinePropertyCall(node: ts.CallExpression) {
+    return node.arguments.length === 3 &&
+        isEntityNameExpression(node.arguments[0]) &&
+        isNumericOrStringLikeLiteral(node.arguments[1]) &&
+        isPropertyAccessExpression(node.expression) &&
+        node.expression.name.escapedText === 'defineProperty' &&
+        isIdentifier(node.expression.expression) &&
+        node.expression.expression.escapedText === 'Object';
 }
