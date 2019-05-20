@@ -222,7 +222,7 @@ function isReadonlyPropertyFromMappedType(type: ts.Type, name: ts.__String, chec
     return isPropertyReadonlyInType((<{modifiersType: ts.Type}><unknown>type).modifiersType, name, checker);
 }
 
-function symbolHasReadonlyDeclaration(symbol: ts.Symbol, checker: ts.TypeChecker) {
+export function symbolHasReadonlyDeclaration(symbol: ts.Symbol, checker: ts.TypeChecker) {
     return (symbol.flags & ts.SymbolFlags.Accessor) === ts.SymbolFlags.GetAccessor ||
         symbol.declarations !== undefined &&
         symbol.declarations.some((node) =>
