@@ -1,5 +1,5 @@
-import {jsObj} from './js';
-import * as namespaceImport from './js';
+import {jsObj} from './prop';
+import * as namespaceImport from './prop';
 
 declare function get<T>(): T;
 
