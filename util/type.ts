@@ -17,7 +17,13 @@ import {
     isNodeFlagSet,
     isNumericPropertyName,
 } from './util';
-import { isPropertyAssignment, isVariableDeclaration, isCallExpression, isShorthandPropertyAssignment } from '../typeguard/node';
+import {
+    isPropertyAssignment,
+    isVariableDeclaration,
+    isCallExpression,
+    isShorthandPropertyAssignment,
+    isEnumMember,
+} from '../typeguard/node';
 
 export function isEmptyObjectType(type: ts.Type): type is ts.ObjectType {
     if (isObjectType(type) &&
@@ -169,17 +175,27 @@ export function getPropertyOfType(type: ts.Type, name: ts.__String) {
     return type.getProperties().find((s) => s.escapedName === name);
 }
 
-/** Determines if writing to a certain property of a given type is allowed. If the property is not present, index signatures are checked. */
-export function isPropertyReadonlyInType(type: ts.Type, name: ts.__String, checker: ts.TypeChecker) {
-    return someTypePart(type, isUnionType, (t) => {
+/** Determines if writing to a certain property of a given type is allowed. */
+export function isPropertyReadonlyInType(type: ts.Type, name: ts.__String, checker: ts.TypeChecker): boolean {
+    let seenProperty = false;
+    let seenReadonlySignature = false;
+    for (const t of unionTypeParts(type)) {
         if (getPropertyOfType(t, name) === undefined) {
             // property is not present in this part of the union -> check for readonly index signature
             const index = (isNumericPropertyName(name) ? checker.getIndexInfoOfType(t, ts.IndexKind.Number) : undefined) ||
                 checker.getIndexInfoOfType(t, ts.IndexKind.String);
-            return index !== undefined && index.isReadonly;
+            if (index !== undefined && index.isReadonly) {
+                if (seenProperty)
+                    return true;
+                seenReadonlySignature = true;
+            }
+        } else if (seenReadonlySignature || isReadonlyPropertyIntersection(t, name, checker)) {
+            return true;
+        } else {
+            seenProperty = true;
         }
-        return isReadonlyPropertyIntersection(t, name, checker);
-    });
+    }
+    return false;
 }
 
 function isReadonlyPropertyIntersection(type: ts.Type, name: ts.__String, checker: ts.TypeChecker) {
@@ -188,8 +204,8 @@ function isReadonlyPropertyIntersection(type: ts.Type, name: ts.__String, checke
         if (prop === undefined)
             return false;
         if (prop.flags &  ts.SymbolFlags.Transient) {
-            if (/^(?:[1-9]\d*|0)$/.test(<string>name) && isElementOfReadonlyTuple(t, name))
-                return true;
+            if (/^(?:[1-9]\d*|0)$/.test(<string>name) && isTupleTypeReference(t))
+                return t.target.readonly;
             switch (isReadonlyPropertyFromMappedType(t, name, checker)) {
                 case true:
                     return true;
@@ -208,16 +224,12 @@ function isReadonlyPropertyIntersection(type: ts.Type, name: ts.__String, checke
     });
 }
 
-function isElementOfReadonlyTuple(type: ts.Type, name: ts.__String): boolean {
-    // TODO might change: https://github.com/microsoft/TypeScript/issues/31481
-    return isTupleTypeReference(type) && type.target.readonly && getPropertyOfType(type.target, name) !== undefined;
-}
-
 function isReadonlyPropertyFromMappedType(type: ts.Type, name: ts.__String, checker: ts.TypeChecker): boolean | undefined {
     if (!isObjectType(type) || !isObjectFlagSet(type, ts.ObjectFlags.Mapped))
         return;
     const declaration = <ts.MappedTypeNode>type.symbol!.declarations![0];
-    if (declaration.readonlyToken !== undefined)
+    // well-known symbols are not affected by mapped types
+    if (declaration.readonlyToken !== undefined && !/^__@[^@]+$/.test(<string>name))
         return declaration.readonlyToken.kind !== ts.SyntaxKind.MinusToken;
     return isPropertyReadonlyInType((<{modifiersType: ts.Type}><unknown>type).modifiersType, name, checker);
 }
@@ -229,6 +241,7 @@ export function symbolHasReadonlyDeclaration(symbol: ts.Symbol, checker: ts.Type
             isModifierFlagSet(node, ts.ModifierFlags.Readonly) ||
             isVariableDeclaration(node) && isNodeFlagSet(node.parent!, ts.NodeFlags.Const) ||
             isCallExpression(node) && isReadonlyAssignmentDeclaration(node, checker) ||
+            isEnumMember(node) ||
             (isPropertyAssignment(node) || isShorthandPropertyAssignment(node)) && isInConstContext(node.parent!),
         );
 }
