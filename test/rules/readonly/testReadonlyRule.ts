@@ -13,8 +13,6 @@ function walk(ctx: Lint.WalkContext<void>, checker: ts.TypeChecker) {
     return ts.forEachChild(ctx.sourceFile, function cb(node): void {
         if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
             const {left} = node;
-            if (ts.isPropertyAccessExpression(left) && left.name.text === 'x')
-                debugger;
             if (
                 ts.isPropertyAccessExpression(left) &&
                 isPropertyReadonlyInType(checker.getTypeAtLocation(left.expression), left.name.escapedText, checker)
