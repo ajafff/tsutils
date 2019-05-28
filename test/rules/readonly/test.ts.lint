@@ -1,0 +1,123 @@
+import {jsObj} from './prop';
+import * as namespaceImport from './prop';
+
+declare function get<T>(): T;
+
+type Mutable<T> = {
+    -readonly [K in keyof T]: T[K];
+}
+type ReadonlyPick<T, K extends keyof T> = {
+    readonly [P in K]: T[P]
+}
+type P = {p: number};
+type RP = {readonly p: number};
+
+const constObj = {p: Number()} as const;
+const getOnly = {
+    get p() { return 1; }
+};
+const getSet = {
+    get p() { return 1; },
+    set p(_) {},
+};
+
+namespace ns {
+    export const p = Number();
+}
+class C {
+    readonly p = Number();
+}
+const prop = Symbol();
+class SymbolName {
+    [prop]: number;
+}
+class SymbolNameReadonly {
+    readonly [prop]: number;
+}
+enum E {
+    p = 1;
+}
+
+get<RP>().p = 1;
+          ~      [readonly]
+get<Readonly<P>>().p = 1;
+                   ~      [readonly]
+get<Partial<Readonly<P>>>().p = 1;
+                            ~      [readonly]
+get<Mutable<RP>>().p = 1;
+get<Pick<Readonly<Record<string, number>>, 'p'>>().p = 1;
+get<ReadonlyPick<Record<string, number>, 'p'>>().p = 1;
+                                                 ~      [readonly]
+get<{readonly [x: string]: number} | P>().p = 1;
+                                          ~      [readonly]
+get<{readonly [x: string]: number; p: number}>().p = 1;
+get<{[x: string]: number; readonly p: number}>().p = 1;
+                                                 ~      [readonly]
+get<readonly [] & {1: number}>()[1] = 1;
+get<readonly [number] & {1: number}>()[1] = 1;
+get<readonly [number, number] & {1: number}>()[1] = 1;
+                                               ~       [readonly '1']
+get<readonly [number, ...number[]] & {1: number}>()[1] = 1;
+get<readonly [...number[]] & {1: number}>()[1] = 1;
+get<readonly [number, ...number[]] | {1: number}>()[1] = 1;
+                                                    ~       [readonly '1']
+get<readonly [...number[]] | {1: number}>()[1] = 1;
+                                            ~       [readonly '1']
+constObj.p = 1;
+         ~      [readonly]
+ns.p = 1;
+   ~      [readonly]
+jsObj.a = 1;
+      ~      [readonly]
+jsObj.b = 1;
+      ~      [readonly]
+jsObj.c = 1;
+jsObj.d = 1;
+jsObj.e = 1;
+jsObj.f = 1;
+      ~      [readonly]
+namespaceImport.p = 1;
+get<Mutable<typeof constObj>>().p = 1;
+get<Mutable<typeof ns>>().p = 1;
+get<Mutable<typeof namespaceImport>>().p = 1;
+getOnly.p = 1;
+        ~      [readonly]
+getSet.p = 1;
+get<Mutable<typeof getOnly>>().p = 1;
+get<Readonly<typeof getSet>>().p = 1;
+                               ~      [readonly]
+get<P | Pick<Readonly<Record<'p' | 'q', number>>, 'q'> & P>().p = 1;
+get<Record<string, number>>().p = 1;
+get<Pick<{readonly [K: string]: number} | {x: number}, 'x'>>().x = 1; //
+                                                               ~         [readonly]
+get<Pick<{p: number} | {readonly [p: string]: number}, 'p'>>().p = 1; //
+                                                               ~         [readonly]
+get<Pick<readonly [number, number], 1>>()[1] = 1;
+                                          ~       [readonly '1']
+new C().p = 1;
+        ~      [readonly]
+get<Mutable<C>>().p = 1;
+get<{[Symbol.toStringTag]: string}>()[Symbol.toStringTag] = '1';
+get<{readonly [Symbol.toStringTag]: string}>()[Symbol.toStringTag] = '1';
+                                               ~~~~~~~~~~~~~~~~~~         [readonly '[Symbol.toStringTag]']
+get<Readonly<{[Symbol.toStringTag]: string}>>()[Symbol.toStringTag] = '1';
+get<{readonly __p: number, ___p: number}>().__p = 1;
+                                            ~~~      [readonly]
+get<{readonly __p: number, ___p: number}>().___p = 1;
+new SymbolName()[prop] = 1;
+new SymbolNameReadonly()[prop] = 1;
+                         ~~~~       [readonly '[prop]']
+get<Readonly<SymbolName>>()[prop] = 1;
+                            ~~~~       [readonly '[prop]']
+get<Mutable<SymbolNameReadonly>>()[prop] = 1;
+get<{readonly [x: string]: number; [x: number]: number} | P>().p = 1;
+                                                               ~      [readonly]
+get<{readonly [x: string]: number; [x: number]: number} | [number]>()[0] = 1;
+get<{[x: string]: number; readonly [x: number]: number} | P>().p = 1;
+get<{[x: string]: number; readonly [x: number]: number} | [number]>()[0] = 1;
+                                                                      ~       [readonly '0']
+get<{readonly [x: string]: number} | [number]>()[0] = 1;
+                                                 ~       [readonly '0']
+E.p = 1;
+  ~      [readonly]
+get<Mutable<typeof E>>().p = 1;
