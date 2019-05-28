@@ -1439,7 +1439,7 @@ export interface WellKnownSymbolLiteral extends ts.PropertyAccessExpression {
 export function isWellKnownSymbolLiterally(node: ts.Expression): node is WellKnownSymbolLiteral  {
     return ts.isPropertyAccessExpression(node) &&
     ts.isIdentifier(node.expression) &&
-    node.expression.text === 'Symbol';
+    node.expression.escapedText === 'Symbol';
 }
 
 export interface PropertyName {
