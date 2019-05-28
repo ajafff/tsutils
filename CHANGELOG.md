@@ -1,3 +1,22 @@
+# 3.11.0
+
+**Features:**
+
+* typeguards: `isNumericOrStringLikeLiteral`, `isTupleTypeReference`
+* `intersectionTypeParts` as counterpart to `unionTypeParts`
+* `someTypePart` to execute a callback for each union or intersection constituent until the callback returns true
+* `getPropertyOfType` looks up a property by its escaped name
+* `isPropertyReadonlyInType` determines whether a property in a given type cannot be written to
+* `symbolHasReadonlyDeclaration` determines if a Symbol has any readonly or constant declaration
+* `isNumericPropertyName` determines whether a property name would match an index signature
+* `isBindableObjectDefinePropertyCall` returns true for statically analyzable forms of `Object.defineProperty(o, 'p', {value, writable})`
+* `isReadonlyAssignmentDeclaration` determines whether an `Object.defineProperty` call is known to result in a readonly property
+* `getLateBoundPropertyNames` returns all known property names of an expression
+* `getPropertyNameFromType` extracts the property name of literal types
+* `isWellKnownSymbolLiterally` to recognize expressions in the form of `Symbol.<name>`
+* `getPropertyNameOfWellKnownSymbol` returns the escaped name for a well known symbol literal
+* `unwrapParentheses` returns the first child expression that is not a `ParenthesizedExpression`
+
 # 3.10.0
 
 **Features:**
