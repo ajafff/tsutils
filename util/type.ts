@@ -6,6 +6,7 @@ import {
     isLiteralType,
     isObjectType,
     isTupleTypeReference,
+    isUniqueESSymbolType,
 } from '../typeguard/type';
 import {
     isTypeFlagSet,
@@ -16,6 +17,7 @@ import {
     isModifierFlagSet,
     isNodeFlagSet,
     isNumericPropertyName,
+    PropertyName,
 } from './util';
 import {
     isPropertyAssignment,
@@ -244,4 +246,18 @@ export function symbolHasReadonlyDeclaration(symbol: ts.Symbol, checker: ts.Type
             isEnumMember(node) ||
             (isPropertyAssignment(node) || isShorthandPropertyAssignment(node)) && isInConstContext(node.parent!),
         );
+}
+
+/** Returns the the literal name or unique symbol name from a given type. Doesn't unwrap union types. */
+export function getPropertyNameFromType(type: ts.Type): PropertyName | undefined {
+    // string or number literal. bigint is intentionally excluded
+    if (type.flags & (ts.TypeFlags.StringLiteral | ts.TypeFlags.NumberLiteral)) {
+        const value = String((<ts.StringLiteralType | ts.NumberLiteralType>type).value);
+        return {displayName: value, symbolName: ts.escapeLeadingUnderscores(value)};
+    }
+    if (isUniqueESSymbolType(type))
+        return {
+            displayName: `[${type.symbol ? type.symbol.name : (<string>type.escapedName).replace(/^__@|@\d+$/g, '')}]`,
+            symbolName: type.escapedName,
+        };
 }

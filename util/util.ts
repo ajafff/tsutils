@@ -6,7 +6,7 @@ import {
     isPropertyAssignment, isEntityNameExpression, isNumericOrStringLikeLiteral, isPropertyAccessExpression, isIdentifier,
 } from '../typeguard/node';
 import { isBigIntLiteral } from '../typeguard/3.2';
-import { isBooleanLiteralType } from './type';
+import { isBooleanLiteralType, unionTypeParts, getPropertyNameFromType } from './type';
 
 export function getChildOfKind<T extends ts.SyntaxKind>(node: ts.Node, kind: T, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))
@@ -1430,4 +1430,61 @@ export function isBindableObjectDefinePropertyCall(node: ts.CallExpression) {
         node.expression.name.escapedText === 'defineProperty' &&
         isIdentifier(node.expression.expression) &&
         node.expression.expression.escapedText === 'Object';
+}
+
+export interface WellKnownSymbolLiteral extends ts.PropertyAccessExpression {
+    expression: ts.Identifier & {text: 'Symbol', escapedText: 'symbol'};
+}
+
+export function isWellKnownSymbolLiterally(node: ts.Expression): node is WellKnownSymbolLiteral  {
+    return ts.isPropertyAccessExpression(node) &&
+    ts.isIdentifier(node.expression) &&
+    node.expression.text === 'Symbol';
+}
+
+export interface PropertyName {
+    displayName: string;
+    symbolName: ts.__String;
+}
+
+export function getPropertyNameOfWellKnownSymbol(node: WellKnownSymbolLiteral): PropertyName {
+    return {
+        displayName: `[Symbol.${node.name.text}]`,
+        symbolName: <ts.__String>('__@' + node.name.text),
+    };
+}
+
+export interface LateBoundPropertyNames {
+    /** Whether all constituents are literal names. */
+    known: boolean;
+    names: PropertyName[];
+}
+
+export function getLateBoundPropertyNames(node: ts.Expression, checker: ts.TypeChecker): LateBoundPropertyNames {
+    const result: LateBoundPropertyNames = {
+        known: true,
+        names: [],
+    };
+
+    node = unwrapParentheses(node);
+    if (isWellKnownSymbolLiterally(node)) {
+        result.names.push(getPropertyNameOfWellKnownSymbol(node));
+    } else {
+        const type = checker.getTypeAtLocation(node);
+        for (const key of unionTypeParts(checker.getBaseConstraintOfType(type) || type)) {
+            const propertyName = getPropertyNameFromType(key);
+            if (propertyName) {
+                result.names.push(propertyName);
+            } else {
+                result.known = false;
+            }
+        }
+    }
+    return result;
+}
+
+export function unwrapParentheses(node: ts.Expression) {
+    while (node.kind === ts.SyntaxKind.ParenthesizedExpression)
+        node = (<ts.ParenthesizedExpression>node).expression;
+    return node;
 }
