@@ -1483,6 +1483,24 @@ export function getLateBoundPropertyNames(node: ts.Expression, checker: ts.TypeC
     return result;
 }
 
+export function getLateBoundPropertyNamesOfPropertyName(node: ts.PropertyName, checker: ts.TypeChecker): LateBoundPropertyNames {
+    const staticName = getPropertyName(node);
+    return staticName !== undefined
+        ? {known: true, names: [{displayName: staticName, symbolName: ts.escapeLeadingUnderscores(staticName)}]}
+        : getLateBoundPropertyNames((<ts.ComputedPropertyName>node).expression, checker);
+}
+
+/** Most declarations demand there to be only one statically known name, e.g. class members with computed name. */
+export function getSingleLateBoundPropertyNameOfPropertyName(node: ts.PropertyName, checker: ts.TypeChecker): PropertyName | undefined {
+    const staticName = getPropertyName(node);
+    if (staticName !== undefined)
+        return {displayName: staticName, symbolName: ts.escapeLeadingUnderscores(staticName)};
+    const {expression} = <ts.ComputedPropertyName>node;
+    return isWellKnownSymbolLiterally(expression)
+        ? getPropertyNameOfWellKnownSymbol(expression)
+        : getPropertyNameFromType(checker.getTypeAtLocation(expression));
+}
+
 export function unwrapParentheses(node: ts.Expression) {
     while (node.kind === ts.SyntaxKind.ParenthesizedExpression)
         node = (<ts.ParenthesizedExpression>node).expression;
