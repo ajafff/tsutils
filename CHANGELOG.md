@@ -1,3 +1,14 @@
+# 3.12.0
+
+**Features:**
+
+* `getLateBoundPropertyNamesOfPropertyName` returns all statically analyzable names of a property, method, ...
+* `getSingleLateBoundPropertyNameOfPropertyName` returns the literal name of a property, method, ... if statically analyzable
+
+**Bugfixes:**
+
+* fixed circular import
+
 # 3.11.0
 
 **Features:**
