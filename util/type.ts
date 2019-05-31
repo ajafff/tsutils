@@ -174,6 +174,8 @@ export function isBooleanLiteralType(type: ts.Type, literal: boolean) {
 }
 
 export function getPropertyOfType(type: ts.Type, name: ts.__String) {
+    if (!(<string>name).startsWith('__'))
+        return type.getProperty(<string>name);
     return type.getProperties().find((s) => s.escapedName === name);
 }
 
