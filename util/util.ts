@@ -968,39 +968,123 @@ function isInDestructuringAssignment(
     }
 }
 
-export function isReassignmentTarget(node: ts.Expression): boolean {
+export const enum AccessKind {
+    None = 0,
+    Read = 1,
+    Write = 2,
+    ReadWrite = Read | Write,
+}
+
+export function getAccessKind(node: ts.Node): AccessKind {
     const parent = node.parent!;
     switch (parent.kind) {
         case ts.SyntaxKind.PostfixUnaryExpression:
+            return AccessKind.ReadWrite;
         case ts.SyntaxKind.DeleteExpression:
-            return true;
+            return AccessKind.Write; // technically it's none, but it modifies the property, so we treat it as a write access
         case ts.SyntaxKind.PrefixUnaryExpression:
             return (<ts.PrefixUnaryExpression>parent).operator === ts.SyntaxKind.PlusPlusToken ||
-                (<ts.PrefixUnaryExpression>parent).operator === ts.SyntaxKind.MinusMinusToken;
+                (<ts.PrefixUnaryExpression>parent).operator === ts.SyntaxKind.MinusMinusToken
+                    ? AccessKind.ReadWrite
+                    : AccessKind.Read;
         case ts.SyntaxKind.BinaryExpression:
-            return (<ts.BinaryExpression>parent).left === node &&
-                isAssignmentKind((<ts.BinaryExpression>parent).operatorToken.kind);
+            return (<ts.BinaryExpression>parent).right === node
+                ? AccessKind.Read
+                : !isAssignmentKind((<ts.BinaryExpression>parent).operatorToken.kind)
+                    ? AccessKind.Read
+                    : (<ts.BinaryExpression>parent).operatorToken.kind === ts.SyntaxKind.EqualsToken
+                        ? AccessKind.Write
+                        : AccessKind.ReadWrite;
         case ts.SyntaxKind.ShorthandPropertyAssignment:
-            return (<ts.ShorthandPropertyAssignment>parent).name === node &&
-                isInDestructuringAssignment(<ts.ShorthandPropertyAssignment>parent);
+            return (<ts.ShorthandPropertyAssignment>parent).objectAssignmentInitializer === node
+                ? AccessKind.Read
+                : isInDestructuringAssignment((<ts.ShorthandPropertyAssignment>parent))
+                    ? AccessKind.Write
+                    : AccessKind.Read;
         case ts.SyntaxKind.PropertyAssignment:
-            return (<ts.PropertyAssignment>parent).initializer === node &&
-                isInDestructuringAssignment(<ts.PropertyAssignment>parent);
+            return (<ts.PropertyAssignment>parent).name === node
+                ? AccessKind.None
+                : isInDestructuringAssignment(<ts.PropertyAssignment>parent)
+                    ? AccessKind.Write
+                    : AccessKind.Read;
         case ts.SyntaxKind.ArrayLiteralExpression:
         case ts.SyntaxKind.SpreadElement:
         case ts.SyntaxKind.SpreadAssignment:
-            return isInDestructuringAssignment(<ts.SpreadElement | ts.SpreadAssignment | ts.ArrayLiteralExpression>parent);
+            return isInDestructuringAssignment(<ts.SpreadElement | ts.SpreadAssignment | ts.ArrayLiteralExpression>parent)
+                ? AccessKind.Write
+                : AccessKind.Read;
         case ts.SyntaxKind.ParenthesizedExpression:
         case ts.SyntaxKind.NonNullExpression:
         case ts.SyntaxKind.TypeAssertionExpression:
         case ts.SyntaxKind.AsExpression:
             // (<number>foo! as {})++
-            return isReassignmentTarget(<ts.Expression>parent); // this assertion is not correct, but necessary to keep the API sane
+            return getAccessKind(<ts.Expression>parent); // this assertion is not correct, but necessary to keep the API sane
         case ts.SyntaxKind.ForOfStatement:
         case ts.SyntaxKind.ForInStatement:
-            return (<ts.ForOfStatement | ts.ForInStatement>parent).initializer === node;
+            return (<ts.ForInOrOfStatement>parent).initializer === node
+                ? AccessKind.Write
+                : AccessKind.Read;
+        case ts.SyntaxKind.ExpressionWithTypeArguments:
+            return (<ts.HeritageClause>(<ts.ExpressionWithTypeArguments>parent).parent).token === ts.SyntaxKind.ExtendsKeyword &&
+                parent.parent!.parent!.kind !== ts.SyntaxKind.InterfaceDeclaration
+                ? AccessKind.Read
+                : AccessKind.None;
+        case ts.SyntaxKind.ComputedPropertyName:
+        case ts.SyntaxKind.ExpressionStatement:
+        case ts.SyntaxKind.TypeOfExpression:
+        case ts.SyntaxKind.ElementAccessExpression:
+        case ts.SyntaxKind.ForStatement:
+        case ts.SyntaxKind.IfStatement:
+        case ts.SyntaxKind.DoStatement:
+        case ts.SyntaxKind.WhileStatement:
+        case ts.SyntaxKind.SwitchStatement:
+        case ts.SyntaxKind.WithStatement:
+        case ts.SyntaxKind.ThrowStatement:
+        case ts.SyntaxKind.CallExpression:
+        case ts.SyntaxKind.NewExpression:
+        case ts.SyntaxKind.TaggedTemplateExpression:
+        case ts.SyntaxKind.JsxExpression:
+        case ts.SyntaxKind.Decorator:
+        case ts.SyntaxKind.TemplateSpan:
+        case ts.SyntaxKind.JsxOpeningElement:
+        case ts.SyntaxKind.JsxSelfClosingElement:
+        case ts.SyntaxKind.JsxSpreadAttribute:
+        case ts.SyntaxKind.VoidExpression:
+        case ts.SyntaxKind.ReturnStatement:
+        case ts.SyntaxKind.AwaitExpression:
+        case ts.SyntaxKind.YieldExpression:
+        case ts.SyntaxKind.ConditionalExpression:
+        case ts.SyntaxKind.CaseClause:
+        case ts.SyntaxKind.JsxElement:
+            return AccessKind.Read;
+        case ts.SyntaxKind.ArrowFunction:
+            return (<ts.ArrowFunction>parent).body === node
+                ? AccessKind.Read
+                : AccessKind.Write;
+        case ts.SyntaxKind.PropertyDeclaration:
+        case ts.SyntaxKind.VariableDeclaration:
+        case ts.SyntaxKind.Parameter:
+        case ts.SyntaxKind.EnumMember:
+        case ts.SyntaxKind.BindingElement:
+        case ts.SyntaxKind.JsxAttribute:
+            return (<ts.PropertyDeclaration | ts.VariableDeclaration | ts.ParameterDeclaration
+                | ts.EnumMember | ts.BindingElement | ts.JsxAttribute>parent).initializer === node
+                    ? AccessKind.Read
+                    : AccessKind.None;
+        case ts.SyntaxKind.PropertyAccessExpression:
+            return (<ts.PropertyAccessExpression>parent).expression === node
+                ? AccessKind.Read
+                : AccessKind.None;
+        case ts.SyntaxKind.ExportAssignment:
+            return (<ts.ExportAssignment>parent).isExportEquals
+                ? AccessKind.Read
+                : AccessKind.None;
     }
-    return false;
+    return AccessKind.None;
+}
+
+export function isReassignmentTarget(node: ts.Expression): boolean {
+    return (getAccessKind(node) & AccessKind.Write) !== 0;
 }
 
 export function canHaveJsDoc(node: ts.Node): node is ts.HasJSDoc {
