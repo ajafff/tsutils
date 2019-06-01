@@ -980,8 +980,6 @@ export function getAccessKind(node: ts.Node): AccessKind {
     switch (parent.kind) {
         case ts.SyntaxKind.PostfixUnaryExpression:
             return AccessKind.ReadWrite;
-        case ts.SyntaxKind.DeleteExpression:
-            return AccessKind.Write; // technically it's none, but it modifies the property, so we treat it as a write access
         case ts.SyntaxKind.PrefixUnaryExpression:
             return (<ts.PrefixUnaryExpression>parent).operator === ts.SyntaxKind.PlusPlusToken ||
                 (<ts.PrefixUnaryExpression>parent).operator === ts.SyntaxKind.MinusMinusToken
@@ -1018,7 +1016,7 @@ export function getAccessKind(node: ts.Node): AccessKind {
         case ts.SyntaxKind.TypeAssertionExpression:
         case ts.SyntaxKind.AsExpression:
             // (<number>foo! as {})++
-            return getAccessKind(<ts.Expression>parent); // this assertion is not correct, but necessary to keep the API sane
+            return getAccessKind(<ts.Expression>parent);
         case ts.SyntaxKind.ForOfStatement:
         case ts.SyntaxKind.ForInStatement:
             return (<ts.ForInOrOfStatement>parent).initializer === node
