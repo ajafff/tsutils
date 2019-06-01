@@ -1,3 +1,14 @@
+# 3.13.0
+
+**Features:**
+
+* `getAccessKind` determines whether an expression is read from, written to or both
+* optimized `getPropertyOfType` for unambiguous property names to partially work around https://github.com/microsoft/TypeScript/issues/31565
+
+**Bugfixes:**
+
+* `isReassignmentTarget` no longer returns `true` for `DeleteExpression` as it doesn't **assign** a value to the operand
+
 # 3.12.0
 
 **Features:**
