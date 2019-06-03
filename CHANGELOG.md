@@ -1,3 +1,10 @@
+# 3.14.0
+
+**Features:**
+
+* added `getInstanceTypeOfClassLikeDeclaration` and `getConstructorTypeOfClassLikeDeclaration`
+* added `AccessKind.Delete` to `getAccessKind`: `getAccessKind(node) & AccessKind.Modification` can now be used to restore the old behavior of `isReassignmentTarget(node)`
+
 # 3.13.0
 
 **Features:**
