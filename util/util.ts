@@ -972,12 +972,16 @@ export const enum AccessKind {
     None = 0,
     Read = 1,
     Write = 2,
+    Delete = 4,
     ReadWrite = Read | Write,
+    Modification = Write | Delete,
 }
 
 export function getAccessKind(node: ts.Node): AccessKind {
     const parent = node.parent!;
     switch (parent.kind) {
+        case ts.SyntaxKind.DeleteExpression:
+            return AccessKind.Delete;
         case ts.SyntaxKind.PostfixUnaryExpression:
             return AccessKind.ReadWrite;
         case ts.SyntaxKind.PrefixUnaryExpression:
