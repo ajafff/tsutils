@@ -263,3 +263,15 @@ export function getPropertyNameFromType(type: ts.Type): PropertyName | undefined
             symbolName: type.escapedName,
         };
 }
+
+export function getConstructorTypeOfClassLikeDeclaration(node: ts.ClassLikeDeclaration, checker: ts.TypeChecker) {
+    return checker.getDeclaredTypeOfSymbol(
+        node.name !== undefined ? checker.getSymbolAtLocation(node.name)! : checker.getTypeAtLocation(node).symbol!,
+    );
+}
+
+export function getInstanceTypeOfClassLikeDeclaration(node: ts.ClassLikeDeclaration, checker: ts.TypeChecker) {
+    return node.kind === ts.SyntaxKind.ClassDeclaration
+        ? checker.getTypeAtLocation(node)
+        : checker.getTypeOfSymbolAtLocation(checker.getTypeAtLocation(node).getProperty('prototype')!, node);
+}
