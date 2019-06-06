@@ -31,7 +31,7 @@
   "author": "Klaus Meinhardt",
   "license": "MIT",
   "devDependencies": {
-    "@fimbul/mithotyn": "^0.17.0",
+    "@fimbul/mithotyn": "^0.21.0",
     "@fimbul/valtyr": "^0.20.0",
     "@fimbul/wotan": "^0.20.0",
     "@types/chai": "^4.0.10",
