@@ -121,10 +121,10 @@
     tslib "^1.8.1"
     tsutils "^3.8.0"
 
-"@fimbul/mithotyn@^0.17.0":
-  version "0.17.0"
-  resolved "https://registry.yarnpkg.com/@fimbul/mithotyn/-/mithotyn-0.17.0.tgz#13a42150b2634c72851b23570b1c30f2701edfd3"
-  integrity sha512-J+RaXRHyezxaFV0/1Tce0M4eECDkvbobsTwnttyzuWD1qYvUd1CY96/M5yxdxibLZe//yl0fc2ykx3n9rO4ntQ==
+"@fimbul/mithotyn@^0.21.0":
+  version "0.21.0"
+  resolved "https://registry.yarnpkg.com/@fimbul/mithotyn/-/mithotyn-0.21.0.tgz#39a7404f78bb8d37892cce443eb06fd400e2f029"
+  integrity sha512-zO8BFHu72aDOC+RxuZ24lqdsGB58seBjsy2DKeS/9G26DM8XVjGwoDbBxPVoHH81fMoUfc27kZEEja4R0rT9VA==
   dependencies:
     mock-require "^3.0.2"
 
