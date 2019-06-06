@@ -100,12 +100,12 @@
     tslib "^1.8.1"
     tsutils "^2.24.0"
 
-"@fimbul/bifrost@^0.20.0":
-  version "0.20.0"
-  resolved "https://registry.yarnpkg.com/@fimbul/bifrost/-/bifrost-0.20.0.tgz#cad85626daf8f6afc857cfb880fcae215e1c58ba"
-  integrity sha512-WLoArXv0llCBJ3n0VCsce73oVcThKfbN86/IT+16f+VWWBaZXLVo3MahuAq5VjtaDd+d5R3XHbCJIcHRQYF5LA==
+"@fimbul/bifrost@^0.21.0":
+  version "0.21.0"
+  resolved "https://registry.yarnpkg.com/@fimbul/bifrost/-/bifrost-0.21.0.tgz#d0fafa25938fda475657a6a1e407a21bbe02c74e"
+  integrity sha512-ou8VU+nTmOW1jeg+FT+sn+an/M0Xb9G16RucrfhjXGWv1Q97kCoM5CG9Qj7GYOSdu7km72k7nY83Eyr53Bkakg==
   dependencies:
-    "@fimbul/ymir" "^0.18.0"
+    "@fimbul/ymir" "^0.21.0"
     get-caller-file "^2.0.0"
     tslib "^1.8.1"
     tsutils "^3.5.0"
@@ -128,12 +128,12 @@
   dependencies:
     mock-require "^3.0.2"
 
-"@fimbul/valtyr@^0.20.0":
-  version "0.20.0"
-  resolved "https://registry.yarnpkg.com/@fimbul/valtyr/-/valtyr-0.20.0.tgz#6e73abefe360f19756734ed0b90cd4fed13d4050"
-  integrity sha512-zc2phQIN6elINF5+2oO2Ze1C+XujQIjpSh5AjDzCwGhe8amo4+jf8IevYmDzQgUqfI2KHUgmmAbh7nSPTto47g==
+"@fimbul/valtyr@^0.21.0":
+  version "0.21.0"
+  resolved "https://registry.yarnpkg.com/@fimbul/valtyr/-/valtyr-0.21.0.tgz#54842553ee4569e86ab615a4145138c36357c47a"
+  integrity sha512-BXJBsXkgAdl9Zwajd+xNbKelmQuOYEPC0+Z3hUYPKJnhJYqSALknIhSuBwSLDUlS2NsV/riCKYJYfw9ooVdRfA==
   dependencies:
-    "@fimbul/bifrost" "^0.20.0"
+    "@fimbul/bifrost" "^0.21.0"
     inversify "^5.0.0"
     tslib "^1.8.1"
     tslint "^5.0.0"
@@ -178,6 +178,15 @@
   version "0.18.0"
   resolved "https://registry.yarnpkg.com/@fimbul/ymir/-/ymir-0.18.0.tgz#9032bdd3b1ec536840ece2725e19eb12084f1f8e"
   integrity sha512-fZHvoy3lO7WyapLa0vYmJ4iKVbm/NWEqa6yPQpbSTUlWI7Kj1wfHRd5Aa2eOdTXpGHYeU8GkZ35Xb/51dnv95A==
+  dependencies:
+    inversify "^5.0.0"
+    reflect-metadata "^0.1.12"
+    tslib "^1.8.1"
+
+"@fimbul/ymir@^0.21.0":
+  version "0.21.0"
+  resolved "https://registry.yarnpkg.com/@fimbul/ymir/-/ymir-0.21.0.tgz#8525726787aceeafd4e199472c0d795160b5d4a1"
+  integrity sha512-T/y7WqPsm4n3zhT08EpB5sfdm2Kvw3gurAxr2Lr5dQeLi8ZsMlNT/Jby+ZmuuAAd1PnXYzKp+2SXgIkQIIMCUg==
   dependencies:
     inversify "^5.0.0"
     reflect-metadata "^0.1.12"
