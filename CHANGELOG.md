@@ -1,3 +1,9 @@
+# 3.14.1
+
+**Bugfixes:**
+
+* `findImports`: fixed crash on nested namespaces
+
 # 3.14.0
 
 **Features:**
