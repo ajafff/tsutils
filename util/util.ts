@@ -1290,10 +1290,18 @@ class ImportFinder {
             } else if (isExportDeclaration(statement)) {
                 if (statement.moduleSpecifier !== undefined && this._options & ImportKind.ExportFrom)
                     this._result.push(<any>statement);
-            } else if (isModuleDeclaration(statement) && statement.body !== undefined) {
-                this._findImports((<ts.ModuleBlock>statement.body).statements);
+            } else if (isModuleDeclaration(statement)) {
+                this._findImportsInModule(statement);
             }
         }
+    }
+
+    private _findImportsInModule(declaration: ts.ModuleDeclaration): void {
+        if (declaration.body === undefined)
+            return;
+        if (declaration.body.kind === ts.SyntaxKind.ModuleDeclaration)
+            return this._findImportsInModule(declaration.body);
+        this._findImports((<ts.ModuleBlock>declaration.body).statements);
     }
 
     private _findNestedImports() {
