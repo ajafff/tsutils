@@ -1,3 +1,13 @@
+# 3.15.0
+
+**Features:**
+
+* `isValidIdentifier`, `isValidPropertyName`, `isValidPropertyAccess`, `isValidNumericLiteral` added an optional parameter to specify the target ECMAScript version
+
+**Bugfixes:**
+
+* `isValidPropertyName`, `isValidPropertyAccess` now handle astral plane characters
+
 # 3.14.1
 
 **Bugfixes:**
