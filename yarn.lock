@@ -2906,10 +2906,10 @@ type-detect@^4.0.0:
   resolved "https://registry.yarnpkg.com/type-detect/-/type-detect-4.0.8.tgz#7646fb5f18871cfbb7749e69bd39a6388eb7450c"
   integrity sha512-0fr/mIH1dlO+x7TlcMy+bIDqKPsw/70tVyeHW787goQjhmqaZe10uwLujubK9q9Lg6Fiho1KUKDYz0Z7k7g5/g==
 
-typescript@^3.4.5:
-  version "3.4.5"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.4.5.tgz#2d2618d10bb566572b8d7aad5180d84257d70a99"
-  integrity sha512-YycBxUb49UUhdNMU5aJ7z5Ej2XGmaIBL0x34vZ82fn3hGvD+bgrMrVDpatgz2f7YxUMJxMkbWxJZeAvDxVe7Vw==
+typescript@^3.6.0-dev.20190804:
+  version "3.6.0-dev.20190804"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.6.0-dev.20190804.tgz#ea2a0bc0f75bdcc49aec0924036afb77e99e088d"
+  integrity sha512-jQUfB+PAuqi3op8DLNW48lhN9zetT+aHyXFWH/2OjIYQRmFw4+8hhoqsGds7bVXK02PMoBbwsTvG5dVKaqTz+Q==
 
 uglify-js@^3.1.4:
   version "3.5.3"

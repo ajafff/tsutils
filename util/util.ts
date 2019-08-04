@@ -594,46 +594,77 @@ export function getLineBreakStyle(sourceFile: ts.SourceFile) {
 }
 
 let cachedScanner: ts.Scanner | undefined;
-function scanToken(text: string) {
-    if (cachedScanner === undefined) // cache scanner
-        cachedScanner = ts.createScanner(ts.ScriptTarget.Latest, false);
-    cachedScanner.setText(text);
+function scanToken(text: string, languageVersion: ts.ScriptTarget) {
+    if (cachedScanner === undefined) {
+        // cache scanner
+        cachedScanner = ts.createScanner(languageVersion, false, undefined, text);
+    } else {
+        cachedScanner.setScriptTarget(languageVersion);
+        cachedScanner.setText(text);
+    }
     cachedScanner.scan();
     return cachedScanner;
 }
 
-export function isValidIdentifier(text: string): boolean {
-    const scan = scanToken(text);
+/**
+ * Determines whether the given text parses as a standalone identifier.
+ * This is not a guarantee that it works in every context. The property name in PropertyAccessExpressions for example allows reserved words.
+ * Depending on the context it could be parsed as contextual keyword or TypeScript keyword.
+ */
+export function isValidIdentifier(text: string, languageVersion = ts.ScriptTarget.Latest): boolean {
+    const scan = scanToken(text, languageVersion);
     return scan.isIdentifier() && scan.getTextPos() === text.length && scan.getTokenPos() === 0;
 }
 
-export function isValidPropertyAccess(text: string): boolean {
-    if (text.length === 0 || !ts.isIdentifierStart(text.charCodeAt(0), ts.ScriptTarget.Latest))
+function charSize(ch: number) {
+    return ch > 0x10000 ? 2 : 1;
+}
+
+/**
+ * Determines whether the given text can be used to access a property with a PropertyAccessExpression while preserving the property's name.
+ */
+export function isValidPropertyAccess(text: string, languageVersion = ts.ScriptTarget.Latest): boolean {
+    if (text.length === 0)
         return false;
-    for (let i = 1; i < text.length; ++i)
-        if (!ts.isIdentifierPart(text.charCodeAt(i), ts.ScriptTarget.Latest))
+    let ch = text.codePointAt(0)!;
+    if (!ts.isIdentifierStart(ch, languageVersion))
+        return false;
+    for (let i = charSize(ch); i < text.length; i += charSize(ch)) {
+        ch = text.codePointAt(i)!;
+        if (!ts.isIdentifierPart(ch, languageVersion))
             return false;
+
+    }
     return true;
 }
 
-export function isValidPropertyName(text: string) {
-    if (isValidPropertyAccess(text))
+/**
+ * Determines whether the given text can be used as unquoted name of a property declaration while preserving the property's name.
+ */
+export function isValidPropertyName(text: string, languageVersion = ts.ScriptTarget.Latest) {
+    if (isValidPropertyAccess(text, languageVersion))
         return true;
-    const scan = scanToken(text);
+    const scan = scanToken(text, languageVersion);
     return scan.getTextPos() === text.length &&
         scan.getToken() === ts.SyntaxKind.NumericLiteral && scan.getTokenValue() === text; // ensure stringified number equals literal
 }
 
-export function isValidNumericLiteral(text: string): boolean {
-    const scan = scanToken(text);
+/**
+ * Determines whether the given text can be parsed as a numeric literal.
+ */
+export function isValidNumericLiteral(text: string, languageVersion = ts.ScriptTarget.Latest): boolean {
+    const scan = scanToken(text, languageVersion);
     return scan.getToken() === ts.SyntaxKind.NumericLiteral && scan.getTextPos() === text.length && scan.getTokenPos() === 0;
 }
 
+/**
+ * Determines whether the given text can be used as JSX tag or attribute name while preserving the exact name.
+ */
 export function isValidJsxIdentifier(text: string): boolean {
-    if (text.length === 0 || !ts.isIdentifierStart(text.charCodeAt(0), ts.ScriptTarget.Latest))
+    if (text.length === 0 || !ts.isIdentifierStart(text.charCodeAt(0), ts.ScriptTarget.ES5))
         return false;
     for (let i = 1; i < text.length; ++i)
-        if (!ts.isIdentifierPart(text.charCodeAt(i), ts.ScriptTarget.Latest) && text[i] !== '-')
+        if (!ts.isIdentifierPart(text.charCodeAt(i), ts.ScriptTarget.ES5) && text[i] !== '-')
             return false;
     return true;
 }

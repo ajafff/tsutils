@@ -42,6 +42,8 @@ describe('isValidPropertyName', () => {
             ['catch', true],
             ['try', true],
             ['1_2_3', false],
+            ['𝑚', true],
+            ['\\u0061', false],
         ];
         for (const test of tests)
             assert.equal(isValidPropertyName(test[0]), test[1], test[0]);
@@ -80,6 +82,8 @@ describe('isValidPropertyAccess', () => {
             ['catch', true],
             ['try', true],
             ['1_2_3', false],
+            ['𝑚', true],
+            ['\\u0061', false],
         ];
         for (const test of tests)
             assert.equal(isValidPropertyAccess(test[0]), test[1], test[0]);
@@ -206,6 +210,8 @@ describe('isValidJsxIdentifier', () => {
             ['catch', true],
             ['try', true],
             ['1_2_3', false],
+            ['𝑚', false],
+            ['\\u0061', false],
         ];
         for (const test of tests)
             assert.equal(isValidJsxIdentifier(test[0]), test[1], test[0]);
