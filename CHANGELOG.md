@@ -1,3 +1,9 @@
+# 3.16.0
+
+**Features:**
+
+* added `getIteratorYieldResultFromIteratorResult` to extract the `yield`ed type from `IteratorResult<TYield, TReturn, TNext>`
+
 # 3.15.0
 
 **Features:**
