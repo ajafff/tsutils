@@ -275,3 +275,11 @@ export function getInstanceTypeOfClassLikeDeclaration(node: ts.ClassLikeDeclarat
         ? checker.getTypeAtLocation(node)
         : checker.getTypeOfSymbolAtLocation(checker.getTypeAtLocation(node).getProperty('prototype')!, node);
 }
+
+export function getIteratorYieldResultFromIteratorResult(type: ts.Type, node: ts.Node, checker: ts.TypeChecker): ts.Type {
+    return isUnionType(type) && type.types.find((t) => {
+        const done = t.getProperty('done');
+        return done !== undefined &&
+            isBooleanLiteralType(removeOptionalityFromType(checker, checker.getTypeOfSymbolAtLocation(done, node)), false);
+    }) || type;
+}
