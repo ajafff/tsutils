@@ -1,3 +1,13 @@
+# 3.17.0
+
+**Features:**
+
+* `isValidJsxIdentifier` added an optional parameter to specify the target ECMAScript version
+
+**Bugfixes:**
+
+* `isValidJsxIdentifier` now handles astral plane characters
+
 # 3.16.0
 
 **Features:**
