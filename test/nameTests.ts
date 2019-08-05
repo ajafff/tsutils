@@ -210,7 +210,8 @@ describe('isValidJsxIdentifier', () => {
             ['catch', true],
             ['try', true],
             ['1_2_3', false],
-            ['𝑚', false],
+            ['𝑚', true],
+            ['𝑚-𝑚', true],
             ['\\u0061', false],
         ];
         for (const test of tests)

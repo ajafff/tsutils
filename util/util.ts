@@ -660,12 +660,18 @@ export function isValidNumericLiteral(text: string, languageVersion = ts.ScriptT
 /**
  * Determines whether the given text can be used as JSX tag or attribute name while preserving the exact name.
  */
-export function isValidJsxIdentifier(text: string): boolean {
-    if (text.length === 0 || !ts.isIdentifierStart(text.charCodeAt(0), ts.ScriptTarget.ES5))
+export function isValidJsxIdentifier(text: string, languageVersion = ts.ScriptTarget.Latest): boolean {
+    if (text.length === 0)
         return false;
-    for (let i = 1; i < text.length; ++i)
-        if (!ts.isIdentifierPart(text.charCodeAt(i), ts.ScriptTarget.ES5) && text[i] !== '-')
+    let ch = text.codePointAt(0)!;
+    if (!ts.isIdentifierStart(ch, languageVersion))
+        return false;
+    for (let i = charSize(ch); i < text.length; i += charSize(ch)) {
+        ch = text.codePointAt(i)!;
+        if (!ts.isIdentifierPart(ch, languageVersion) && ch !== 45 /* minus */)
             return false;
+
+    }
     return true;
 }
 
