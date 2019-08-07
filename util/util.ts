@@ -617,7 +617,7 @@ export function isValidIdentifier(text: string, languageVersion = ts.ScriptTarge
 }
 
 function charSize(ch: number) {
-    return ch > 0x10000 ? 2 : 1;
+    return ch >= 0x10000 ? 2 : 1;
 }
 
 /**
