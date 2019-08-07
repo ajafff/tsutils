@@ -1,3 +1,9 @@
+# 3.17.1
+
+**Bugfixes:**
+
+* `isValidJsxIdentifier`, `isValidPropertyAccess`, `isValidPropertyName`: fix unicode character width handling
+
 # 3.17.0
 
 **Features:**
