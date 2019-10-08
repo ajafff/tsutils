@@ -1441,7 +1441,8 @@ export type BooleanCompilerOptions = {
 export function isCompilerOptionEnabled(options: ts.CompilerOptions, option: BooleanCompilerOptions | 'stripInternal'): boolean {
     switch (option) {
         case 'stripInternal':
-            return options.stripInternal === true && isCompilerOptionEnabled(options, 'declaration');
+        case 'declarationMap':
+            return options[option] === true && isCompilerOptionEnabled(options, 'declaration');
         case 'declaration':
             return options.declaration || isCompilerOptionEnabled(options, 'composite');
         case 'incremental':
