@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { forEachComment, getCommentAtPosition, getTokenAtPosition, isPositionInComment, getCheckJsDirective } from '../util/util';
+import { forEachComment, getCommentAtPosition, getTokenAtPosition, isPositionInComment, getTsCheckDirective } from '../util/util';
 import { getSourceFile } from './utils';
 
 const comments = [
@@ -59,32 +59,32 @@ describe('forEachComment', () => {
     });
 });
 
-describe('getCheckJsDirective', () => {
+describe('getTsCheckDirective', () => {
     it('returns undefined if there is no matching comment', () => {
-        assert.strictEqual(getCheckJsDirective(''), undefined);
+        assert.strictEqual(getTsCheckDirective(''), undefined);
     });
 
     it('stops at the first non-comment token', () => {
-        assert.strictEqual(getCheckJsDirective('foo; // @ts-check'), undefined);
+        assert.strictEqual(getTsCheckDirective('foo; // @ts-check'), undefined);
     });
 
     it('handles shebang correctly', () => {
-        assert.deepEqual(getCheckJsDirective('#! foo\n//@ts-check'), {pos: 7, end: 18, enabled: true});
+        assert.deepEqual(getTsCheckDirective('#! foo\n//@ts-check'), {pos: 7, end: 18, enabled: true});
     });
 
     it('returns the last comment', () => {
-        assert.deepEqual(getCheckJsDirective('// @ts-check\n// @ts-nocheck'), {pos: 13, end: 27, enabled: false});
+        assert.deepEqual(getTsCheckDirective('// @ts-check\n// @ts-nocheck'), {pos: 13, end: 27, enabled: false});
     });
 
     it('allows three slashes and whitespaces', () => {
-        assert.deepEqual(getCheckJsDirective('///       @ts-check '), {pos: 0, end: 20, enabled: true});
+        assert.deepEqual(getTsCheckDirective('///       @ts-check '), {pos: 0, end: 20, enabled: true});
     });
 
     it('allows trailing text', () => {
-        assert.deepEqual(getCheckJsDirective('//@ts-check false'), {pos: 0, end: 17, enabled: true});
+        assert.deepEqual(getTsCheckDirective('//@ts-check false'), {pos: 0, end: 17, enabled: true});
     });
 
     it('matches case-insensitive', () => {
-        assert.deepEqual(getCheckJsDirective('//@Ts-NoChecK'), {pos: 0, end: 13, enabled: false});
+        assert.deepEqual(getTsCheckDirective('//@Ts-NoChecK'), {pos: 0, end: 13, enabled: false});
     });
 });
