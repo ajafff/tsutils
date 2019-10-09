@@ -1477,8 +1477,15 @@ export function isAmbientModule(node: ts.ModuleDeclaration): boolean {
     return node.name.kind === ts.SyntaxKind.StringLiteral || (node.flags & ts.NodeFlags.GlobalAugmentation) !== 0;
 }
 
-/** @returns the last `// @ts-check` or `// @ts-nocheck` directive in the given file. */
+/**
+ * @deprecated use `getTsCheckDirective` instead since `// @ts-nocheck` is no longer restricted to JS files.
+ * @returns the last `// @ts-check` or `// @ts-nocheck` directive in the given file.
+ */
 export function getCheckJsDirective(source: string) {
+    return getTsCheckDirective(source);
+}
+/** @returns the last `// @ts-check` or `// @ts-nocheck` directive in the given file. */
+export function getTsCheckDirective(source: string) {
     let directive: ts.CheckJsDirective | undefined;
     // needs to work around a shebang issue until https://github.com/Microsoft/TypeScript/issues/28477 is resolved
     ts.forEachLeadingCommentRange(source, (ts.getShebang(source) || '').length, (pos, end, kind) => {
