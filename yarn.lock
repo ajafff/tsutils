@@ -205,10 +205,10 @@
   resolved "https://registry.yarnpkg.com/@types/mocha/-/mocha-5.2.5.tgz#8a4accfc403c124a0bafe8a9fc61a05ec1032073"
   integrity sha512-lAVp+Kj54ui/vLUFxsJTMtWvZraZxum3w3Nwkble2dNuV5VnPA+Mi2oGX9XYJAaIvZi3tn3cbjS/qcJXRb6Bww==
 
-"@types/node@^11.13.0":
-  version "11.13.0"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-11.13.0.tgz#b0df8d6ef9b5001b2be3a94d909ce3c29a80f9e1"
-  integrity sha512-rx29MMkRdVmzunmiA4lzBYJNnXsW/PhG4kMBy2ATsYaDjGGR75dCFEVVROKpNwlVdcUX3xxlghKQOeDPBJobng==
+"@types/node@^13.9.6":
+  version "13.9.6"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-13.9.6.tgz#3371aa845ca4dfb86c2ff7a9a3bf62d86a3a59f6"
+  integrity sha512-ojnAmpyicIR0pS40ZA3dfOXeyRjNFMDcuImX8dVdqkfINnI/V6+cdyYnU7GaMIXeSPAfi3oCJaDLOYY927Rizw==
 
 ajv@^5.1.0:
   version "5.5.2"
