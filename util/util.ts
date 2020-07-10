@@ -843,7 +843,7 @@ export function isExpressionValueUsed(node: ts.Expression, options: ExpressionVa
         const parent = node.parent!;
         switch (parent.kind) {
             case ts.SyntaxKind.AwaitExpression:
-                if (options & ExpressionValueUsedOptions.IgnoreAwaits) 
+                if (options & ExpressionValueUsedOptions.IgnoreAwaits)
                     break;  // Check whether the await is used.
                 return true;
             case ts.SyntaxKind.CallExpression:
