@@ -832,10 +832,20 @@ export function getDeclarationOfBindingElement(node: ts.BindingElement): ts.Vari
     return parent;
 }
 
-export function isExpressionValueUsed(node: ts.Expression): boolean {
+export const enum ExpressionValueUsedOptions {
+    None = 0,
+    /** Only return true for an await expression if its resullt is used. */
+    IgnoreAwaits = 1,
+}
+
+export function isExpressionValueUsed(node: ts.Expression, options: ExpressionValueUsedOptions = ExpressionValueUsedOptions.None): boolean {
     while (true) {
         const parent = node.parent!;
         switch (parent.kind) {
+            case ts.SyntaxKind.AwaitExpression:
+                if (options & ExpressionValueUsedOptions.IgnoreAwaits) 
+                    break;  // Check whether the await is used.
+                return true;
             case ts.SyntaxKind.CallExpression:
             case ts.SyntaxKind.NewExpression:
             case ts.SyntaxKind.ElementAccessExpression:
@@ -860,7 +870,6 @@ export function isExpressionValueUsed(node: ts.Expression): boolean {
             case ts.SyntaxKind.TemplateSpan:
             case ts.SyntaxKind.ExpressionWithTypeArguments:
             case ts.SyntaxKind.TypeOfExpression:
-            case ts.SyntaxKind.AwaitExpression:
             case ts.SyntaxKind.YieldExpression:
             case ts.SyntaxKind.LiteralType:
             case ts.SyntaxKind.JsxAttributes:
