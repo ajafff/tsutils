@@ -37,3 +37,6 @@ someVar = <div>/*A*>{/*B*/<span>/*C*/</span>/*D*/}/*E*/{/*F*/<br/>/*G*/}/*H*/</d
 /** */
 //J
 function /*K*/ {}
+
+/*L*/`/*M*/${/*N*/1/*O*/}//P`/*Q*/;
+let v: /*R*/`/*S*/${/*T*/number/*U*/}//V` /*W*/;

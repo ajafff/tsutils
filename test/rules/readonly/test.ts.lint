@@ -1,4 +1,4 @@
-import {jsObj} from './prop';
+import {jsObj, jsdocObj} from './prop';
 import * as namespaceImport from './prop';
 
 declare function get<T>(): T;
@@ -76,6 +76,9 @@ jsObj.d = 1;
 jsObj.e = 1;
 jsObj.f = 1;
       ~      [readonly]
+jsdocObj.a = 1;
+         ~      [readonly]
+jsdocObj.b = 1;
 namespaceImport.p = 1;
 get<Mutable<typeof constObj>>().p = 1;
 get<Mutable<typeof ns>>().p = 1;

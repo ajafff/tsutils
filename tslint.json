@@ -5,7 +5,7 @@
   "rules": {
     "adjacent-overload-signatures": true,
     "align": [
-      true,
+      false, // crashes
       "statements",
       "parameters",
       "arguments",

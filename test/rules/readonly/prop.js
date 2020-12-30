@@ -8,3 +8,8 @@ Object.defineProperty(jsObj, 'd', {value: 1});
 Object.defineProperty(jsObj, 'e', {value: 1, writable: true});
 const descriptor = {value: 1, writable: false};
 Object.defineProperty(jsObj, 'f', descriptor);
+
+export let jsdocObj = new class {
+    /** @readonly */ a = 1;
+    b = 1;
+}

@@ -949,7 +949,11 @@ export function isExpressionValueUsed(node: ts.Expression): boolean {
                     case ts.SyntaxKind.CaretToken:
                     case ts.SyntaxKind.BarBarToken:
                     case ts.SyntaxKind.AmpersandAmpersandToken:
+                    case ts.SyntaxKind.QuestionQuestionToken:
                     case ts.SyntaxKind.InKeyword:
+                    case ts.SyntaxKind.QuestionQuestionEqualsToken:
+                    case ts.SyntaxKind.AmpersandAmpersandEqualsToken:
+                    case ts.SyntaxKind.BarBarEqualsToken:
                         return true;
                     default:
                         node = <ts.Expression>parent;
@@ -1140,10 +1144,10 @@ export function canHaveJsDoc(node: ts.Node): node is ts.HasJSDoc {
         case ts.SyntaxKind.ShorthandPropertyAssignment:
         case ts.SyntaxKind.PropertyAssignment:
         case ts.SyntaxKind.FunctionExpression:
-        case ts.SyntaxKind.FunctionDeclaration:
         case ts.SyntaxKind.LabeledStatement:
         case ts.SyntaxKind.ExpressionStatement:
         case ts.SyntaxKind.VariableStatement:
+        case ts.SyntaxKind.FunctionDeclaration:
         case ts.SyntaxKind.Constructor:
         case ts.SyntaxKind.MethodDeclaration:
         case ts.SyntaxKind.PropertyDeclaration:
@@ -1157,12 +1161,16 @@ export function canHaveJsDoc(node: ts.Node): node is ts.HasJSDoc {
         case ts.SyntaxKind.EnumDeclaration:
         case ts.SyntaxKind.ModuleDeclaration:
         case ts.SyntaxKind.ImportEqualsDeclaration:
+        case ts.SyntaxKind.ImportDeclaration:
+        case ts.SyntaxKind.NamespaceExportDeclaration:
+        case ts.SyntaxKind.ExportAssignment:
         case ts.SyntaxKind.IndexSignature:
         case ts.SyntaxKind.FunctionType:
         case ts.SyntaxKind.ConstructorType:
         case ts.SyntaxKind.JSDocFunctionType:
-        case ts.SyntaxKind.EndOfFileToken:
         case ts.SyntaxKind.ExportDeclaration:
+        case ts.SyntaxKind.NamedTupleMember:
+        case ts.SyntaxKind.EndOfFileToken:
             return true;
         default:
             return <AssertNever<typeof kind>>false;
@@ -1223,15 +1231,15 @@ function parseJsDocWorker(node: ts.Node, sourceFile: ts.SourceFile, considerTrai
     return result;
 
     function updateNode(n: ts.Node, parent: ts.Node): void {
-        n.pos += startPos;
-        n.end += startPos;
-        n.parent = parent;
+        (<number>n.pos) += startPos;
+        (<number>n.end) += startPos;
+        (<ts.Node>n.parent) = parent;
         return ts.forEachChild(
             n,
             (child) => updateNode(child, n),
             (children) => {
-                children.pos += startPos;
-                children.end += startPos;
+                (<number>children.pos) += startPos;
+                (<number>children.end) += startPos;
                 for (const child of children)
                     updateNode(child, n);
             },
@@ -1294,7 +1302,8 @@ export type ImportLike =
     | ts.ImportEqualsDeclaration & {moduleReference: ts.ExternalModuleReference}
     | ts.ExportDeclaration & {moduleSpecifier: {}}
     | ts.CallExpression
-        & {expression: ts.Token<ts.SyntaxKind.ImportKeyword> | ts.Identifier & {text: 'require'}, arguments: [ts.Expression]}
+        & {expression:
+            ts.Token<ts.SyntaxKind.ImportKeyword> | ts.Identifier & {text: 'require'}, arguments: [ts.Expression, ...ts.Expression[]]}
     | ts.ImportTypeNode;
 export function findImportLikeNodes(sourceFile: ts.SourceFile, kinds: ImportKind): ImportLike[] {
     return new ImportFinder(sourceFile, kinds).find();
@@ -1367,7 +1376,7 @@ class ImportFinder {
                         this._result.push(<ts.ImportTypeNode>token.parent);
                         break;
                     case ts.SyntaxKind.CallExpression:
-                        if ((<ts.CallExpression>token.parent).arguments.length === 1)
+                        if ((<ts.CallExpression>token.parent).arguments.length > 1)
                             this._result.push(<any>token.parent);
                 }
             } else if (
@@ -1455,6 +1464,10 @@ export function isCompilerOptionEnabled(options: ts.CompilerOptions, option: Boo
             return options.allowSyntheticDefaultImports !== undefined
                 ? options.allowSyntheticDefaultImports
                 : isCompilerOptionEnabled(options, 'esModuleInterop') || options.module === ts.ModuleKind.System;
+        case 'noUncheckedIndexedAccess':
+            return options.noUncheckedIndexedAccess === true && isCompilerOptionEnabled(options, 'strictNullChecks');
+        case 'allowJs':
+            return options.allowJs === undefined ? isCompilerOptionEnabled(options, 'checkJs') : options.allowJs;
         case 'noImplicitAny':
         case 'noImplicitThis':
         case 'strictNullChecks':
@@ -1536,6 +1549,7 @@ export function isInConstContext(node: ts.Expression) {
             case ts.SyntaxKind.ParenthesizedExpression:
             case ts.SyntaxKind.ArrayLiteralExpression:
             case ts.SyntaxKind.ObjectLiteralExpression:
+            case ts.SyntaxKind.TemplateExpression:
                 current = parent;
                 break;
             default:

@@ -4,7 +4,7 @@ import { getSourceFile } from './utils';
 
 const comments = [
     '1', '2', '3', '4', 'i', 'j', '7', 'b', 'e', 'f', 'g', 'h', 'l', 'p', 'q', 'r', 's', 'w', 'x', 'y', 'z',
-    'B', 'D', 'F', 'G', 'I', '*', 'J', 'K',
+    'B', 'D', 'F', 'G', 'I', '*', 'J', 'K', 'L', 'N', 'O', 'Q', 'R', 'T', 'U', 'W',
 ];
 
 describe('getCommentAtPosition', () => {
