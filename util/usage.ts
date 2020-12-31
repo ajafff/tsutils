@@ -51,6 +51,7 @@ export const enum UsageDomain {
     TypeQuery = 8,
 }
 
+// TODO handle cases where values are used only for their types, e.g. `declare [propSymbol]: number`
 export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
     const parent = node.parent!;
     switch (parent.kind) {
@@ -74,7 +75,7 @@ export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
             // either {name} or {propertyName as name}
             if ((<ts.ExportSpecifier>parent).propertyName === undefined ||
                 (<ts.ExportSpecifier>parent).propertyName === node)
-                return UsageDomain.Any;
+                return UsageDomain.Any; // TODO handle type-only exports
             break;
         case ts.SyntaxKind.ExportAssignment:
             return UsageDomain.Any;
@@ -91,7 +92,7 @@ export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
         case ts.SyntaxKind.PropertyAccessExpression:
         case ts.SyntaxKind.ImportEqualsDeclaration:
             if ((<ts.NamedDeclaration>parent).name !== node)
-                return UsageDomain.ValueOrNamespace;
+                return UsageDomain.ValueOrNamespace; // TODO handle type-only imports
             break;
         case ts.SyntaxKind.JsxAttribute:
         case ts.SyntaxKind.FunctionDeclaration:
@@ -109,13 +110,15 @@ export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
         case ts.SyntaxKind.ContinueStatement:
         case ts.SyntaxKind.ImportClause:
         case ts.SyntaxKind.ImportSpecifier:
-        case ts.SyntaxKind.TypePredicate:
+        case ts.SyntaxKind.TypePredicate: // TODO this actually references a parameter
         case ts.SyntaxKind.MethodSignature:
         case ts.SyntaxKind.PropertySignature:
         case ts.SyntaxKind.NamespaceExportDeclaration:
+        case ts.SyntaxKind.NamespaceExport:
         case ts.SyntaxKind.InterfaceDeclaration:
         case ts.SyntaxKind.TypeAliasDeclaration:
         case ts.SyntaxKind.TypeParameter:
+        case ts.SyntaxKind.NamedTupleMember:
             break;
         default:
             return UsageDomain.ValueOrNamespace;
@@ -135,11 +138,11 @@ export function getDeclarationDomain(node: ts.Identifier): DeclarationDomain | u
             return DeclarationDomain.Any;
         case ts.SyntaxKind.NamespaceImport:
         case ts.SyntaxKind.ImportClause:
-            return DeclarationDomain.Any | DeclarationDomain.Import;
+            return DeclarationDomain.Any | DeclarationDomain.Import; // TODO handle type-only imports
         case ts.SyntaxKind.ImportEqualsDeclaration:
         case ts.SyntaxKind.ImportSpecifier:
             return (<ts.ImportEqualsDeclaration | ts.ImportSpecifier>node.parent).name === node
-                ? DeclarationDomain.Any | DeclarationDomain.Import
+                ? DeclarationDomain.Any | DeclarationDomain.Import // TODO handle type-only imports
                 : undefined;
         case ts.SyntaxKind.ModuleDeclaration:
             return DeclarationDomain.Namespace;
