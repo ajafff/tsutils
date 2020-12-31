@@ -201,6 +201,19 @@ export function commentText(sourceText: string, comment: ts.CommentRange): strin
     return sourceText.substring(comment.pos + 2, comment.kind === ts.SyntaxKind.SingleLineCommentTrivia ? comment.end : comment.end - 2);
 }
 
+/** Returns the deepest AST Node at `pos`. Returns undefined if `pos` is outside of the range of `node` */
+export function getAstNodeAtPosition(node: ts.Node, pos: number) {
+    if (node.pos > pos || node.end <= pos)
+        return;
+    while (isNodeKind(node.kind)) {
+        const nested = ts.forEachChild(node, (child) => child.pos <= pos && child.end > pos ? child : undefined);
+        if (nested === undefined)
+            break;
+        node = nested;
+    }
+    return node;
+}
+
 /**
  * Returns the NodeWrap of deepest AST node that contains `pos` between its `pos` and `end`.
  * Only returns undefined if pos is outside of `wrap`
