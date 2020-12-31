@@ -816,10 +816,14 @@ function classExpressionHasSideEffects(node: ts.ClassExpression, options?: SideE
             if (hasSideEffects(base.expression, options))
                 return true;
     for (const child of node.members)
-        if (child.name !== undefined && child.name.kind === ts.SyntaxKind.ComputedPropertyName &&
+        if (
+            !hasModifier(child.modifiers, ts.SyntaxKind.DeclareKeyword) && (
+                child.name !== undefined && child.name.kind === ts.SyntaxKind.ComputedPropertyName &&
             hasSideEffects(child.name.expression, options) ||
             isPropertyDeclaration(child) && child.initializer !== undefined &&
-            hasSideEffects(child.initializer, options))
+                    hasModifier(child.modifiers, ts.SyntaxKind.StaticKeyword) && hasSideEffects(child.initializer, options)
+            )
+        )
             return true;
     return false;
 }
