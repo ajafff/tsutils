@@ -107,29 +107,17 @@ export function getNextStatement(statement: ts.Statement): ts.Statement | undefi
 
 /** Returns the token before the start of `node` or `undefined` if there is none. */
 export function getPreviousToken(node: ts.Node, sourceFile?: ts.SourceFile) {
-    let parent = node.parent;
-    while (parent !== undefined && parent.pos === node.pos)
-        parent = parent.parent;
-    if (parent === undefined)
+    const {pos} = node;
+    if (pos === 0)
         return;
-    outer: while (true) {
-        const children = parent.getChildren(sourceFile);
-        for (let i = children.length - 1; i >= 0; --i) {
-            const child = children[i];
-            if (child.pos < node.pos && child.kind !== ts.SyntaxKind.JSDocComment) {
-                if (isTokenKind(child.kind))
-                    return child;
-                // previous token is nested in another node
-                parent = child;
-                continue outer;
-            }
-        }
-        return;
-    }
+    do
+        node = node.parent!;
+    while (node.pos === pos);
+    return getTokenAtPositionWorker(node, pos - 1, sourceFile ?? node.getSourceFile(), false);
 }
 
 /** Returns the next token that begins after the end of `node`. Returns `undefined` for SourceFile and EndOfFileToken */
-export function getNextToken(node: ts.Node, sourceFile = node.getSourceFile()) {
+export function getNextToken(node: ts.Node, sourceFile?: ts.SourceFile) {
     if (node.kind === ts.SyntaxKind.SourceFile || node.kind === ts.SyntaxKind.EndOfFileToken)
         return;
     const end = node.end;
@@ -139,7 +127,7 @@ export function getNextToken(node: ts.Node, sourceFile = node.getSourceFile()) {
             return (<ts.SourceFile>node).endOfFileToken;
         node = node.parent;
     }
-    return getTokenAtPositionWorker(node, end, sourceFile, false);
+    return getTokenAtPositionWorker(node, end, sourceFile ?? node.getSourceFile(), false);
 }
 
 /** Returns the token at or following the specified position or undefined if none is found inside `parent`. */
@@ -148,9 +136,7 @@ export function getTokenAtPosition(parent: ts.Node, pos: number, sourceFile?: ts
         return;
     if (isTokenKind(parent.kind))
         return parent;
-    if (sourceFile === undefined)
-        sourceFile = parent.getSourceFile();
-    return getTokenAtPositionWorker(parent, pos, sourceFile, allowJsDoc === true);
+    return getTokenAtPositionWorker(parent, pos, sourceFile ?? parent.getSourceFile(), allowJsDoc === true);
 }
 
 function getTokenAtPositionWorker(node: ts.Node, pos: number, sourceFile: ts.SourceFile, allowJsDoc: boolean) {
@@ -250,7 +236,7 @@ export function getPropertyName(propertyName: ts.PropertyName): string | undefin
                             ? `${negate ? '-' : ''}${expression.operand.text.slice(0, -1)}`
                             : undefined;
                 default:
-            return;
+                    return;
             }
         }
         if (isBigIntLiteral(expression))
@@ -847,8 +833,8 @@ function classExpressionHasSideEffects(node: ts.ClassExpression, options?: SideE
         if (
             !hasModifier(child.modifiers, ts.SyntaxKind.DeclareKeyword) && (
                 child.name !== undefined && child.name.kind === ts.SyntaxKind.ComputedPropertyName &&
-            hasSideEffects(child.name.expression, options) ||
-            isPropertyDeclaration(child) && child.initializer !== undefined &&
+                    hasSideEffects(child.name.expression, options) ||
+                isPropertyDeclaration(child) && child.initializer !== undefined &&
                     hasModifier(child.modifiers, ts.SyntaxKind.StaticKeyword) && hasSideEffects(child.initializer, options)
             )
         )
@@ -1674,7 +1660,7 @@ export function getLateBoundPropertyNamesOfPropertyName(node: ts.PropertyName, c
         ? {known: true, names: [{displayName: staticName, symbolName: ts.escapeLeadingUnderscores(staticName)}]}
         : node.kind === ts.SyntaxKind.PrivateIdentifier
             ? {known: true, names: [{displayName: node.text, symbolName: checker.getSymbolAtLocation(node)!.escapedName}]}
-        : getLateBoundPropertyNames((<ts.ComputedPropertyName>node).expression, checker);
+            : getLateBoundPropertyNames((<ts.ComputedPropertyName>node).expression, checker);
 }
 
 /** Most declarations demand there to be only one statically known name, e.g. class members with computed name. */
