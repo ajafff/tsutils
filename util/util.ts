@@ -1659,6 +1659,8 @@ export function getLateBoundPropertyNamesOfPropertyName(node: ts.PropertyName, c
     const staticName = getPropertyName(node);
     return staticName !== undefined
         ? {known: true, names: [{displayName: staticName, symbolName: ts.escapeLeadingUnderscores(staticName)}]}
+        : node.kind === ts.SyntaxKind.PrivateIdentifier
+            ? {known: true, names: [{displayName: node.text, symbolName: checker.getSymbolAtLocation(node)!.escapedName}]}
         : getLateBoundPropertyNames((<ts.ComputedPropertyName>node).expression, checker);
 }
 
@@ -1667,6 +1669,8 @@ export function getSingleLateBoundPropertyNameOfPropertyName(node: ts.PropertyNa
     const staticName = getPropertyName(node);
     if (staticName !== undefined)
         return {displayName: staticName, symbolName: ts.escapeLeadingUnderscores(staticName)};
+    if (node.kind === ts.SyntaxKind.PrivateIdentifier)
+        return {displayName: node.text, symbolName: checker.getSymbolAtLocation(node)!.escapedName};
     const {expression} = <ts.ComputedPropertyName>node;
     return isWellKnownSymbolLiterally(expression)
         ? getPropertyNameOfWellKnownSymbol(expression)
