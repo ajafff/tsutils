@@ -67,10 +67,7 @@ export function isParameterProperty(node: ts.ParameterDeclaration) {
 }
 
 export function hasAccessModifier(node: ts.ClassElement | ts.ParameterDeclaration) {
-    return hasModifier(node.modifiers,
-                       ts.SyntaxKind.PublicKeyword,
-                       ts.SyntaxKind.ProtectedKeyword,
-                       ts.SyntaxKind.PrivateKeyword);
+    return isModifierFlagSet(node, ts.ModifierFlags.AccessibilityModifier);
 }
 
 function isFlagSet(obj: {flags: number}, flag: number) {
