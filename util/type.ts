@@ -56,6 +56,27 @@ function containsTypeWithFlag(type: ts.Type, flag: ts.TypeFlags): boolean {
     return false;
 }
 
+export function removeOptionalChainingUndefinedMarkerType(checker: ts.TypeChecker, type: ts.Type): ts.Type {
+    if (!isUnionType(type))
+        return isOptionalChainingUndefinedMarkerType(checker, type) ? type.getNonNullableType() : type;
+    let flags: ts.TypeFlags = 0;
+    let containsUndefinedMarker = false;
+    for (const t of type.types) {
+        if (isOptionalChainingUndefinedMarkerType(checker, t)) {
+            containsUndefinedMarker = true;
+        } else {
+            flags |= t.flags;
+        }
+    }
+    return containsUndefinedMarker
+        ? checker.getNullableType(type.getNonNullableType(), flags)
+        : type;
+}
+
+export function isOptionalChainingUndefinedMarkerType(checker: ts.TypeChecker, t: ts.Type) {
+    return isTypeFlagSet(t, ts.TypeFlags.Undefined) && checker.getNullableType(t.getNonNullableType(), ts.TypeFlags.Undefined) !== t;
+}
+
 export function isTypeAssignableToNumber(checker: ts.TypeChecker, type: ts.Type): boolean {
     return isTypeAssignableTo(checker, type, ts.TypeFlags.NumberLike);
 }
