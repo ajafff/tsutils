@@ -140,6 +140,12 @@ export function getTokenAtPosition(parent: ts.Node, pos: number, sourceFile?: ts
 }
 
 function getTokenAtPositionWorker(node: ts.Node, pos: number, sourceFile: ts.SourceFile, allowJsDoc: boolean) {
+    if (!allowJsDoc) {
+        // if we are not interested in JSDoc, we can skip to the deepest AST node at the given position
+        node = getAstNodeAtPosition(node, pos)!;
+        if (isTokenKind(node.kind))
+            return node;
+    }
     outer: while (true) {
         for (const child of node.getChildren(sourceFile)) {
             if (child.end > pos && (allowJsDoc || child.kind !== ts.SyntaxKind.JSDocComment)) {
