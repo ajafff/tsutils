@@ -1,9 +1,10 @@
 import * as ts from 'typescript';
 import { NodeWrap } from './convert-ast';
 import {
-    isBlockLike, isLiteralExpression, isPropertyDeclaration, isJsDoc, isImportDeclaration, isTextualLiteral,
+    isBlockLike, isPropertyDeclaration, isJsDoc, isImportDeclaration, isTextualLiteral,
     isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration, isLiteralTypeNode, isTypeReferenceNode,
     isPropertyAssignment, isEntityNameExpression, isNumericOrStringLikeLiteral, isPropertyAccessExpression, isIdentifier,
+    isPrefixUnaryExpression, isNumericLiteral,
 } from '../typeguard/node';
 import { isBigIntLiteral } from '../typeguard/3.2';
 import { isBooleanLiteralType, unionTypeParts, getPropertyNameFromType } from './type';
@@ -222,14 +223,31 @@ export function getWrappedNodeAtPosition(wrap: NodeWrap, pos: number): NodeWrap 
 
 export function getPropertyName(propertyName: ts.PropertyName): string | undefined {
     if (propertyName.kind === ts.SyntaxKind.ComputedPropertyName) {
-        if (!isLiteralExpression(propertyName.expression))
+        const expression = unwrapParentheses(propertyName.expression);
+        if (isPrefixUnaryExpression(expression)) {
+            let negate = false;
+            switch (expression.operator) {
+                case ts.SyntaxKind.MinusToken:
+                    negate = true;
+                    // falls through
+                case ts.SyntaxKind.PlusToken:
+                    return isNumericLiteral(expression.operand)
+                        ? `${negate ? '-' : ''}${expression.operand.text}`
+                        : isBigIntLiteral(expression.operand)
+                            ? `${negate ? '-' : ''}${expression.operand.text.slice(0, -1)}`
+                            : undefined;
+                default:
             return;
-        if (isBigIntLiteral(propertyName.expression))
+            }
+        }
+        if (isBigIntLiteral(expression))
             // handle BigInt, even though TypeScript doesn't allow BigInt as computed property name
-            return propertyName.expression.text.slice(0, -1);
-        return propertyName.expression.text;
+            return expression.text.slice(0, -1);
+        if (isNumericOrStringLikeLiteral(expression))
+            return expression.text;
+        return;
     }
-    return propertyName.text;
+    return propertyName.kind === ts.SyntaxKind.PrivateIdentifier ? undefined : propertyName.text;
 }
 
 export function forEachDestructuringIdentifier<T>(
