@@ -1,0 +1,280 @@
+const s1 = Symbol();
+const s2 = Symbol();
+
+enum E1 {
+    a = 0,
+}
+
+enum E2 {
+    a = 0,
+    b = 1,
+    c = a,
+}
+
+enum DynamicValuedEnum {
+    a = Math.random(),
+    b = Math.random(),
+}
+
+enum S {
+    Foo = 'foo',
+    Bar = 'bar',
+}
+
+declare function get<T>(): T;
+
+() => {
+    switch (get<never>()) {}
+    ~~~~~~                   [not exhaustive]
+    debugger;
+};
+
+() => {
+    switch (get<never>()) {
+    ~~~~~~                  [not exhaustive]
+        case get<never>():
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<1>()) {
+    ~~~~~~              [exhaustive]
+        case 1:
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<1>()) {
+    ~~~~~~              [not exhaustive]
+        case get<number>():
+        case 1:
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<1 | 2>()) {
+    ~~~~~~                  [not exhaustive]
+        case 1:
+        case 1:
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<1 | 2>()) {
+    ~~~~~~                  [not exhaustive, TypeScript disagrees]
+        case 1:
+        default: // is ignored
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<1 | 2>()) {
+    ~~~~~~                  [exhaustive]
+        case 1:
+        case 2:
+        default:
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<1 | 2>()) {
+    ~~~~~~                  [exhaustive]
+        case 1:
+        case 2:
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<string | 1>()) {
+    ~~~~~~                       [not exhaustive]
+        case 1:
+        case get<string>():
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<typeof s1>()) {
+    ~~~~~~                      [not exhaustive]
+        case get<symbol>():
+            return;
+    }
+    debugger;
+};
+
+
+
+() => {
+    switch (get<typeof s1 | typeof s2 | undefined | null>()) {
+    ~~~~~~                                                     [exhaustive]
+        case s1:
+        case s2:
+        case undefined:
+        case null:
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<E1 | E2>()) {
+    ~~~~~~                    [not exhaustive]
+        case E2.a:
+        case E2.b:
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<E1 | E2>()) {
+    ~~~~~~                    [exhaustive]
+        case E1.a: // this is necessary even though E1.a and E2.a have the same value
+        case E2.a:
+        case E2.b:
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<E2>()) {
+    ~~~~~~               [not exhaustive]
+        case 0:
+        case 1:
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<0 | 1>()) {
+    ~~~~~~                  [not exhaustive]
+        case E2.a:
+        case E2.b:
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<DynamicValuedEnum>()) {
+    ~~~~~~                              [not exhaustive]
+        case DynamicValuedEnum.a:
+        case DynamicValuedEnum.b:
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<S>()) {
+    ~~~~~~              [exhaustive]
+        case S.Foo:
+        case S.Bar:
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<S>()) {
+    ~~~~~~              [not exhaustive]
+        case 'foo':
+        case 'bar':
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<1n | 2n>()) {
+    ~~~~~~                    [not exhaustive]
+        case get<bigint>():
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<1n | 2n>()) {
+    ~~~~~~                    [exhaustive]
+        case get<1n>():
+        case get<2n>():
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<1n | '1n'>()) {
+    ~~~~~~                      [not exhaustive]
+        case get<1n>():
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<-1n | 1n>()) {
+    ~~~~~~                     [not exhaustive]
+        case get<1n>():
+        case get<1n>():
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<-1n | 1n>()) {
+    ~~~~~~                     [exhaustive]
+        case get<1n>():
+        case get<-1n>():
+            return;
+    }
+    debugger;
+};
+
+
+() => {
+    switch (get<boolean>()) {
+    ~~~~~~                     [not exhaustive]
+        case get<boolean>():
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<boolean>()) {
+    ~~~~~~                     [not exhaustive]
+        case get<true>():
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<boolean>()) {
+    ~~~~~~                     [exhaustive]
+        case get<true>():
+        case get<false>():
+            return;
+    }
+    debugger;
+};

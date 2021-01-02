@@ -2,7 +2,6 @@
   "compilerOptions": {
     "target": "es2015",
     "module": "commonjs",
-    "removeComments": true,
     "noImplicitAny": true,
     "noImplicitThis": true,
     "suppressImplicitAnyIndexErrors": true,
@@ -15,6 +14,8 @@
     "skipLibCheck": true,
     "declaration": true,
     "importHelpers": true,
+    "sourceMap": true,
+    "inlineSourceMap": false,
     "plugins": [
       { "name": "@fimbul/mithotyn", "displayErrorsAsWarnings": true },
       { "transform": "ts-transform-const-enum" },
@@ -23,6 +24,7 @@
   },
   "exclude": [
     "node_modules",
-    "test/files"
+    "test/files",
+    "test/rules/*/*"
   ]
 }

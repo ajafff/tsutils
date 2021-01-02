@@ -1,6 +1,6 @@
 {
   "rulesDirectory": "..",
   "rules": {
-    "test-reassignment-target": true
+    "test-exhaustive-switch": true
   }
 }

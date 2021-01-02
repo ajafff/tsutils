@@ -1,0 +1,123 @@
+import {assert as assertImported} from './other';
+
+declare let v: boolean;
+
+declare function assert(v: any): asserts v;
+declare function get<T>(): T;
+
+() => { assert(v); v; };
+        ~~~~~~~~~~       [asserts]
+() => { get<typeof assert>()(v); v; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~       [nope]
+() => { assertImported(v); v; };
+        ~~~~~~~~~~~~~~~~~~       [asserts]
+
+const arr = [assert];
+() => { arr[0](v); v; };
+        ~~~~~~~~~~       [nope]
+() => { for (const e of arr) { e(v); v; } };
+                               ~~~~~         [nope]
+const arrWithType: Array<(v: any) => asserts v> = [assert];
+() => { arrWithType[0](v); v; }
+        ~~~~~~~~~~~~~~~~~~      [nope]
+() => { for (const e of arrWithType) { e(v); v; } };
+                                       ~~~~~         [asserts]
+
+const obj = {assert};
+() => { obj.assert(v); v; };
+        ~~~~~~~~~~~~~~       [nope]
+const objWithType: {assert(v: any): asserts v} = {assert};
+() => { objWithType.assert(v); v; };
+        ~~~~~~~~~~~~~~~~~~~~~~       [asserts]
+() => { objWithType['assert'](v); v; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~~       [nope]
+() => { (objWithType).assert(v); v; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~       [asserts]
+() => { ((objWithType).assert)(v); v; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~       [asserts]
+declare const mappedObj: Record<'assert', (v: any) => asserts v>;
+() => { mappedObj.assert(v); v; };
+        ~~~~~~~~~~~~~~~~~~~~       [nope]
+declare const objWithOptionalMethod: {assert?(v: any): asserts v};
+() => { objWithOptionalMethod.assert?.(v); v; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       [nope]
+
+class Test {
+    assert(v: any): asserts v {}
+    #assert: typeof assert = assert;
+    inferredType = assert;
+
+    fn() {
+        () => { this.assert(v); v; };
+                ~~~~~~~~~~~~~~~       [asserts]
+        () => { this.inferredType(v); v; };
+                ~~~~~~~~~~~~~~~~~~~~~       [nope]
+        () => { this.#assert(v); v; };
+                ~~~~~~~~~~~~~~~~       [asserts, TypeScript disagrees]
+    }
+
+    fnWithThis(this: {assert(): void}) {
+        this.assert(v); v;
+        ~~~~~~~~~~~~~~~    [nope]
+    }
+}
+
+class Extended extends Test {
+    fn() {
+        () => { this.assert(v); v; };
+                ~~~~~~~~~~~~~~~       [asserts]
+        () => { this.inferredType(v); v; };
+                ~~~~~~~~~~~~~~~~~~~~~       [nope]
+        () => { super.assert(v); v; };
+                ~~~~~~~~~~~~~~~~       [asserts]
+    }
+}
+
+function withThisType(this: Test) {
+    this.assert(v); v;
+    ~~~~~~~~~~~~~~~    [asserts]
+}
+
+function withThisType2(this: Test) {
+    function decorator(cb: () => void): (...args: any[]) => any {
+        return () => {};
+    }
+
+    @decorator(() => { this.assert(v); v; })
+                       ~~~~~~~~~~~~~~~       [asserts]
+    class Foo {
+        assert() {}
+
+        @decorator(() => { this.assert(v); v; })
+                           ~~~~~~~~~~~~~~~       [asserts]
+        prop = 1;
+
+        @decorator(() => { this.assert(v); v; })
+                           ~~~~~~~~~~~~~~~       [asserts]
+        method() {
+            this.assert(v); v;
+            ~~~~~~~~~~~~~~~    [nope]
+        }
+
+        @decorator(() => { this.assert(v); v; })
+                           ~~~~~~~~~~~~~~~       [asserts]
+        fn(this: {assert(): void}) {
+            this.assert(v); v;
+            ~~~~~~~~~~~~~~~    [nope]
+        }
+    }
+}
+
+const withInferredThisType: (this: Test) => void = function () {
+    this.assert(v); v;
+    ~~~~~~~~~~~~~~~    [nope]
+};
+
+() => { new Test().assert(v); v; };
+        ~~~~~~~~~~~~~~~~~~~~~       [nope]
+const test = new Test(v); v;
+() => { test.assert(v); v; };
+        ~~~~~~~~~~~~~~~       [nope]
+const testWithType: Test = new Test(v); v;
+() => { testWithType.assert(v); v; };
+        ~~~~~~~~~~~~~~~~~~~~~~~       [asserts]

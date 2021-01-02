@@ -4,9 +4,9 @@ import {
     isBlockLike, isPropertyDeclaration, isJsDoc, isImportDeclaration, isTextualLiteral,
     isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration, isLiteralTypeNode, isTypeReferenceNode,
     isPropertyAssignment, isEntityNameExpression, isNumericOrStringLikeLiteral, isPropertyAccessExpression, isIdentifier,
-    isPrefixUnaryExpression, isNumericLiteral,
+    isPrefixUnaryExpression, isNumericLiteral, isCaseClause,
 } from '../typeguard/node';
-import { isBigIntLiteral } from '../typeguard/3.2';
+import { isBigIntLiteral, isUniqueESSymbolType } from '../typeguard/3.2';
 import { isBooleanLiteralType, unionTypeParts, getPropertyNameFromType } from './type';
 
 export function getChildOfKind<T extends ts.SyntaxKind>(node: ts.Node, kind: T, sourceFile?: ts.SourceFile) {
@@ -1686,4 +1686,53 @@ export function unwrapParentheses(node: ts.Expression) {
     while (node.kind === ts.SyntaxKind.ParenthesizedExpression)
         node = (<ts.ParenthesizedExpression>node).expression;
     return node;
+}
+
+export function formatPseudoBigInt(v: ts.PseudoBigInt) {
+    return `${v.negative ? '-' : ''}${v.base10Value}n`;
+}
+
+/**
+ * Determines whether the given `SwitchStatement`'s `case` clauses cover every possible value of the switched expression.
+ * The logic is the same as TypeScript's control flow analysis.
+ * This does **not** check whether all `case` clauses do a certain action like assign a variable or return a value.
+ * This function ignores the `default` clause if present.
+ */
+export function hasExhaustiveCaseClauses(node: ts.SwitchStatement, checker: ts.TypeChecker) {
+    const caseClauses = node.caseBlock.clauses.filter(isCaseClause);
+    if (caseClauses.length === 0)
+        return false;
+    const typeParts = unionTypeParts(checker.getTypeAtLocation(node.expression));
+    if (typeParts.length > caseClauses.length)
+        return false;
+    const types = new Set<string | undefined>(typeParts.map(getPrimitiveLiteralFromType));
+    if (types.has(undefined))
+        return false;
+    const seen = new Set<string | undefined>();
+    for (const clause of caseClauses) {
+        const type = getPrimitiveLiteralFromType(checker.getTypeAtLocation(clause.expression));
+        if (!types.has(type))
+            return false;
+        seen.add(type);
+    }
+    return types.size === seen.size;
+}
+
+function getPrimitiveLiteralFromType(t: ts.Type): string | undefined {
+    if (isTypeFlagSet(t, ts.TypeFlags.Null))
+        return 'null';
+    if (isTypeFlagSet(t, ts.TypeFlags.Undefined))
+        return 'undefined';
+    if (isTypeFlagSet(t, ts.TypeFlags.NumberLiteral))
+        return `${isTypeFlagSet(t, ts.TypeFlags.EnumLiteral) ? 'enum:' : ''}${(<ts.NumberLiteralType>t).value}`;
+    if (isTypeFlagSet(t, ts.TypeFlags.StringLiteral))
+        return `${isTypeFlagSet(t, ts.TypeFlags.EnumLiteral) ? 'enum:' : ''}string:${(<ts.StringLiteralType>t).value}`;
+    if (isTypeFlagSet(t, ts.TypeFlags.BigIntLiteral))
+        return formatPseudoBigInt((<ts.BigIntLiteralType>t).value);
+    if (isUniqueESSymbolType(t))
+        return <string>t.escapedName;
+    if (isBooleanLiteralType(t, true))
+        return 'true';
+    if (isBooleanLiteralType(t, false))
+        return 'false';
 }

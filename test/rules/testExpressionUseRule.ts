@@ -1,18 +1,18 @@
-import * as Lint from 'tslint';
 import * as ts from 'typescript';
-import { isExpression } from '../../../typeguard/node';
-import { isReassignmentTarget } from '../../../util/util';
+import * as Lint from 'tslint';
+import { isExpression } from "../../typeguard/node";
+import { isExpressionValueUsed } from '../../util/util';
 
 export class Rule extends Lint.Rules.AbstractRule {
-    public apply(sourceFile: ts.SourceFile) {
+    public apply(sourceFile: ts.SourceFile): Lint.RuleFailure[] {
         return this.applyWithFunction(sourceFile, walk);
     }
 }
 
 function walk(ctx: Lint.WalkContext<void>) {
     return ts.forEachChild(ctx.sourceFile, function cb(node): void {
-        if (isExpression(node) && isReassignmentTarget(node))
-            ctx.addFailureAtNode(node, 'Reassignment target');
+        if (isExpression(node) && isExpressionValueUsed(node))
+            ctx.addFailureAtNode(node, 'Used');
         return ts.forEachChild(node, cb);
     });
 }

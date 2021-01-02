@@ -1,0 +1,9 @@
+{
+  "rulesDirectory": "..",
+  "rules": {
+    "test-effects-signature": true
+  },
+  "jsRules": {
+    "test-effects-signature": true
+  }
+}
