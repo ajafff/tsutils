@@ -1,0 +1,60 @@
+export {}
+
+/**
+ * @param p {object}
+ * @param p.returnNever {() => never}
+ */
+function a(p) {
+    p.returnNever(); debugger;
+    ~~~~~~~~~~~~~~~~           [never, TypeScript disagrees]
+}
+
+/**
+ * @typedef Foo {object}
+ * @property returnNever {() => never}
+ */
+/**
+ * @param p {Foo}
+ */
+function b(p) {
+    p.returnNever(); debugger;
+    ~~~~~~~~~~~~~~~~           [never, TypeScript disagrees]
+}
+
+/**
+ * @param returnNever {() => never}
+ */
+function c(returnNever) {
+    returnNever(); debugger;
+    ~~~~~~~~~~~~~~           [never]
+}
+
+/**
+ * @param p {{returnNever(): never}}
+ */
+function d(p) {
+    p.returnNever(); debugger;
+    ~~~~~~~~~~~~~~~~           [never]
+}
+
+/**
+ * @callback Never
+ * @return {never}
+ */
+/** @type {Never} */
+const e = () => {};
+() => { e(); debugger; };
+        ~~~~              [never]
+
+/** @return {never} */
+function f() { throw null; }
+() => { f(); debugger; };
+        ~~~~              [never]
+
+/**
+ * @this {{returnNever(): never}}
+ */
+function g() {
+    this.returnNever(); debugger;
+    ~~~~~~~~~~~~~~~~~~~           [never, TypeScript disagrees]
+}

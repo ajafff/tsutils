@@ -1,0 +1,129 @@
+import {returnNever as returnNeverImported} from './other';
+declare function returnNever(): never;
+declare function returnNeverWithNonLiteralReturn(): NonNullable<undefined>;
+declare function get<T>(): T;
+function inferredReturn() { return null!; };
+
+() => { returnNever(); debugger; };
+        ~~~~~~~~~~~~~~              [never]
+() => { returnNeverWithNonLiteralReturn(); debugger; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~              [never]
+() => { get<never>(); debugger; };
+        ~~~~~~~~~~~~~              [nope]
+() => { get<typeof returnNever>()(); debugger; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~              [nope]
+() => { returnNeverImported(); debugger; };
+        ~~~~~~~~~~~~~~~~~~~~~~              [never]
+() => { inferredReturn(); debugger; };
+        ~~~~~~~~~~~~~~~~~              [nope]
+
+const arr = [returnNever];
+() => { arr[0](); debugger; };
+        ~~~~~~~~~              [nope]
+() => { for (const e of arr) { e(); debugger; } };
+                               ~~~~                [nope]
+const arrWithType: Array<() => never> = [returnNever];
+() => { arrWithType[0](); debugger; }
+        ~~~~~~~~~~~~~~~~~             [nope]
+() => { for (const e of arrWithType) { e(); debugger; } };
+                                       ~~~~                [never]
+
+const obj = {returnNever};
+() => { obj.returnNever(); debugger; };
+        ~~~~~~~~~~~~~~~~~~              [nope]
+const objWithType: {returnNever(): never} = {returnNever};
+() => { objWithType.returnNever(); debugger; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~              [never]
+() => { objWithType['returnNever'](); debugger; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~              [nope]
+() => { (objWithType).returnNever(); debugger; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~              [never]
+() => { ((objWithType).returnNever)(); debugger; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~              [never]
+declare const mappedObj: Record<'returnNever', () => never>;
+() => { mappedObj.returnNever(); debugger; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~              [nope]
+declare const objWithOptionalMethod: {returnNever?(): never};
+() => { objWithOptionalMethod.returnNever?.(); debugger; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~              [nope]
+
+class Test {
+    returnNever(): never { returnNever(); debugger; }
+                           ~~~~~~~~~~~~~~             [never]
+    #returnNever: typeof returnNever = returnNever;
+    inferredType = returnNever;
+
+    fn() {
+        () => { this.returnNever(); debugger; };
+                ~~~~~~~~~~~~~~~~~~~              [never]
+        () => { this.inferredType(); debugger; };
+                ~~~~~~~~~~~~~~~~~~~~              [nope]
+        () => { this.#returnNever(); debugger; };
+                ~~~~~~~~~~~~~~~~~~~~              [never, TypeScript disagrees]
+    }
+
+    fnWithThis(this: {returnNever(): void}) {
+        this.returnNever(); debugger;
+        ~~~~~~~~~~~~~~~~~~~           [nope]
+    }
+}
+
+class Extended extends Test {
+    fn() {
+        () => { this.returnNever(); debugger; };
+                ~~~~~~~~~~~~~~~~~~~              [never]
+        () => { this.inferredType(); debugger; };
+                ~~~~~~~~~~~~~~~~~~~~              [nope]
+        () => { super.returnNever(); debugger; };
+                ~~~~~~~~~~~~~~~~~~~~              [never]
+    }
+}
+
+function withThisType(this: Test) {
+    this.returnNever(); debugger;
+    ~~~~~~~~~~~~~~~~~~~           [never]
+}
+
+function withThisType2(this: Test) {
+    function decorator(cb: () => void): (...args: any[]) => any {
+        return () => {};
+    }
+
+    @decorator(() => { this.returnNever(); debugger; })
+                       ~~~~~~~~~~~~~~~~~~~              [never]
+    class Foo {
+        returnNever() {}
+
+        @decorator(() => { this.returnNever(); debugger; })
+                           ~~~~~~~~~~~~~~~~~~~              [never]
+        prop = 1;
+
+        @decorator(() => { this.returnNever(); debugger; })
+                           ~~~~~~~~~~~~~~~~~~~              [never]
+        method() {
+            this.returnNever(); debugger;
+            ~~~~~~~~~~~~~~~~~~~           [nope]
+        }
+
+        @decorator(() => { this.returnNever(); debugger; })
+                           ~~~~~~~~~~~~~~~~~~~              [never]
+        fn(this: {returnNever(): void}) {
+            this.returnNever(); debugger;
+            ~~~~~~~~~~~~~~~~~~~           [nope]
+        }
+    }
+}
+
+const withInferredThisType: (this: Test) => void = function () {
+    this.returnNever(); debugger;
+    ~~~~~~~~~~~~~~~~~~~           [nope, TypeScript disagrees]
+};
+
+() => { new Test().returnNever(); debugger; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~~              [nope]
+const test = new Test(); debugger;
+() => { test.returnNever(); debugger; };
+        ~~~~~~~~~~~~~~~~~~~              [nope]
+const testWithType: Test = new Test(); debugger;
+() => { testWithType.returnNever(); debugger; };
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~              [never]

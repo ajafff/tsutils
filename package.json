@@ -3,7 +3,7 @@
   "version": "3.17.1",
   "description": "utilities for working with typescript's AST",
   "scripts": {
-    "precompile": "rimraf \"{,util,typeguard,test}/*.js\"",
+    "precompile": "rimraf \"{,util,typeguard,test}/*.{js,d.ts}\"",
     "compile": "ttsc -p .",
     "lint:tslint": "wotan -m @fimbul/valtyr",
     "lint:wotan": "wotan",

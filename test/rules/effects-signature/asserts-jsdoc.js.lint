@@ -1,0 +1,63 @@
+export {}
+
+let v = Boolean();
+
+/**
+ * @param p {object}
+ * @param p.assert {(v: any) => asserts v}
+ */
+function a(p) {
+    p.assert(v); v;
+    ~~~~~~~~~~~~    [asserts, TypeScript disagrees]
+}
+
+/**
+ * @typedef Foo {object}
+ * @property assert {(v: any) => asserts v}
+ */
+/**
+ * @param p {Foo}
+ */
+function b(p) {
+    p.assert(v); v;
+    ~~~~~~~~~~~~    [asserts, TypeScript disagrees]
+}
+
+/**
+ * @param assert {(v: any) => asserts v}
+ */
+function c(assert) {
+    assert(v); v;
+    ~~~~~~~~~~    [asserts]
+}
+
+/**
+ * @param p {{assert(v: any): asserts v}}
+ */
+function d(p) {
+    p.assert(v); v;
+    ~~~~~~~~~~~~    [asserts]
+}
+
+/**
+ * @callback Assert
+ * @param {any} v
+ * @return {asserts v}
+ */
+/** @type {Assert} */
+const e = () => {};
+() => { e(v); v; };
+        ~~~~~       [asserts]
+
+/** @return {asserts v} */
+function f(v) { throw null; }
+() => { f(v); v; };
+        ~~~~~              [asserts]
+
+/**
+ * @this {{assert(v: any): asserts v}}
+ */
+function g() {
+    this.assert(v); v;
+    ~~~~~~~~~~~~~~~    [asserts, TypeScript disagrees]
+}
