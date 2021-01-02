@@ -1,0 +1,6 @@
+export {}
+declare function returnNever(): never;
+
+function test() {
+    returnNever();
+}

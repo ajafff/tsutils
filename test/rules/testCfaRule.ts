@@ -4,13 +4,17 @@ import { endsControlFlow } from '../../util/control-flow';
 import { convertAst } from '../../util/convert-ast';
 import { isBlockLike, isIterationStatement, isWithStatement, isIfStatement, isLabeledStatement } from '../../typeguard/node';
 
-export class Rule extends Lint.Rules.AbstractRule {
+export class Rule extends Lint.Rules.OptionallyTypedRule {
     public apply(sourceFile: ts.SourceFile): Lint.RuleFailure[] {
         return this.applyWithFunction(sourceFile, walk);
     }
+
+    public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program) {
+        return this.applyWithFunction(sourceFile, walk, undefined, program.getTypeChecker());
+    }
 }
 
-function walk(ctx: Lint.WalkContext<void>) {
+function walk(ctx: Lint.WalkContext<void>, checker?: ts.TypeChecker) {
     const seen = new Set<ts.Node>();
     for (const node of convertAst(ctx.sourceFile).flat) {
         if (isBlockLike(node)) {
@@ -28,7 +32,7 @@ function walk(ctx: Lint.WalkContext<void>) {
         if (seen.has(node))
             return;
         seen.add(node);
-        if (endsControlFlow(node))
+        if (endsControlFlow(node, checker))
             ctx.addFailureAtNode(node.getFirstToken(ctx.sourceFile)!, 'control flow end');
     }
 }

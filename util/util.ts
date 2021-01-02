@@ -1731,4 +1731,8 @@ function getPrimitiveLiteralFromType(t: ts.Type): string | undefined {
         return formatPseudoBigInt((<ts.BigIntLiteralType>t).value);
     if (isUniqueESSymbolType(t))
         return <string>t.escapedName;
+    if (isBooleanLiteralType(t, true))
+        return 'true';
+    if (isBooleanLiteralType(t, false))
+        return 'false';
 }

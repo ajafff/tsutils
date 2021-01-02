@@ -1,0 +1,8 @@
+{
+    "rulesDirectory": [
+        ".."
+    ],
+    "rules":{
+        "test-cfa": true
+    }
+}

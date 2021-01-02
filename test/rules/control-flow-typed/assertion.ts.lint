@@ -1,0 +1,10 @@
+export {}
+declare function returnNever(): never;
+
+function test() {
+                ~ [0]
+    returnNever();
+    ~~~~~~~~~~~ [0]
+}
+
+[0]: control flow end

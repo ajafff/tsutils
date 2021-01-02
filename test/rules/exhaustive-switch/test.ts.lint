@@ -249,3 +249,32 @@ declare function get<T>(): T;
     }
     debugger;
 };
+
+
+() => {
+    switch (get<boolean>()) {
+    ~~~~~~                     [not exhaustive]
+        case get<boolean>():
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<boolean>()) {
+    ~~~~~~                     [not exhaustive]
+        case get<true>():
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<boolean>()) {
+    ~~~~~~                     [exhaustive]
+        case get<true>():
+        case get<false>():
+            return;
+    }
+    debugger;
+};
