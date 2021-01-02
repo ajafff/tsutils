@@ -1,6 +1,6 @@
 import * as Lint from 'tslint';
 import * as ts from 'typescript';
-import { isPropertyReadonlyInType, getLateBoundPropertyNames } from '../../../util'
+import { isPropertyReadonlyInType, getLateBoundPropertyNames } from '../../util'
 
 export class Rule extends Lint.Rules.TypedRule {
     public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program) {

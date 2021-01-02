@@ -4,7 +4,7 @@ import {
     isBlockLike, isPropertyDeclaration, isJsDoc, isImportDeclaration, isTextualLiteral,
     isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration, isLiteralTypeNode, isTypeReferenceNode,
     isPropertyAssignment, isEntityNameExpression, isNumericOrStringLikeLiteral, isPropertyAccessExpression, isIdentifier,
-    isPrefixUnaryExpression, isNumericLiteral,
+    isPrefixUnaryExpression, isNumericLiteral, isCaseClause,
 } from '../typeguard/node';
 import { isBigIntLiteral, isUniqueESSymbolType } from '../typeguard/3.2';
 import { isBooleanLiteralType, unionTypeParts, getPropertyNameFromType } from './type';
@@ -1699,18 +1699,23 @@ export function formatPseudoBigInt(v: ts.PseudoBigInt) {
  * This function ignores the `default` clause if present.
  */
 export function hasExhaustiveCaseClauses(node: ts.SwitchStatement, checker: ts.TypeChecker) {
-    const types = new Set(unionTypeParts(checker.getTypeAtLocation(node)).map(getPrimitiveLiteralFromType));
+    const caseClauses = node.caseBlock.clauses.filter(isCaseClause);
+    if (caseClauses.length === 0)
+        return false;
+    const typeParts = unionTypeParts(checker.getTypeAtLocation(node.expression));
+    if (typeParts.length > caseClauses.length)
+        return false;
+    const types = new Set<string | undefined>(typeParts.map(getPrimitiveLiteralFromType));
     if (types.has(undefined))
         return false;
-    for (const clause of node.caseBlock.clauses) {
-        if (clause.kind === ts.SyntaxKind.DefaultClause)
-            continue;
+    const seen = new Set<string | undefined>();
+    for (const clause of caseClauses) {
         const type = getPrimitiveLiteralFromType(checker.getTypeAtLocation(clause.expression));
-        if (type === undefined || !types.has(type))
+        if (!types.has(type))
             return false;
-        types.delete(type);
+        seen.add(type);
     }
-    return types.size === 0;
+    return types.size === seen.size;
 }
 
 function getPrimitiveLiteralFromType(t: ts.Type): string | undefined {

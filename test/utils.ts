@@ -39,3 +39,11 @@ function getFirstTokenWorker(current: ts.Node, sourceFile: ts.SourceFile): ts.No
             return result;
     }
 }
+
+export function getUnreachableStatements(program: ts.Program, sourceFile: ts.SourceFile) {
+    const set = new Set<number>();
+    for (const diagnostic of program.getSemanticDiagnostics(sourceFile))
+        if (diagnostic.code === 7027)
+            set.add(diagnostic.start!);
+    return set;
+}

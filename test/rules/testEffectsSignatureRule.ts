@@ -1,9 +1,10 @@
 import * as Lint from 'tslint';
 import * as ts from 'typescript';
-import { isCallExpression, isExpressionStatement } from '../../../typeguard/node';
-import { callExpressionAffectsControlFlow, SignatureEffect } from '../../../util/control-flow'
-import { isBooleanLiteralType } from '../../../util/type';
-import { getNextStatement } from '../../../util/util';
+import { isCallExpression, isExpressionStatement } from '../../typeguard/node';
+import { callExpressionAffectsControlFlow, SignatureEffect } from '../../util/control-flow'
+import { isBooleanLiteralType } from '../../util/type';
+import { getNextStatement } from '../../util/util';
+import { getUnreachableStatements } from '../utils';
 
 export class Rule extends Lint.Rules.TypedRule {
     public applyWithProgram(sourceFile: ts.SourceFile, program: ts.Program) {
@@ -33,16 +34,8 @@ function walk(ctx: Lint.WalkContext<void>, program: ts.Program) {
         return ts.forEachChild(node, cb);
     });
 
-    function getUnreachableStatements() {
-        const set = new Set<number>();
-        for (const diagnostic of program.getSemanticDiagnostics(ctx.sourceFile))
-            if (diagnostic.code === 7027)
-                set.add(diagnostic.start!);
-        return set;
-    }
-
     function isStatementUnreachable(node: ts.Statement) {
-        return (unreachableStatements ??= getUnreachableStatements()).has(node.getStart(ctx.sourceFile));
+        return (unreachableStatements ??= getUnreachableStatements(program, ctx.sourceFile)).has(node.getStart(ctx.sourceFile));
     }
 
     function isNextStatementUnreachable(node: ts.ExpressionStatement) {

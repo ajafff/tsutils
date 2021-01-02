@@ -5,5 +5,5 @@ node_modules/
 npm-debug.log
 /coverage/
 /.nyc_output
-!/test/rules/*/*.js
-/test/rules/*/*Rule.js
+!/test/rules/*/*
+!/test/files/

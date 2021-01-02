@@ -1,7 +1,7 @@
 import * as ts from 'typescript';
 import * as Lint from 'tslint';
-import { isExpression } from '../../../typeguard/node';
-import { hasSideEffects, SideEffectOptions } from '../../../util/util';
+import { isExpression } from '../../typeguard/node';
+import { hasSideEffects, SideEffectOptions } from '../../util/util';
 
 export class Rule extends Lint.Rules.AbstractRule {
     public apply(sourceFile: ts.SourceFile): Lint.RuleFailure[] {

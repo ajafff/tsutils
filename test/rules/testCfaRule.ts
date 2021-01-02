@@ -1,8 +1,8 @@
 import * as ts from 'typescript';
 import * as Lint from 'tslint';
-import { endsControlFlow } from '../../../util/control-flow';
-import { convertAst } from '../../../util/convert-ast';
-import { isBlockLike, isIterationStatement, isWithStatement, isIfStatement, isLabeledStatement } from '../../../typeguard/node';
+import { endsControlFlow } from '../../util/control-flow';
+import { convertAst } from '../../util/convert-ast';
+import { isBlockLike, isIterationStatement, isWithStatement, isIfStatement, isLabeledStatement } from '../../typeguard/node';
 
 export class Rule extends Lint.Rules.AbstractRule {
     public apply(sourceFile: ts.SourceFile): Lint.RuleFailure[] {

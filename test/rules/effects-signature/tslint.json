@@ -1,5 +1,5 @@
 {
-  "rulesDirectory": ".",
+  "rulesDirectory": "..",
   "rules": {
     "test-effects-signature": true
   },

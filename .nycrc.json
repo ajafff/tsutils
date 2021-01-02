@@ -6,7 +6,7 @@
         "**/index.js"
     ],
     "extension": [
-        ".js"
+        ".ts"
     ],
     "reporter": [
         "text-summary",
