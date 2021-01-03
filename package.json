@@ -13,7 +13,7 @@
     "prepublishOnly": "run-s verify",
     "coverage": "nyc run-s test",
     "report-coverage": "cat ./coverage/lcov.info | coveralls",
-    "github-release": "GITHUB_TOKEN=$(cat ~/github_token.txt) github-release-from-changelog",
+    "github-release": "node ./scripts/github-release.js",
     "postpublish": "git push origin master --tags; run-s github-release"
   },
   "repository": {
