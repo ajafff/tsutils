@@ -1,3 +1,37 @@
+# 3.18.0
+
+**Features:**
+
+* Source maps for easier debugging
+* JSDoc is preserved in declaration files
+* Comments are presered in transpiled code
+* Everything you need to handle the control flow changes of TypeScript@3.7
+  * `callExpressionAffectsControlFlow` to determine whether a CallExpression affects control flow by returning `never` or `asserts`
+  * `hasExhaustiveCaseClauses` to determine whether a SwitchStatement's CaseClauses handle every possible value
+  * `endsControlFlow` and `getControlFlowEnd` take an optional `checker` parameter to recognize exhaustive SwitchStatements and control flow effects of CallExpressions
+* `formatPseudoBigInt` converts TypeScript's representation of a BigInt to its literal representation as you would write it in your source code
+* `getAstNodeAtPosition` similar to `getTokenAtPosition`, but only operates on AST Nodes
+* `removeOptionalChainingUndefinedMarkerType` and `isOptionalChainingUndefinedMarkerType` to handle types originating in an optional chain
+* `findImports` and `findImportLikeNodes`: prepare for import assertions
+* `getTsCheckDirective` as new name for `getCheckJsDirective`
+* `getCheckJsDirective` is now deprecated
+
+**Bugfixes:**
+
+* `getUsageDomain`: handles NamespaceExport and NamedTupleMember
+* `getPropertyName`: handles parentheses and negative numeric literals, excludes RegExp literals and private identifiers
+* `getSingleLateBoundPropertyNameOfPropertyName` and `getLateBoundPropertyNamesOfPropertyName`: handles private identifiers
+* `hasAccessModifier`: handles JSDoc access modifier
+* `hasSideEffects`: correctly determines side effects of (static) property initializers
+* `isExpressionValueUsed`: handle nullish coalescing and conditional assignment operators
+* `canHaveJsDoc`: aligned with upstream changes in TypeScript
+* `isCompilerOptionEnabled`:
+  * `noUncheckedIndexedAccess` requires `strictNullChecks`
+  * `checkJs` implies `allowJs`
+  * `emitDeclarationOnly` requires `declaration`
+* `isInConstContext`: handle template string interpolations
+* excluded unnecessary files from npm package
+
 # 3.17.1
 
 **Bugfixes:**
