@@ -14,7 +14,7 @@
     "coverage": "nyc run-s test",
     "report-coverage": "cat ./coverage/lcov.info | coveralls",
     "github-release": "node ./scripts/github-release.js",
-    "postpublish": "git push origin master --tags; run-s github-release"
+    "postpublish": "git push origin master --tags && run-s github-release"
   },
   "repository": {
     "type": "git",
