@@ -1,10 +1,23 @@
 export {}
 declare function returnNever(): never;
+declare function assert(v: any): asserts v;
 
 function test() {
                 ~ [0]
     returnNever();
     ~~~~~~~~~~~ [0]
+}
+
+function test2(v: boolean) {
+    assert(v);
+}
+
+function test3() {
+    try {
+        ~ [0]
+        returnNever();
+        ~~~~~~~~~~~ [0]
+    } catch {}
 }
 
 [0]: control flow end

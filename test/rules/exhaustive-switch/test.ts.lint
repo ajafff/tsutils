@@ -278,3 +278,39 @@ declare function get<T>(): T;
     }
     debugger;
 };
+
+<T>() => {
+    switch (get<T>()) {
+    ~~~~~~                     [not exhaustive]
+        case get<T>():
+            return;
+    }
+    debugger;
+};
+
+<T extends 1>() => {
+    switch (get<T>()) {
+    ~~~~~~                     [not exhaustive]
+        case get<T>():
+            return;
+    }
+    debugger;
+};
+
+<T extends 1>() => {
+    switch (get<T>()) {
+    ~~~~~~                     [not exhaustive]
+        case get<1>():
+            return;
+    }
+    debugger;
+};
+
+<T extends 1>() => {
+    switch (get<1>()) {
+    ~~~~~~                     [not exhaustive]
+        case get<T>():
+            return;
+    }
+    debugger;
+};
