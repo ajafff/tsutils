@@ -285,16 +285,20 @@ export function getPropertyNameFromType(type: ts.Type): PropertyName | undefined
         };
 }
 
+export function getSymbolOfClassLikeDeclaration(node: ts.ClassLikeDeclaration, checker: ts.TypeChecker) {
+    return node.name !== undefined ? checker.getSymbolAtLocation(node.name)! : checker.getTypeAtLocation(node).symbol!;
+}
+
 export function getConstructorTypeOfClassLikeDeclaration(node: ts.ClassLikeDeclaration, checker: ts.TypeChecker) {
-    return checker.getDeclaredTypeOfSymbol(
-        node.name !== undefined ? checker.getSymbolAtLocation(node.name)! : checker.getTypeAtLocation(node).symbol!,
-    );
+    return node.kind === ts.SyntaxKind.ClassExpression
+        ? checker.getTypeAtLocation(node)
+        : checker.getTypeOfSymbolAtLocation(getSymbolOfClassLikeDeclaration(node, checker), node);
 }
 
 export function getInstanceTypeOfClassLikeDeclaration(node: ts.ClassLikeDeclaration, checker: ts.TypeChecker) {
     return node.kind === ts.SyntaxKind.ClassDeclaration
         ? checker.getTypeAtLocation(node)
-        : checker.getTypeOfSymbolAtLocation(checker.getTypeAtLocation(node).getProperty('prototype')!, node);
+        : checker.getDeclaredTypeOfSymbol(getSymbolOfClassLikeDeclaration(node, checker));
 }
 
 export function getIteratorYieldResultFromIteratorResult(type: ts.Type, node: ts.Node, checker: ts.TypeChecker): ts.Type {

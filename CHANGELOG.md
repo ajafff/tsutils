@@ -1,3 +1,13 @@
+# 3.19.0
+
+**Features:**
+
+* `getSymbolOfClassLikeDeclaration` to retrieve the symbol of class declarations and expressions regardless whether they have a name or not
+
+**Bugfixes:**
+
+* `getConstructorTypeOfClassLikeDeclaration` now really returns the constructor type (the static side of the class), previously it returned the instance type
+
 # 3.18.0
 
 **Features:**
