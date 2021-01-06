@@ -9,7 +9,7 @@
 **Bugfixes:**
 
 * `getConstructorTypeOfClassLikeDeclaration` now really returns the constructor type (the static side of the class), previously it returned the instance type
-* `hasExhaustiveCaseClauses` allows additional case clauses with `null` and `undefined`
+* `hasExhaustiveCaseClauses` allows additional case clauses with `null`, `undefined` and `never`
 
 # 3.18.0
 

@@ -65,6 +65,7 @@ declare function get<T>(): T;
         case 1:
         case null:
         case undefined:
+        case get<never>():
             return;
     }
     debugger;

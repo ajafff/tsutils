@@ -1710,7 +1710,10 @@ export function hasExhaustiveCaseClauses(node: ts.SwitchStatement, checker: ts.T
         return false;
     const seen = new Set<string | undefined>();
     for (const clause of caseClauses) {
-        const type = getPrimitiveLiteralFromType(checker.getTypeAtLocation(clause.expression));
+        const expressionType = checker.getTypeAtLocation(clause.expression);
+        if (isTypeFlagSet(expressionType, ts.TypeFlags.Never))
+            continue; // additional case clause with 'never' is always allowed
+        const type = getPrimitiveLiteralFromType(expressionType);
         if (types.has(type)) {
             seen.add(type);
         } else if (type !== 'null' && type !== 'undefined') { // additional case clauses with 'null' and 'undefined' are always allowed
