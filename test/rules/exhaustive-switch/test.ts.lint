@@ -49,6 +49,39 @@ declare function get<T>(): T;
 
 () => {
     switch (get<1>()) {
+    ~~~~~~              [exhaustive]
+        case 1:
+        case null:
+        case undefined:
+            return;
+    }
+    debugger;
+};
+
+
+() => {
+    switch (get<1 | null>()) {
+    ~~~~~~                     [exhaustive]
+        case 1:
+        case null:
+        case undefined:
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<1 | null>()) {
+    ~~~~~~                     [not exhaustive]
+        case 1:
+        case undefined:
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<1>()) {
     ~~~~~~              [not exhaustive]
         case get<number>():
         case 1:

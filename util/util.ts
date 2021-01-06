@@ -1712,9 +1712,12 @@ export function hasExhaustiveCaseClauses(node: ts.SwitchStatement, checker: ts.T
     const seen = new Set<string | undefined>();
     for (const clause of caseClauses) {
         const type = getPrimitiveLiteralFromType(checker.getTypeAtLocation(clause.expression));
-        if (!types.has(type))
+        // additional case clauses with 'null' and 'undefined' are always allowed
+        if (types.has(type)) {
+            seen.add(type);
+        } else if (type !== 'null' && type !== 'undefined') { // additional case clauses with 'null' and 'undefined' are always allowed
             return false;
-        seen.add(type);
+        }
     }
     return types.size === seen.size;
 }
