@@ -3,6 +3,8 @@
 **Features:**
 
 * `getSymbolOfClassLikeDeclaration` to retrieve the symbol of class declarations and expressions regardless whether they have a name or not
+* `getBaseOfClassLikeDeclaration` to conventiently get the expression after `extends`
+* `getBaseClassMemberOfClassElement` to look up the declaration of a class member in the base class
 
 **Bugfixes:**
 

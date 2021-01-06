@@ -18,6 +18,9 @@ import {
     isNodeFlagSet,
     isNumericPropertyName,
     PropertyName,
+    getBaseOfClassLikeExpression,
+    getSingleLateBoundPropertyNameOfPropertyName,
+    hasModifier,
 } from './util';
 import {
     isPropertyAssignment,
@@ -25,6 +28,7 @@ import {
     isCallExpression,
     isShorthandPropertyAssignment,
     isEnumMember,
+    isClassLikeDeclaration,
 } from '../typeguard/node';
 
 export function isEmptyObjectType(type: ts.Type): type is ts.ObjectType {
@@ -307,4 +311,25 @@ export function getIteratorYieldResultFromIteratorResult(type: ts.Type, node: ts
         return done !== undefined &&
             isBooleanLiteralType(removeOptionalityFromType(checker, checker.getTypeOfSymbolAtLocation(done, node)), false);
     }) || type;
+}
+
+/** Lookup the declaration of a class member in the super class. */
+export function getBaseClassMemberOfClassElement(
+    node: ts.PropertyDeclaration | ts.MethodDeclaration | ts.AccessorDeclaration,
+    checker: ts.TypeChecker,
+): ts.Symbol | undefined {
+    if (!isClassLikeDeclaration(node.parent!))
+        return;
+    const base = getBaseOfClassLikeExpression(node.parent);
+    if (base === undefined)
+        return;
+    const name = getSingleLateBoundPropertyNameOfPropertyName(node.name, checker);
+    if (name === undefined)
+        return;
+    const baseType = checker.getTypeAtLocation(
+        hasModifier(node.modifiers, ts.SyntaxKind.StaticKeyword)
+            ? base.expression
+            : base,
+    );
+    return getPropertyOfType(baseType, name.symbolName);
 }

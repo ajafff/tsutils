@@ -831,10 +831,9 @@ export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions)
 }
 
 function classExpressionHasSideEffects(node: ts.ClassExpression, options?: SideEffectOptions): boolean {
-    if (node.heritageClauses !== undefined && node.heritageClauses[0].token === ts.SyntaxKind.ExtendsKeyword)
-        for (const base of node.heritageClauses[0].types)
-            if (hasSideEffects(base.expression, options))
-                return true;
+    const base = getBaseOfClassLikeExpression(node);
+    if (base !== undefined && hasSideEffects(base.expression, options))
+        return true;
     for (const child of node.members)
         if (
             !hasModifier(child.modifiers, ts.SyntaxKind.DeclareKeyword) && (
@@ -1712,7 +1711,6 @@ export function hasExhaustiveCaseClauses(node: ts.SwitchStatement, checker: ts.T
     const seen = new Set<string | undefined>();
     for (const clause of caseClauses) {
         const type = getPrimitiveLiteralFromType(checker.getTypeAtLocation(clause.expression));
-        // additional case clauses with 'null' and 'undefined' are always allowed
         if (types.has(type)) {
             seen.add(type);
         } else if (type !== 'null' && type !== 'undefined') { // additional case clauses with 'null' and 'undefined' are always allowed
@@ -1739,4 +1737,9 @@ function getPrimitiveLiteralFromType(t: ts.Type): string | undefined {
         return 'true';
     if (isBooleanLiteralType(t, false))
         return 'false';
+}
+
+export function getBaseOfClassLikeExpression(node: ts.ClassLikeDeclaration): ts.ExpressionWithTypeArguments | undefined {
+    if (node.heritageClauses?.[0].token === ts.SyntaxKind.ExtendsKeyword)
+        return node.heritageClauses[0].types[0];
 }
