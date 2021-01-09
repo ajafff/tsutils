@@ -21,6 +21,7 @@ import {
     getBaseOfClassLikeExpression,
     getSingleLateBoundPropertyNameOfPropertyName,
     hasModifier,
+    getChildOfKind,
 } from './util';
 import {
     isPropertyAssignment,
@@ -290,7 +291,7 @@ export function getPropertyNameFromType(type: ts.Type): PropertyName | undefined
 }
 
 export function getSymbolOfClassLikeDeclaration(node: ts.ClassLikeDeclaration, checker: ts.TypeChecker) {
-    return node.name !== undefined ? checker.getSymbolAtLocation(node.name)! : checker.getTypeAtLocation(node).symbol!;
+    return checker.getSymbolAtLocation(node.name ?? getChildOfKind(node, ts.SyntaxKind.ClassKeyword)!)!;
 }
 
 export function getConstructorTypeOfClassLikeDeclaration(node: ts.ClassLikeDeclaration, checker: ts.TypeChecker) {
