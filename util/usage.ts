@@ -584,6 +584,9 @@ function getEntityNameParent(name: ts.EntityName) {
     return parent;
 }
 
+// TODO class decorators resolve outside of class, element and parameter decorator resolve inside/at the class
+// TODO computed property name resolves inside/at the cass
+// TODO this and super in all of them are resolved outside of the class
 class UsageWalker {
     private _result = new Map<ts.Identifier, VariableInfo>();
     private _scope: Scope;
