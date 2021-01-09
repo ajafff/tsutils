@@ -348,3 +348,30 @@ declare function get<T>(): T;
     }
     debugger;
 };
+
+() => {
+    switch (get<1 & {}>()) {
+    ~~~~~~                     [not exhaustive]
+        case get<1>():
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<1 & {}>()) {
+    ~~~~~~                     [not exhaustive]
+        case get<1 & {}>():
+            return;
+    }
+    debugger;
+};
+
+() => {
+    switch (get<1>()) {
+    ~~~~~~                     [not exhaustive]
+        case get<1 & {}>():
+            return;
+    }
+    debugger;
+};
