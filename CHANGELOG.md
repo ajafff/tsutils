@@ -1,3 +1,9 @@
+# 3.19.1
+
+**Bugfixes:**
+
+* `getSymbolOfClassLikeDeclaration` no longer crashes on anonymous mixin classes
+
 # 3.19.0
 
 **Features:**
