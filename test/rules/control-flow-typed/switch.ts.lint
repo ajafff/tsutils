@@ -74,6 +74,17 @@ function test() {
                     ~~~~~~ [0]
             }
     }
+
+    switch (Boolean()) {
+        case true:
+        ~~~~ [0]
+            break;
+            ~~~~~ [0]
+        case false:
+        ~~~~ [0]
+            return;
+            ~~~~~~ [0]
+    }
 }
 
 [0]: control flow end
