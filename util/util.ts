@@ -4,7 +4,7 @@ import {
     isBlockLike, isPropertyDeclaration, isJsDoc, isImportDeclaration, isTextualLiteral,
     isImportEqualsDeclaration, isModuleDeclaration, isCallExpression, isExportDeclaration, isLiteralTypeNode, isTypeReferenceNode,
     isPropertyAssignment, isEntityNameExpression, isNumericOrStringLikeLiteral, isPropertyAccessExpression, isIdentifier,
-    isPrefixUnaryExpression, isNumericLiteral, isCaseClause,
+    isPrefixUnaryExpression, isNumericLiteral, isCaseClause, isMethodDeclaration,
 } from '../typeguard/node';
 import { isBigIntLiteral, isUniqueESSymbolType } from '../typeguard/3.2';
 import { isBooleanLiteralType, unionTypeParts, getPropertyNameFromType } from './type';
@@ -466,15 +466,22 @@ export function isFunctionWithBody(node: ts.Node): node is ts.FunctionLikeDeclar
  * @param cb Is called for every token contained in `node`
  */
 export function forEachToken(node: ts.Node, cb: (node: ts.Node) => void, sourceFile: ts.SourceFile = node.getSourceFile()) {
-    const queue = [node];
-    while (queue.length !== 0) {
-        const current = queue.pop()!;
-        if (isTokenKind(current.kind)) {
-            cb(current);
-        } else if (current.kind !== ts.SyntaxKind.JSDocComment) {
-            for (let children = current.getChildren(sourceFile), i = children.length - 1; i >= 0; --i)
+    const queue = [];
+    while (true) {
+        if (isTokenKind(node.kind)) {
+            cb(node);
+        } else if (node.kind !== ts.SyntaxKind.JSDocComment) {
+            const children = node.getChildren(sourceFile);
+            if (children.length === 1) {
+                node = children[0];
+                continue;
+            }
+            for (let i = children.length - 1; i >= 0; --i)
                 queue.push(children[i]); // add children in reverse order, when we pop the next element from the queue, it's the first child
         }
+        if (queue.length === 0)
+            break;
+        node = queue.pop()!;
     }
 }
 
@@ -712,140 +719,147 @@ export const enum SideEffectOptions {
 }
 
 export function hasSideEffects(node: ts.Expression, options?: SideEffectOptions): boolean {
-    switch (node.kind) {
-        case ts.SyntaxKind.CallExpression:
-        case ts.SyntaxKind.PostfixUnaryExpression:
-        case ts.SyntaxKind.AwaitExpression:
-        case ts.SyntaxKind.YieldExpression:
-        case ts.SyntaxKind.DeleteExpression:
-            return true;
-        case ts.SyntaxKind.TypeAssertionExpression:
-        case ts.SyntaxKind.AsExpression:
-        case ts.SyntaxKind.ParenthesizedExpression:
-        case ts.SyntaxKind.NonNullExpression:
-        case ts.SyntaxKind.VoidExpression:
-        case ts.SyntaxKind.TypeOfExpression:
-        case ts.SyntaxKind.PropertyAccessExpression:
-        case ts.SyntaxKind.SpreadElement:
-        case ts.SyntaxKind.PartiallyEmittedExpression:
-            return hasSideEffects(
-                (<ts.AssertionExpression | ts.ParenthesizedExpression | ts.NonNullExpression | ts.VoidExpression | ts.TypeOfExpression |
-                  ts.PropertyAccessExpression | ts.SpreadElement | ts.PartiallyEmittedExpression>node).expression,
-                options,
-            );
-        case ts.SyntaxKind.BinaryExpression:
-            return isAssignmentKind((<ts.BinaryExpression>node).operatorToken.kind) ||
-                hasSideEffects((<ts.BinaryExpression>node).left, options) ||
-                hasSideEffects((<ts.BinaryExpression>node).right, options);
-        case ts.SyntaxKind.PrefixUnaryExpression:
-            switch ((<ts.PrefixUnaryExpression>node).operator) {
-                case ts.SyntaxKind.PlusPlusToken:
-                case ts.SyntaxKind.MinusMinusToken:
-                    return true;
-                default:
-                    return hasSideEffects((<ts.PrefixUnaryExpression>node).operand, options);
-            }
-        case ts.SyntaxKind.ElementAccessExpression:
-            return hasSideEffects((<ts.ElementAccessExpression>node).expression, options) ||
-                // wotan-disable-next-line no-useless-predicate
-                (<ts.ElementAccessExpression>node).argumentExpression !== undefined && // for compatibility with typescript@<2.9.0
-                hasSideEffects((<ts.ElementAccessExpression>node).argumentExpression, options);
-        case ts.SyntaxKind.ConditionalExpression:
-            return hasSideEffects((<ts.ConditionalExpression>node).condition, options) ||
-                hasSideEffects((<ts.ConditionalExpression>node).whenTrue, options) ||
-                hasSideEffects((<ts.ConditionalExpression>node).whenFalse, options);
-        case ts.SyntaxKind.NewExpression:
-            if (options! & SideEffectOptions.Constructor || hasSideEffects((<ts.NewExpression>node).expression, options))
+    const queue = [];
+    while (true) {
+        switch (node.kind) {
+            case ts.SyntaxKind.CallExpression:
+            case ts.SyntaxKind.PostfixUnaryExpression:
+            case ts.SyntaxKind.AwaitExpression:
+            case ts.SyntaxKind.YieldExpression:
+            case ts.SyntaxKind.DeleteExpression:
                 return true;
-            if ((<ts.NewExpression>node).arguments !== undefined)
-                for (const child of (<ts.NewExpression>node).arguments!)
-                    if (hasSideEffects(child, options))
+            case ts.SyntaxKind.TypeAssertionExpression:
+            case ts.SyntaxKind.AsExpression:
+            case ts.SyntaxKind.ParenthesizedExpression:
+            case ts.SyntaxKind.NonNullExpression:
+            case ts.SyntaxKind.VoidExpression:
+            case ts.SyntaxKind.TypeOfExpression:
+            case ts.SyntaxKind.PropertyAccessExpression:
+            case ts.SyntaxKind.SpreadElement:
+            case ts.SyntaxKind.PartiallyEmittedExpression:
+                node = (<ts.AssertionExpression | ts.ParenthesizedExpression | ts.NonNullExpression | ts.VoidExpression |
+                    ts.TypeOfExpression | ts.PropertyAccessExpression | ts.SpreadElement | ts.PartiallyEmittedExpression>node).expression;
+                continue;
+            case ts.SyntaxKind.BinaryExpression:
+                if (isAssignmentKind((<ts.BinaryExpression>node).operatorToken.kind))
+                    return true;
+                queue.push((<ts.BinaryExpression>node).right);
+                node = (<ts.BinaryExpression>node).left;
+                continue;
+            case ts.SyntaxKind.PrefixUnaryExpression:
+                switch ((<ts.PrefixUnaryExpression>node).operator) {
+                    case ts.SyntaxKind.PlusPlusToken:
+                    case ts.SyntaxKind.MinusMinusToken:
                         return true;
-            return false;
-        case ts.SyntaxKind.TaggedTemplateExpression:
-            if (options! & SideEffectOptions.TaggedTemplate || hasSideEffects((<ts.TaggedTemplateExpression>node).tag, options))
-                return true;
-            if ((<ts.TaggedTemplateExpression>node).template.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral)
-                return false;
-            node = (<ts.TaggedTemplateExpression>node).template;
-            // falls through
-        case ts.SyntaxKind.TemplateExpression:
-            for (const child of (<ts.TemplateExpression>node).templateSpans)
-                if (hasSideEffects(child.expression, options))
-                    return true;
-            return false;
-        case ts.SyntaxKind.ClassExpression:
-            return classExpressionHasSideEffects(<ts.ClassExpression>node, options);
-        case ts.SyntaxKind.ArrayLiteralExpression:
-            for (const child of (<ts.ArrayLiteralExpression>node).elements)
-                if (hasSideEffects(child, options))
-                    return true;
-            return false;
-        case ts.SyntaxKind.ObjectLiteralExpression:
-            for (const child of (<ts.ObjectLiteralExpression>node).properties) {
-                if (child.name !== undefined && child.name.kind === ts.SyntaxKind.ComputedPropertyName &&
-                    hasSideEffects(child.name.expression, options))
-                    return true;
-                switch (child.kind) {
-                    case ts.SyntaxKind.PropertyAssignment:
-                        if (hasSideEffects(child.initializer, options))
-                            return true;
-                        break;
-                    case ts.SyntaxKind.SpreadAssignment:
-                        if (hasSideEffects(child.expression, options))
-                            return true;
+                    default:
+                        node = (<ts.PrefixUnaryExpression>node).operand;
+                        continue;
                 }
-            }
-            return false;
-        case ts.SyntaxKind.JsxExpression:
-            return (<ts.JsxExpression>node).expression !== undefined && hasSideEffects((<ts.JsxExpression>node).expression!, options);
-        case ts.SyntaxKind.JsxElement:
-        case ts.SyntaxKind.JsxFragment:
-            for (const child of (<ts.JsxElement | ts.JsxFragment>node).children)
-                if (child.kind !== ts.SyntaxKind.JsxText && hasSideEffects(child, options))
+            case ts.SyntaxKind.ElementAccessExpression:
+                if ((<ts.ElementAccessExpression>node).argumentExpression !== undefined) // for compatibility with typescript@<2.9.0
+                    queue.push((<ts.ElementAccessExpression>node).argumentExpression);
+                node = (<ts.ElementAccessExpression>node).expression;
+                continue;
+            case ts.SyntaxKind.ConditionalExpression:
+                queue.push((<ts.ConditionalExpression>node).whenTrue, (<ts.ConditionalExpression>node).whenFalse);
+                node = (<ts.ConditionalExpression>node).condition;
+                continue;
+            case ts.SyntaxKind.NewExpression:
+                if (options! & SideEffectOptions.Constructor)
                     return true;
-            if (node.kind === ts.SyntaxKind.JsxFragment)
-                return false;
-            node = (<ts.JsxElement>node).openingElement;
-            // falls through
-        case ts.SyntaxKind.JsxSelfClosingElement:
-        case ts.SyntaxKind.JsxOpeningElement:
-            if (options! & SideEffectOptions.JsxElement)
-                return true;
-            for (const child of (<ts.JsxOpeningLikeElement>node).attributes.properties) {
-                if (child.kind === ts.SyntaxKind.JsxSpreadAttribute) {
-                    if (hasSideEffects(child.expression, options))
+                if ((<ts.NewExpression>node).arguments !== undefined)
+                    queue.push(...(<ts.NewExpression>node).arguments!);
+                node = (<ts.NewExpression>node).expression;
+                continue;
+            case ts.SyntaxKind.TaggedTemplateExpression:
+                if (options! & SideEffectOptions.TaggedTemplate)
+                    return true;
+                queue.push((<ts.TaggedTemplateExpression>node).tag);
+                node = (<ts.TaggedTemplateExpression>node).template;
+                if (node.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral)
+                    break;
+                // falls through
+            case ts.SyntaxKind.TemplateExpression:
+                for (const child of (<ts.TemplateExpression>node).templateSpans)
+                    queue.push(child.expression);
+                break;
+            case ts.SyntaxKind.ClassExpression: {
+                if ((<ts.ClassExpression>node).decorators !== undefined)
+                    return true;
+                for (const child of (<ts.ClassExpression>node).members) {
+                    if (child.decorators !== undefined)
                         return true;
-                } else if (child.initializer !== undefined && hasSideEffects(child.initializer, options)) {
-                    return true;
+                    if (!hasModifier(child.modifiers, ts.SyntaxKind.DeclareKeyword)) {
+                        if (child.name?.kind === ts.SyntaxKind.ComputedPropertyName)
+                            queue.push(child.name.expression);
+                        if (isMethodDeclaration(child)) {
+                            for (const p of child.parameters)
+                                if (p.decorators !== undefined)
+                                    return true;
+                        } else if (
+                            isPropertyDeclaration(child) &&
+                            child.initializer !== undefined &&
+                            hasModifier(child.modifiers, ts.SyntaxKind.StaticKeyword)
+                        ) {
+                            queue.push(child.initializer);
+                        }
+                    }
                 }
+                const base = getBaseOfClassLikeExpression(<ts.ClassExpression>node);
+                if (base === undefined)
+                    break;
+                node = base.expression;
+                continue;
             }
-            return false;
-        case ts.SyntaxKind.CommaListExpression:
-            for (const child of (<ts.CommaListExpression>node).elements)
-                if (hasSideEffects(child, options))
+            case ts.SyntaxKind.ArrayLiteralExpression:
+                queue.push(...(<ts.ArrayLiteralExpression>node).elements);
+                break;
+            case ts.SyntaxKind.ObjectLiteralExpression:
+                for (const child of (<ts.ObjectLiteralExpression>node).properties) {
+                    if (child.name?.kind === ts.SyntaxKind.ComputedPropertyName)
+                        queue.push(child.name.expression);
+                    switch (child.kind) {
+                        case ts.SyntaxKind.PropertyAssignment:
+                            queue.push(child.initializer);
+                            break;
+                        case ts.SyntaxKind.SpreadAssignment:
+                            queue.push(child.expression);
+                    }
+                }
+                break;
+            case ts.SyntaxKind.JsxExpression:
+                if ((<ts.JsxExpression>node).expression === undefined)
+                    break;
+                node = (<ts.JsxExpression>node).expression!;
+                continue;
+            case ts.SyntaxKind.JsxElement:
+            case ts.SyntaxKind.JsxFragment:
+                for (const child of (<ts.JsxElement | ts.JsxFragment>node).children)
+                    if (child.kind !== ts.SyntaxKind.JsxText)
+                        queue.push(child);
+                if (node.kind === ts.SyntaxKind.JsxFragment)
+                    break;
+                node = (<ts.JsxElement>node).openingElement;
+                // falls through
+            case ts.SyntaxKind.JsxSelfClosingElement:
+            case ts.SyntaxKind.JsxOpeningElement:
+                if (options! & SideEffectOptions.JsxElement)
                     return true;
+                for (const child of (<ts.JsxOpeningLikeElement>node).attributes.properties) {
+                    if (child.kind === ts.SyntaxKind.JsxSpreadAttribute) {
+                        queue.push(child.expression);
+                    } else if (child.initializer !== undefined) {
+                        queue.push(child.initializer);
+                    }
+                }
+                break;
+            case ts.SyntaxKind.CommaListExpression:
+                queue.push(...(<ts.CommaListExpression>node).elements);
+        }
+        if (queue.length === 0)
             return false;
-        default:
-            return false;
+        node = queue.pop()!;
     }
-}
-
-function classExpressionHasSideEffects(node: ts.ClassExpression, options?: SideEffectOptions): boolean {
-    const base = getBaseOfClassLikeExpression(node);
-    if (base !== undefined && hasSideEffects(base.expression, options))
-        return true;
-    for (const child of node.members)
-        if (
-            !hasModifier(child.modifiers, ts.SyntaxKind.DeclareKeyword) && (
-                child.name !== undefined && child.name.kind === ts.SyntaxKind.ComputedPropertyName &&
-                    hasSideEffects(child.name.expression, options) ||
-                isPropertyDeclaration(child) && child.initializer !== undefined &&
-                    hasModifier(child.modifiers, ts.SyntaxKind.StaticKeyword) && hasSideEffects(child.initializer, options)
-            )
-        )
-            return true;
-    return false;
 }
 
 /** Returns the VariableDeclaration or ParameterDeclaration that contains the BindingElement */
@@ -914,7 +928,7 @@ export function isExpressionValueUsed(node: ts.Expression): boolean {
             case ts.SyntaxKind.PrefixUnaryExpression:
             case ts.SyntaxKind.NonNullExpression:
                 node = <ts.Expression>parent;
-                break;
+                continue;
             case ts.SyntaxKind.ForStatement:
                 return (<ts.ForStatement>parent).condition === node;
             case ts.SyntaxKind.ForInStatement:
