@@ -466,15 +466,16 @@ export function isFunctionWithBody(node: ts.Node): node is ts.FunctionLikeDeclar
  * @param cb Is called for every token contained in `node`
  */
 export function forEachToken(node: ts.Node, cb: (node: ts.Node) => void, sourceFile: ts.SourceFile = node.getSourceFile()) {
-    return (function iterate(child): void {
-        if (isTokenKind(child.kind))
-            return cb(child); // tokens have no children -> no need to recurse deeper
-        /* Exclude everything contained in JsDoc, it will be handled with the other trivia anyway.
-         * When we would handle JsDoc tokens like regular ones, we would scan some trivia multiple times.
-         * Even worse, we would scan for trivia inside the JsDoc comment, which yields unexpected results.*/
-        if (child.kind !== ts.SyntaxKind.JSDocComment)
-            return child.getChildren(sourceFile).forEach(iterate);
-    })(node);
+    const queue = [node];
+    while (queue.length !== 0) {
+        const current = queue.pop()!;
+        if (isTokenKind(current.kind)) {
+            cb(current);
+        } else if (current.kind !== ts.SyntaxKind.JSDocComment) {
+            for (let children = current.getChildren(sourceFile), i = children.length - 1; i >= 0; --i)
+                queue.push(children[i]); // add children in reverse order, when we pop the next element from the queue, it's the first child
+        }
+    }
 }
 
 export type ForEachTokenCallback = (fullText: string, kind: ts.SyntaxKind, range: ts.TextRange, parent: ts.Node) => void;

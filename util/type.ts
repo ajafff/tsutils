@@ -104,7 +104,7 @@ function isTypeAssignableTo(checker: ts.TypeChecker, type: ts.Type, flags: ts.Ty
             }
             const declaration = <ts.TypeParameterDeclaration>t.symbol.declarations[0];
             if (declaration.constraint === undefined)
-                return true;
+                return true; // TODO really?
             return check(checker.getTypeFromTypeNode(declaration.constraint));
         }
         if (isUnionType(t))
