@@ -8,6 +8,13 @@ describe('convertAst', () => {
         convertAst(getSourceFile('test/files/token/whitespace.ts'));
     });
 
+    it('should handle huge AST just fine', () => {
+        let sourceText = 'let v = 1';
+        for (let i = 0; i < 5000; ++i)
+            sourceText += ' + 1';
+        convertAst(ts.createSourceFile('test.ts', sourceText, ts.ScriptTarget.ESNext));
+    });
+
     const sourceFile = getSourceFile('test/files/comment/comments.tsx');
 
     it('flat should contain all children recursively depth-first', () => {

@@ -27,7 +27,7 @@ export interface WrappedAst extends NodeWrap {
 export interface ConvertedAst {
     /** nodes wrapped in a data structure with useful links */
     wrapped: WrappedAst;
-    /** depth-first array of all nodes */
+    /** depth-first array of all nodes excluding SourceFile */
     flat: ReadonlyArray<ts.Node>;
 }
 
@@ -46,39 +46,57 @@ export function convertAst(sourceFile: ts.SourceFile): ConvertedAst {
     };
     const flat: ts.Node[] = [];
     let current: NodeWrap = wrapped;
-    let previous = current;
-    ts.forEachChild(sourceFile, function wrap(node) {
-        flat.push(node);
-        const parent = current;
-        previous.next = current = {
+
+    function collectChildren(node: ts.Node) {
+        current.children.push({
             node,
-            parent,
+            parent: current,
             kind: node.kind,
             children: [],
             next: undefined,
             skip: undefined,
-        };
-        if (previous !== parent)
-            setSkip(previous, current);
-
-        previous = current;
-        parent.children.push(current);
-
-        if (isNodeKind(node.kind))
-            ts.forEachChild(node, wrap);
-
-        current = parent;
-    });
+        });
+    }
+    const stack = [];
+    while (true) {
+        if (current.children.length === 0) {
+            ts.forEachChild(current.node, collectChildren);
+            if (current.children.length === 0) {
+                current = current.parent!; // nothing to do here, go back to parent
+            } else {
+                // recurse into first child
+                current.next = current.children[0];
+                current = current.children[0];
+                flat.push(current.node);
+                stack.push(1); // set index in stack so we know where to continue processing children
+            }
+        } else {
+            const index = stack[stack.length - 1];
+            if (index < current.children.length) { // handles 2nd child to the last
+                const currentChild = current.children[index];
+                flat.push(currentChild.node);
+                let previous = current.children[index - 1];
+                while (previous.children.length !== 0) {
+                    previous.skip = currentChild;
+                    previous = previous.children[previous.children.length - 1];
+                }
+                previous.skip = previous.next = currentChild;
+                ++stack[stack.length - 1];
+                if (isNodeKind(currentChild.kind))
+                    current = currentChild; // recurse into child
+            } else {
+                // done on this node
+                if (stack.length === 1)
+                    break;
+                // remove index from stack and go back to parent
+                stack.pop();
+                current = current.parent!;
+            }
+        }
+    }
 
     return {
         wrapped,
         flat,
     };
-}
-
-function setSkip(node: NodeWrap, skip: NodeWrap) {
-    do {
-        node.skip = skip;
-        node = node.parent!;
-    } while (node !== skip.parent);
 }
