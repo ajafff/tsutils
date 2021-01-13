@@ -213,6 +213,11 @@ describe('isValidJsxIdentifier', () => {
             ['𝑚', true],
             ['𝑚-𝑚', true],
             ['\\u0061', false],
+            ['ns:name', true],
+            ['ns:', false],
+            ['too:much:colon', false],
+            [':', false],
+            [':name', false],
         ];
         for (const test of tests)
             assert.equal(isValidJsxIdentifier(test[0]), test[1], test[0]);
