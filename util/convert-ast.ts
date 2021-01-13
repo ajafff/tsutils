@@ -65,9 +65,11 @@ export function convertAst(sourceFile: ts.SourceFile): ConvertedAst {
                 current = current.parent!; // nothing to do here, go back to parent
             } else {
                 // recurse into first child
-                current.next = current.children[0];
-                current = current.children[0];
-                flat.push(current.node);
+                const firstChild = current.children[0];
+                current.next = firstChild;
+                flat.push(firstChild.node);
+                if (isNodeKind(firstChild.kind))
+                    current = firstChild;
                 stack.push(1); // set index in stack so we know where to continue processing children
             }
         } else {
