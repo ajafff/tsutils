@@ -1308,9 +1308,9 @@ export const enum ImportKind {
     AllTopLevelImports = AllStaticImports | ExportFrom,
 }
 
-export function findImports(sourceFile: ts.SourceFile, kinds: ImportKind) {
+export function findImports(sourceFile: ts.SourceFile, kinds: ImportKind, ignoreFileName = true) {
     const result: Array<ts.StringLiteral | ts.NoSubstitutionTemplateLiteral> = [];
-    for (const node of findImportLikeNodes(sourceFile, kinds)) {
+    for (const node of findImportLikeNodes(sourceFile, kinds, ignoreFileName)) {
         switch (node.kind) {
             case ts.SyntaxKind.ImportDeclaration:
                 addIfTextualLiteral(node.moduleSpecifier);
@@ -1348,12 +1348,12 @@ export type ImportLike =
         & {expression:
             ts.Token<ts.SyntaxKind.ImportKeyword> | ts.Identifier & {text: 'require'}, arguments: [ts.Expression, ...ts.Expression[]]}
     | ts.ImportTypeNode;
-export function findImportLikeNodes(sourceFile: ts.SourceFile, kinds: ImportKind): ImportLike[] {
-    return new ImportFinder(sourceFile, kinds).find();
+export function findImportLikeNodes(sourceFile: ts.SourceFile, kinds: ImportKind, ignoreFileName = true): ImportLike[] {
+    return new ImportFinder(sourceFile, kinds, ignoreFileName).find();
 }
 
 class ImportFinder {
-    constructor(private _sourceFile: ts.SourceFile, private _options: ImportKind) {}
+    constructor(private _sourceFile: ts.SourceFile, private _options: ImportKind, private _ignoreFileName: boolean) {}
 
     private _result: ImportLike[] = [];
 
@@ -1394,22 +1394,28 @@ class ImportFinder {
     }
 
     private _findNestedImports() {
+        const isJavaScriptFile = this._ignoreFileName || (this._sourceFile.flags & ts.NodeFlags.JavaScriptFile) !== 0;
         let re;
+        let includeJsDoc;
         if ((this._options & ImportKind.AllNestedImports) === ImportKind.Require) {
+            if (!isJavaScriptFile)
+                return; // don't look for 'require' in TS files
             re = /\brequire\s*[</(]/g;
-        } else if (this._options & ImportKind.Require) {
+            includeJsDoc = false;
+        } else if (this._options & ImportKind.Require && isJavaScriptFile) {
             re = /\b(?:import|require)\s*[</(]/g;
+            includeJsDoc = (this._options & ImportKind.ImportType) !== 0;
         } else {
             re = /\bimport\s*[</(]/g;
+            includeJsDoc = isJavaScriptFile && (this._options & ImportKind.ImportType) !== 0;
         }
-        const isJavaScriptFile = (this._sourceFile.flags & ts.NodeFlags.JavaScriptFile) !== 0;
         for (let match = re.exec(this._sourceFile.text); match !== null; match = re.exec(this._sourceFile.text)) {
             const token = getTokenAtPositionWorker(
                 this._sourceFile,
                 match.index,
                 this._sourceFile,
                 // only look for ImportTypeNode within JSDoc in JS files
-                match[0][0] === 'i' && isJavaScriptFile,
+                match[0][0] === 'i' && includeJsDoc,
             )!;
             if (token.kind === ts.SyntaxKind.ImportKeyword) {
                 if (token.end - 'import'.length !== match.index)

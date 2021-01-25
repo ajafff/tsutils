@@ -1,3 +1,9 @@
+# 3.20.0
+
+**Features:**
+
+* `findImports` and `findImportLikeNodes` take an additional parameter `ignoreFileName`. The default value for this paramter is `true` to remain backwards compatible. When set to `false`, it matches the behavior of TypeScript, i.e. only looks for `require` in JavaScript files.
+
 # 3.19.1
 
 **Bugfixes:**
