@@ -4,6 +4,10 @@
 
 * `findImports` and `findImportLikeNodes` take an additional parameter `ignoreFileName`. The default value for this paramter is `true` to remain backwards compatible. When set to `false`, it matches the behavior of TypeScript, i.e. only looks for `require` in JavaScript files.
 
+**Bugfixes:**
+
+* `getJsDoc` for `EndOfFileToken` now returns `JSDoc` comments whose contents are usable with the type checker
+
 # 3.19.1
 
 **Bugfixes:**

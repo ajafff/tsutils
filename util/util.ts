@@ -1222,10 +1222,8 @@ export function canHaveJsDoc(node: ts.Node): node is ts.HasJSDoc {
 
 type AssertNever<T extends never> = T;
 
-/** Gets the JSDoc of any node. For performance reasons this function should only be called when `canHaveJsDoc` returns true. */
+/** Gets the JSDoc of a node. For performance reasons this function should only be called when `canHaveJsDoc` returns true. */
 export function getJsDoc(node: ts.Node, sourceFile?: ts.SourceFile): ts.JSDoc[] {
-    if (node.kind === ts.SyntaxKind.EndOfFileToken)
-        return parseJsDocWorker(node, sourceFile || <ts.SourceFile>node.parent);
     const result = [];
     for (const child of node.getChildren(sourceFile)) {
         if (!isJsDoc(child))
@@ -1248,11 +1246,10 @@ export function parseJsDocOfNode(node: ts.Node, considerTrailingComments?: boole
         if (result.length !== 0 || !considerTrailingComments)
             return result;
     }
-    return parseJsDocWorker(node, sourceFile, considerTrailingComments);
+    return parseJsDocWorker(node, node.getStart(sourceFile), sourceFile, considerTrailingComments);
 }
 
-function parseJsDocWorker(node: ts.Node, sourceFile: ts.SourceFile, considerTrailingComments?: boolean) {
-    const nodeStart = node.getStart(sourceFile);
+function parseJsDocWorker(node: ts.Node, nodeStart: number, sourceFile: ts.SourceFile, considerTrailingComments?: boolean) {
     const start = ts[
         considerTrailingComments && isSameLine(sourceFile, node.pos, nodeStart)
             ? 'forEachTrailingCommentRange'
