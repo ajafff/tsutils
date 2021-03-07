@@ -1647,12 +1647,15 @@ export interface PropertyName {
     symbolName: ts.__String;
 }
 
+/** @deprecated typescript 4.3 removed the concept of literal well known symbols. Use `getPropertyNameFromType` instead. */
 export function getPropertyNameOfWellKnownSymbol(node: WellKnownSymbolLiteral): PropertyName {
     return {
         displayName: `[Symbol.${node.name.text}]`,
         symbolName: <ts.__String>('__@' + node.name.text),
     };
 }
+
+const isTsBefore43 = (([major, minor]) => major < '4' || major === '4' && minor < '3')(ts.versionMajorMinor.split('.'));
 
 export interface LateBoundPropertyNames {
     /** Whether all constituents are literal names. */
@@ -1667,8 +1670,8 @@ export function getLateBoundPropertyNames(node: ts.Expression, checker: ts.TypeC
     };
 
     node = unwrapParentheses(node);
-    if (isWellKnownSymbolLiterally(node)) {
-        result.names.push(getPropertyNameOfWellKnownSymbol(node));
+    if (isTsBefore43 && isWellKnownSymbolLiterally(node)) {
+        result.names.push(getPropertyNameOfWellKnownSymbol(node)); // wotan-disable-line no-unstable-api-use
     } else {
         const type = checker.getTypeAtLocation(node);
         for (const key of unionTypeParts(checker.getBaseConstraintOfType(type) || type)) {
@@ -1700,8 +1703,8 @@ export function getSingleLateBoundPropertyNameOfPropertyName(node: ts.PropertyNa
     if (node.kind === ts.SyntaxKind.PrivateIdentifier)
         return {displayName: node.text, symbolName: checker.getSymbolAtLocation(node)!.escapedName};
     const {expression} = <ts.ComputedPropertyName>node;
-    return isWellKnownSymbolLiterally(expression)
-        ? getPropertyNameOfWellKnownSymbol(expression)
+    return isTsBefore43 && isWellKnownSymbolLiterally(expression)
+        ? getPropertyNameOfWellKnownSymbol(expression) // wotan-disable-line no-unstable-api-use
         : getPropertyNameFromType(checker.getTypeAtLocation(expression));
 }
 

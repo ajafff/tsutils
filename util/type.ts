@@ -30,6 +30,8 @@ import {
     isShorthandPropertyAssignment,
     isEnumMember,
     isClassLikeDeclaration,
+    isInterfaceDeclaration,
+    isSourceFile,
 } from '../typeguard/node';
 
 export function isEmptyObjectType(type: ts.Type): type is ts.ObjectType {
@@ -205,6 +207,29 @@ export function getPropertyOfType(type: ts.Type, name: ts.__String) {
     return type.getProperties().find((s) => s.escapedName === name);
 }
 
+export function getWellKnownSymbolPropertyOfType(type: ts.Type, wellKnownSymbolName: string, checker: ts.TypeChecker) {
+    const prefix = '__@' + wellKnownSymbolName;
+    for (const prop of type.getProperties()) {
+        if (!prop.name.startsWith(prefix))
+            continue;
+        const globalSymbol = checker.getApparentType(
+            checker.getTypeAtLocation((<ts.ComputedPropertyName>(<ts.NamedDeclaration>prop.valueDeclaration).name).expression),
+        ).symbol;
+        if (prop.escapedName === getPropertyNameOfWellKnownSymbol(checker, globalSymbol, wellKnownSymbolName))
+            return prop;
+    }
+    return;
+}
+
+function getPropertyNameOfWellKnownSymbol(checker: ts.TypeChecker, symbolConstructor: ts.Symbol | undefined, symbolName: string) {
+    const knownSymbol = symbolConstructor &&
+        checker.getTypeOfSymbolAtLocation(symbolConstructor, symbolConstructor.valueDeclaration).getProperty(symbolName);
+    const knownSymbolType = knownSymbol && checker.getTypeOfSymbolAtLocation(knownSymbol, knownSymbol.valueDeclaration);
+    if (knownSymbolType && isUniqueESSymbolType(knownSymbolType))
+        return knownSymbolType.escapedName;
+    return <ts.__String>('__@' + symbolName);
+}
+
 /** Determines if writing to a certain property of a given type is allowed. */
 export function isPropertyReadonlyInType(type: ts.Type, name: ts.__String, checker: ts.TypeChecker): boolean {
     let seenProperty = false;
@@ -285,9 +310,24 @@ export function getPropertyNameFromType(type: ts.Type): PropertyName | undefined
     }
     if (isUniqueESSymbolType(type))
         return {
-            displayName: `[${type.symbol ? type.symbol.name : (<string>type.escapedName).replace(/^__@|@\d+$/g, '')}]`,
+            displayName: `[${type.symbol
+                ? `${isKnownSymbol(type.symbol) ? 'Symbol.' : ''}${type.symbol.name}`
+                : (<string>type.escapedName).replace(/^__@|@\d+$/g, '')
+            }]`,
             symbolName: type.escapedName,
         };
+}
+
+function isKnownSymbol(symbol: ts.Symbol): boolean {
+    return isSymbolFlagSet(symbol, ts.SymbolFlags.Property) &&
+        symbol.valueDeclaration !== undefined &&
+        isInterfaceDeclaration(symbol.valueDeclaration.parent) &&
+        symbol.valueDeclaration.parent.name.text === 'SymbolConstructor' &&
+        isGlobalDeclaration(symbol.valueDeclaration.parent);
+}
+
+function isGlobalDeclaration(node: ts.DeclarationStatement): boolean {
+    return isNodeFlagSet(node.parent!, ts.NodeFlags.GlobalAugmentation) || isSourceFile(node.parent) && !ts.isExternalModule(node.parent);
 }
 
 export function getSymbolOfClassLikeDeclaration(node: ts.ClassLikeDeclaration, checker: ts.TypeChecker) {
