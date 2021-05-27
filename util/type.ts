@@ -279,6 +279,10 @@ function isReadonlyPropertyIntersection(type: ts.Type, name: ts.__String, checke
     });
 }
 
+function hasModifiersType(type: ts.Type): type is ts.Type & { modifiersType: ts.Type} {
+    return 'modifiersType' in type;
+}
+
 function isReadonlyPropertyFromMappedType(type: ts.Type, name: ts.__String, checker: ts.TypeChecker): boolean | undefined {
     if (!isObjectType(type) || !isObjectFlagSet(type, ts.ObjectFlags.Mapped))
         return;
@@ -286,6 +290,11 @@ function isReadonlyPropertyFromMappedType(type: ts.Type, name: ts.__String, chec
     // well-known symbols are not affected by mapped types
     if (declaration.readonlyToken !== undefined && !/^__@[^@]+$/.test(<string>name))
         return declaration.readonlyToken.kind !== ts.SyntaxKind.MinusToken;
+
+    if (!hasModifiersType(type)) {
+        return;
+    }
+
     return isPropertyReadonlyInType((<{modifiersType: ts.Type}><unknown>type).modifiersType, name, checker);
 }
 
