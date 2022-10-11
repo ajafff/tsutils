@@ -286,7 +286,10 @@ function isReadonlyPropertyFromMappedType(type: ts.Type, name: ts.__String, chec
     // well-known symbols are not affected by mapped types
     if (declaration.readonlyToken !== undefined && !/^__@[^@]+$/.test(<string>name))
         return declaration.readonlyToken.kind !== ts.SyntaxKind.MinusToken;
-    return isPropertyReadonlyInType((<{modifiersType: ts.Type}><unknown>type).modifiersType, name, checker);
+    const modifiersType = (<{ modifiersType: ts.Type }><unknown>type).modifiersType;
+    if (modifiersType === undefined)
+        return false;
+    return isPropertyReadonlyInType(modifiersType, name, checker);
 }
 
 export function symbolHasReadonlyDeclaration(symbol: ts.Symbol, checker: ts.TypeChecker) {
