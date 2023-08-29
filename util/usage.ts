@@ -21,6 +21,13 @@ interface InternalVariableInfo {
     uses: VariableUse[];
 }
 
+function identifierToKeywordKind(node) {
+    if (ts.identifierToKeywordkind === undefined) {
+        return node.originalKeywordKind;
+    }
+    return ts.identifierToKeywordkind(node);
+}
+
 export interface VariableInfo {
     domain: DeclarationDomain;
     exported: boolean;
@@ -56,7 +63,7 @@ export function getUsageDomain(node: ts.Identifier): UsageDomain | undefined {
     const parent = node.parent!;
     switch (parent.kind) {
         case ts.SyntaxKind.TypeReference:
-            return node.originalKeywordKind !== ts.SyntaxKind.ConstKeyword ? UsageDomain.Type : undefined;
+            return identifierToKeywordKind(node) !== ts.SyntaxKind.ConstKeyword ? UsageDomain.Type : undefined;
         case ts.SyntaxKind.ExpressionWithTypeArguments:
             return (<ts.HeritageClause>parent.parent).token === ts.SyntaxKind.ImplementsKeyword ||
                 parent.parent!.parent!.kind === ts.SyntaxKind.InterfaceDeclaration
@@ -147,7 +154,8 @@ export function getDeclarationDomain(node: ts.Identifier): DeclarationDomain | u
         case ts.SyntaxKind.ModuleDeclaration:
             return DeclarationDomain.Namespace;
         case ts.SyntaxKind.Parameter:
-            if (node.parent!.parent!.kind === ts.SyntaxKind.IndexSignature || node.originalKeywordKind === ts.SyntaxKind.ThisKeyword)
+            if (node.parent!.parent!.kind === ts.SyntaxKind.IndexSignature ||
+                identifierToKeywordKind(node) === ts.SyntaxKind.ThisKeyword)
                 return;
             // falls through
         case ts.SyntaxKind.BindingElement:
@@ -647,7 +655,7 @@ class UsageWalker {
                 case ts.SyntaxKind.Parameter:
                     if (node.parent!.kind !== ts.SyntaxKind.IndexSignature &&
                         ((<ts.ParameterDeclaration>node).name.kind !== ts.SyntaxKind.Identifier ||
-                         (<ts.Identifier>(<ts.NamedDeclaration>node).name).originalKeywordKind !== ts.SyntaxKind.ThisKeyword))
+                         identifierToKeywordKind(<ts.Identifier>(<ts.NamedDeclaration>node).name) !== ts.SyntaxKind.ThisKeyword))
                         this._handleBindingName(<ts.Identifier>(<ts.NamedDeclaration>node).name, false, false);
                     break;
                 case ts.SyntaxKind.EnumMember:
