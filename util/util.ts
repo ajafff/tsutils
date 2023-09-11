@@ -9,6 +9,14 @@ import {
 import { isBigIntLiteral, isUniqueESSymbolType } from '../typeguard/3.2';
 import { isBooleanLiteralType, unionTypeParts, getPropertyNameFromType } from './type';
 
+
+function identifierToKeywordKind(node) {
+    if (ts.identifierToKeywordkind === undefined) {
+        return node.originalKeywordKind;
+    }
+    return ts.identifierToKeywordkind(node);
+}
+
 export function getChildOfKind<T extends ts.SyntaxKind>(node: ts.Node, kind: T, sourceFile?: ts.SourceFile) {
     for (const child of node.getChildren(sourceFile))
         if (child.kind === kind)
@@ -40,7 +48,7 @@ export function isKeywordKind(kind: ts.SyntaxKind) {
 }
 
 export function isThisParameter(parameter: ts.ParameterDeclaration): boolean {
-    return parameter.name.kind === ts.SyntaxKind.Identifier && parameter.name.originalKeywordKind === ts.SyntaxKind.ThisKeyword;
+    return parameter.name.kind === ts.SyntaxKind.Identifier && identifierToKeywordKind(parameter.name) === ts.SyntaxKind.ThisKeyword;
 }
 
 export function getModifier(node: ts.Node, kind: ts.Modifier['kind']): ts.Modifier | undefined {
